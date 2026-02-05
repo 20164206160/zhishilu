@@ -1,17 +1,13 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-:root {
-  --primary: #3b82f6;
-  --secondary: #10b981;
-  --background: #f8fafc;
-  --foreground: #0f172a;
+/* 强制背景颜色以进行测试 */
+body {
+  background-color: #f0f9ff !important;
+  margin: 0;
+  padding: 0;
 }
 
-body {
-  background-color: var(--background);
-  color: var(--foreground);
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+@theme {
+  --color-primary: #3b82f6;
+  --color-secondary: #10b981;
 }

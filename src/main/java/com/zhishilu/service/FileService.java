@@ -36,16 +36,24 @@ public class FileService {
     private Long maxSize;
     
     private List<String> allowedTypeList;
+    private String absoluteUploadPath;
     
     @PostConstruct
     public void init() {
         allowedTypeList = Arrays.asList(allowedTypes.split(","));
         
-        // 确保上传目录存在
+        // 将相对路径转换为绝对路径
         File uploadDir = new File(uploadPath);
+        absoluteUploadPath = uploadDir.getAbsolutePath();
+        
+        // 确保上传目录存在
         if (!uploadDir.exists()) {
-            uploadDir.mkdirs();
+            boolean created = uploadDir.mkdirs();
+            if (created) {
+                log.info("创建上传目录: {}", absoluteUploadPath);
+            }
         }
+        log.info("文件上传路径: {}", absoluteUploadPath);
     }
     
     /**
@@ -68,19 +76,20 @@ public class FileService {
             throw new BusinessException("不支持的文件类型: " + extension);
         }
         
-        // 生成文件名和路径
-        String dateDir = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
-        String fileName = UUID.randomUUID().toString() + "." + extension;
+        // 生成文件名和路径 - 格式: yyyyMMdd/随机文件名.扩展名
+        String dateDir = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String fileName = UUID.randomUUID().toString().replace("-", "") + "." + extension;
         String relativePath = dateDir + "/" + fileName;
         
-        // 创建目录
-        Path dirPath = Paths.get(uploadPath, dateDir);
+        // 创建目录 - 使用绝对路径
+        Path dirPath = Paths.get(absoluteUploadPath, dateDir);
         if (!Files.exists(dirPath)) {
             Files.createDirectories(dirPath);
+            log.info("创建日期目录: {}", dirPath.toAbsolutePath());
         }
         
-        // 保存文件
-        Path filePath = Paths.get(uploadPath, relativePath);
+        // 保存文件 - 使用绝对路径
+        Path filePath = Paths.get(absoluteUploadPath, relativePath);
         file.transferTo(filePath.toFile());
         
         log.info("文件上传成功: {}", relativePath);
@@ -91,7 +100,7 @@ public class FileService {
      * 删除文件
      */
     public void delete(String relativePath) throws IOException {
-        Path filePath = Paths.get(uploadPath, relativePath);
+        Path filePath = Paths.get(absoluteUploadPath, relativePath);
         if (Files.exists(filePath)) {
             Files.delete(filePath);
             log.info("文件删除成功: {}", relativePath);
@@ -102,6 +111,6 @@ public class FileService {
      * 获取文件绝对路径
      */
     public String getAbsolutePath(String relativePath) {
-        return Paths.get(uploadPath, relativePath).toAbsolutePath().toString();
+        return Paths.get(absoluteUploadPath, relativePath).toAbsolutePath().toString();
     }
 }

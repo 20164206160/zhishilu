@@ -1,122 +1,176 @@
 <template>
-  <div class="min-h-screen flex flex-col">
-    <!-- Header -->
-    <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3">
-      <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-4">
-        <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent">
-          知拾录
+  <div class="min-h-screen bg-[#f4f4f4] flex flex-col font-sans">
+    <!-- 上部分：导航与搜索 (Header) -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+      <!-- 顶栏：品牌与主操作 -->
+      <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+        <h1 class="text-2xl font-black italic tracking-tighter text-blue-600 flex-shrink-0">
+          知拾录<span class="text-emerald-500">.</span>
         </h1>
         
-        <div class="relative flex-grow max-w-2xl w-full">
-          <SearchIcon class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" :size="20" />
+        <!-- 搜索框 -->
+        <div class="flex-grow max-w-2xl relative group">
+          <SearchIcon class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" :size="18" />
           <input 
             v-model="searchQuery"
             @keyup.enter="handleSearch"
             type="text" 
-            placeholder="搜索你收藏的内容..." 
-            class="w-full pl-10 pr-4 py-2 bg-gray-100 border-none rounded-full focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+            placeholder="搜知识、看干货、找灵感..." 
+            class="w-full pl-11 pr-24 py-2.5 bg-gray-100 border-2 border-transparent rounded-full focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all outline-none text-sm"
           />
+          <button 
+            @click="handleSearch"
+            class="absolute right-1.5 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm active:scale-95"
+          >
+            搜索
+          </button>
         </div>
         
-        <div class="hidden md:flex items-center gap-4">
-          <button class="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600">
-            <PlusIcon :size="24" />
-          </button>
-          <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+        <div class="flex items-center gap-3">
+          <router-link to="/post" class="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-full text-sm font-bold transition-all shadow-md active:scale-95">
+            <PlusIcon :size="18" stroke-width="3" />
+            <span class="hidden sm:inline">新增</span>
+          </router-link>
+          <router-link to="/profile" class="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-100 to-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 font-bold cursor-pointer hover:shadow-inner">
             U
-          </div>
+          </router-link>
+        </div>
+      </div>
+
+      <!-- 搜索下栏：热门与分类 -->
+      <div class="max-w-7xl mx-auto px-4 pb-3 flex flex-col gap-3">
+        <!-- 热门提示词 -->
+        <div class="flex items-center gap-3 overflow-x-auto scrollbar-hide py-1">
+          <span class="text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap flex-shrink-0">热门搜索:</span>
+          <button 
+            v-for="word in hotWords" 
+            :key="word"
+            @click="quickSearch(word)"
+            class="text-xs text-gray-500 hover:text-blue-600 transition-colors whitespace-nowrap"
+          >
+            {{ word }}
+          </button>
+        </div>
+
+        <!-- 分类选择 -->
+        <div class="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+          <button 
+            v-for="cat in categories" 
+            :key="cat"
+            @click="selectedCategory = cat"
+            :class="[
+              'px-5 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap border',
+              selectedCategory === cat 
+                ? 'bg-blue-600 border-blue-600 text-white shadow-md' 
+                : 'bg-white border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-500'
+            ]"
+          >
+            {{ cat }}
+          </button>
         </div>
       </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="flex-grow max-w-7xl mx-auto w-full px-4 py-6 flex gap-6">
-      <!-- Sidebar Categories -->
-      <aside class="hidden lg:block w-48 flex-shrink-0">
-        <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4 px-2">分类列表</h2>
-        <nav class="space-y-1">
-          <button 
-            v-for="cat in categories" 
-            :key="cat"
-            @click="selectedCategory = cat"
-            :class="[
-              'w-full text-left px-3 py-2 rounded-lg text-sm transition-colors',
-              selectedCategory === cat ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-600 hover:bg-gray-100'
-            ]"
-          >
-            {{ cat }}
-          </button>
-        </nav>
-      </aside>
+    <!-- 中部分：内容展示区 (Main Grid) -->
+    <main class="flex-grow max-w-7xl mx-auto w-full px-4 py-6">
+      <div v-if="loading" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <div v-for="i in 12" :key="i" class="aspect-square bg-white border border-gray-100 rounded-xl animate-pulse"></div>
+      </div>
+      
+      <div v-else-if="articles.length > 0" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <ArticleCard v-for="item in articles" :key="item.id" :article="item" />
+      </div>
+      
+      <div v-else class="h-[50vh] flex flex-col items-center justify-center text-gray-400 bg-white rounded-3xl shadow-inner border border-gray-50">
+        <div class="p-8 bg-gray-50 rounded-full mb-4">
+          <EmptyIcon :size="80" stroke-width="1" class="text-gray-200" />
+        </div>
+        <p class="text-sm font-medium">暂时没有找到相关内容呢~</p>
+        <button @click="resetFilters" class="mt-4 text-blue-500 text-xs font-bold hover:underline">清除筛选</button>
+      </div>
 
-      <!-- Grid -->
-      <div class="flex-grow">
-        <!-- Mobile Categories -->
-        <div class="lg:hidden flex gap-2 overflow-x-auto pb-4 mb-4 scrollbar-hide">
-          <button 
-            v-for="cat in categories" 
-            :key="cat"
-            @click="selectedCategory = cat"
-            :class="[
-              'whitespace-nowrap px-4 py-1.5 rounded-full text-sm transition-colors',
-              selectedCategory === cat ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
-            ]"
-          >
-            {{ cat }}
-          </button>
+      <!-- 分页 -->
+      <div v-if="totalPages > 1" class="mt-12 mb-8 flex items-center justify-center gap-4">
+        <button 
+          @click="page--"
+          :disabled="page === 0"
+          class="p-2 rounded-xl border border-gray-200 bg-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors shadow-sm"
+        >
+          <ChevronLeft :size="20" />
+        </button>
+        <div class="flex items-center gap-2">
+          <span class="px-4 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-blue-600 shadow-sm">
+            {{ page + 1 }}
+          </span>
+          <span class="text-xs text-gray-400 font-medium">/ {{ totalPages }}</span>
         </div>
-
-        <div v-if="loading" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          <div v-for="i in 10" :key="i" class="aspect-[3/4] bg-gray-100 animate-pulse rounded-lg"></div>
-        </div>
-        
-        <div v-else-if="articles.length > 0" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          <ArticleCard v-for="item in articles" :key="item.id" :article="item" />
-        </div>
-        
-        <div v-else class="h-64 flex flex-col items-center justify-center text-gray-400">
-          <EmptyIcon :size="64" stroke-width="1" />
-          <p class="mt-4">暂无相关内容</p>
-        </div>
-
-        <!-- Pagination -->
-        <div v-if="totalPages > 1" class="mt-12 flex justify-center gap-2">
-          <button 
-            @click="page--"
-            :disabled="page === 0"
-            class="px-4 py-2 border rounded-lg disabled:opacity-50"
-          >
-            上一页
-          </button>
-          <span class="px-4 py-2 text-gray-600">第 {{ page + 1 }} 页 / 共 {{ totalPages }} 页</span>
-          <button 
-            @click="page++"
-            :disabled="page >= totalPages - 1"
-            class="px-4 py-2 border rounded-lg disabled:opacity-50"
-          >
-            下一页
-          </button>
-        </div>
+        <button 
+          @click="page++"
+          :disabled="page >= totalPages - 1"
+          class="p-2 rounded-xl border border-gray-200 bg-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors shadow-sm"
+        >
+          <ChevronRight :size="20" />
+        </button>
       </div>
     </main>
+
+    <!-- 下部分：开发者信息 (Footer) -->
+    <footer class="bg-white border-t border-gray-100 py-10 mt-auto">
+      <div class="max-w-7xl mx-auto px-4">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-8">
+          <!-- 站点信息 -->
+          <div class="text-center md:text-left space-y-2">
+            <h2 class="text-lg font-bold text-gray-800">知拾录 <span class="text-gray-300 font-light ml-1 text-base">Personal Knowledge Library</span></h2>
+            <p class="text-xs text-gray-400 max-w-xs leading-relaxed">
+              知拾录致力于为用户提供一个优雅、高效的个人知识收藏与管理平台。随时随地，随手记，随心搜。
+            </p>
+          </div>
+
+          <!-- 开发者信息 -->
+          <div class="flex flex-col items-center md:items-end gap-4">
+            <div class="flex items-center gap-6">
+              <a href="#" class="text-gray-400 hover:text-blue-500 transition-colors"><GithubIcon :size="20" /></a>
+              <a href="#" class="text-gray-400 hover:text-blue-500 transition-colors"><MailIcon :size="20" /></a>
+              <a href="#" class="text-gray-400 hover:text-blue-500 transition-colors"><TwitterIcon :size="20" /></a>
+            </div>
+            <div class="text-[11px] text-gray-400 text-center md:text-right font-medium">
+              <p>© 2026 知拾录. 版权所有.</p>
+              <p class="mt-1">Designed & Developed by <span class="text-gray-600 hover:text-blue-500 cursor-pointer">Zhishilu Team</span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
-import { Search as SearchIcon, Plus as PlusIcon, Inbox as EmptyIcon } from 'lucide-vue-next';
-import axios from 'axios';
+import { 
+  Search as SearchIcon, 
+  Plus as PlusIcon, 
+  Inbox as EmptyIcon, 
+  ChevronLeft, 
+  ChevronRight,
+  Github as GithubIcon,
+  Mail as MailIcon,
+  Twitter as TwitterIcon
+} from 'lucide-vue-next';
+import request from '../utils/request';
 import ArticleCard from '../components/ArticleCard.vue';
 
+// 状态定义
 const searchQuery = ref('');
 const selectedCategory = ref('全部');
-const categories = ref(['全部', '技术', '生活', '工作', '读书', '其他']);
+const categories = ref(['全部', '技术', '生活', '工作', '读书', '笔记', '其他']);
+const hotWords = ref(['Vue3', 'SpringBoot', 'Elasticsearch', 'Tailwind', '设计模式', '面试题']);
 const articles = ref<any[]>([]);
 const loading = ref(true);
 const page = ref(0);
-const size = ref(20);
+const size = ref(24); // 淘宝风格网格通常每页展示较多
 const totalPages = ref(0);
 
+// 获取数据
 const fetchArticles = async () => {
   loading.value = true;
   try {
@@ -125,26 +179,50 @@ const fetchArticles = async () => {
       size: size.value
     };
     if (searchQuery.value) params.title = searchQuery.value;
-    if (selectedCategory.value !== '全部') params.category = selectedCategory.value;
+    // 只有非"全部"时才传递category参数
+    if (selectedCategory.value && selectedCategory.value !== '全部') {
+      params.category = selectedCategory.value;
+    }
 
-    const res = await axios.get('/api/article/list', { params });
+    console.log('请求参数:', params);
+    const res = await request.get('/article/list', { params });
+    console.log('响应数据:', res.data);
+    
     if (res.data.code === 200) {
       articles.value = res.data.data.list;
       totalPages.value = Math.ceil(res.data.data.total / size.value);
+      console.log('文章列表:', articles.value);
+      console.log('总页数:', totalPages.value);
     }
   } catch (err) {
     console.error('Fetch error:', err);
   } finally {
-    loading.value = false;
+    // 模拟网络延迟以展示加载效果
+    setTimeout(() => { loading.value = false; }, 300);
   }
 };
 
+// 操作处理
 const handleSearch = () => {
   page.value = 0;
   fetchArticles();
 };
 
+const quickSearch = (word: string) => {
+  searchQuery.value = word;
+  handleSearch();
+};
+
+const resetFilters = () => {
+  searchQuery.value = '';
+  selectedCategory.value = '全部';
+  page.value = 0;
+  fetchArticles();
+};
+
+// 监听器
 watch([selectedCategory, page], () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
   fetchArticles();
 });
 

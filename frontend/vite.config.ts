@@ -15,6 +15,9 @@ export default defineConfig({
     },
     extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue']
   },
+  css: {
+    postcss: './postcss.config.js'
+  },
   server: {
     proxy: {
       '/api': {

@@ -2,7 +2,7 @@ package com.zhishilu.shiro;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zhishilu.common.Result;
-import com.zhishilu.entity.User;
+import com.zhishilu.dto.UserDTO;
 import com.zhishilu.util.UserContext;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -16,7 +16,6 @@ import org.apache.shiro.subject.Subject;
 import org.apache.shiro.web.filter.authc.AuthenticatingFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.io.IOException;
@@ -25,7 +24,6 @@ import java.io.IOException;
  * JWT过滤器
  */
 @Slf4j
-@Component
 public class JwtFilter extends AuthenticatingFilter {
     
     @Value("${jwt.header:Authorization}")
@@ -69,7 +67,7 @@ public class JwtFilter extends AuthenticatingFilter {
     @Override
     protected boolean onLoginSuccess(AuthenticationToken token, Subject subject, ServletRequest request, ServletResponse response) {
         // 登录成功后，将用户信息存入上下文
-        User user = (User) subject.getPrincipal();
+        UserDTO user = (UserDTO) subject.getPrincipal();
         UserContext.setCurrentUser(user);
         return true;
     }

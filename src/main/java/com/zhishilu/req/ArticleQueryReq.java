@@ -1,12 +1,12 @@
-package com.zhishilu.dto;
+package com.zhishilu.req;
 
 import lombok.Data;
 
 /**
- * 文章查询请求DTO
+ * 文章查询请求对象
  */
 @Data
-public class ArticleQueryDTO {
+public class ArticleQueryReq {
     
     /**
      * 标题（模糊查询）
@@ -14,7 +14,7 @@ public class ArticleQueryDTO {
     private String title;
     
     /**
-     * 类别
+     * 类别（精确查询）
      */
     private String category;
     
@@ -24,22 +24,22 @@ public class ArticleQueryDTO {
     private String content;
     
     /**
-     * 用户名
+     * 用户名（精确查询）
      */
     private String username;
     
     /**
-     * 地点
+     * 地点（精确查询）
      */
     private String location;
     
     /**
-     * 页码
+     * 当前页码（从0开始）
      */
-    private Integer page = 0;
+    private int page = 0;
     
     /**
      * 每页大小
      */
-    private Integer size = 10;
+    private int size = 10;
 }

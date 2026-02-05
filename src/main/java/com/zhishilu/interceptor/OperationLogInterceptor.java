@@ -1,7 +1,7 @@
 package com.zhishilu.interceptor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.zhishilu.entity.User;
+import com.zhishilu.dto.UserDTO;
 import com.zhishilu.service.OperationLogService;
 import com.zhishilu.util.UserContext;
 import javax.servlet.http.HttpServletRequest;
@@ -42,7 +42,7 @@ public class OperationLogInterceptor implements HandlerInterceptor {
             Long startTime = (Long) request.getAttribute(START_TIME);
             Long executionTime = System.currentTimeMillis() - startTime;
             
-            User currentUser = UserContext.getCurrentUser();
+            UserDTO currentUser = UserContext.getCurrentUser();
             String userId = currentUser != null ? currentUser.getId() : null;
             String username = currentUser != null ? currentUser.getUsername() : "anonymous";
             

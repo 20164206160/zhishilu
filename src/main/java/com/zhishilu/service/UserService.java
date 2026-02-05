@@ -1,7 +1,10 @@
 package com.zhishilu.service;
 
-import com.zhishilu.dto.LoginDTO;
-import com.zhishilu.dto.RegisterDTO;
+import com.zhishilu.dto.UserDTO;
+import com.zhishilu.req.LoginReq;
+import com.zhishilu.req.RegisterReq;
+import com.zhishilu.resp.LoginResp;
+import com.zhishilu.resp.UserResp;
 import com.zhishilu.entity.User;
 import com.zhishilu.exception.BusinessException;
 import com.zhishilu.repository.UserRepository;
@@ -9,11 +12,10 @@ import com.zhishilu.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.crypto.hash.Sha256Hash;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -26,44 +28,46 @@ public class UserService {
     
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
+    private final RedisTokenService redisTokenService;
     
     private static final String SALT = "zhishilu";
     
     /**
      * 用户注册
      */
-    public User register(RegisterDTO dto) {
+    public UserResp register(RegisterReq req) {
         // 检查用户名是否已存在
-        if (userRepository.existsByUsername(dto.getUsername())) {
+        if (userRepository.existsByUsername(req.getUsername())) {
             throw new BusinessException("用户名已存在");
         }
         
         // 检查邮箱是否已存在
-        if (dto.getEmail() != null && userRepository.existsByEmail(dto.getEmail())) {
+        if (req.getEmail() != null && userRepository.existsByEmail(req.getEmail())) {
             throw new BusinessException("邮箱已被注册");
         }
         
         User user = new User();
         user.setId(UUID.randomUUID().toString());
-        user.setUsername(dto.getUsername());
-        user.setPassword(encryptPassword(dto.getPassword()));
-        user.setNickname(dto.getNickname() != null ? dto.getNickname() : dto.getUsername());
-        user.setEmail(dto.getEmail());
+        user.setUsername(req.getUsername());
+        user.setPassword(encryptPassword(req.getPassword()));
+        user.setNickname(req.getNickname() != null ? req.getNickname() : req.getUsername());
+        user.setEmail(req.getEmail());
         user.setStatus(1);
         user.setCreatedTime(LocalDateTime.now());
         
-        return userRepository.save(user);
+        user = userRepository.save(user);
+        return convertToUserResp(user);
     }
     
     /**
      * 用户登录
      */
-    public Map<String, Object> login(LoginDTO dto) {
-        User user = userRepository.findByUsername(dto.getUsername())
+    public LoginResp login(LoginReq req) {
+        User user = userRepository.findByUsername(req.getUsername())
                 .orElseThrow(() -> new BusinessException("用户名或密码错误"));
         
         // 验证密码
-        if (!user.getPassword().equals(encryptPassword(dto.getPassword()))) {
+        if (!user.getPassword().equals(encryptPassword(req.getPassword()))) {
             throw new BusinessException("用户名或密码错误");
         }
         
@@ -79,27 +83,41 @@ public class UserService {
         // 生成Token
         String token = jwtUtil.generateToken(user.getId(), user.getUsername());
         
-        Map<String, Object> result = new HashMap<>();
-        result.put("token", token);
-        result.put("user", sanitizeUser(user));
+        // 存储Token到Redis（有效期7天）
+        redisTokenService.saveToken(token, user.getId());
+        log.info("用户登录成功: username={}, userId={}", user.getUsername(), user.getId());
         
-        return result;
+        LoginResp resp = new LoginResp();
+        resp.setToken(token);
+        resp.setUser(convertToUserResp(user));
+        
+        return resp;
+    }
+    
+    /**
+     * 用户登出
+     */
+    public void logout(String token) {
+        redisTokenService.removeToken(token);
+        log.info("用户已登出");
     }
     
     /**
      * 根据ID获取用户
      */
-    public User getById(String id) {
-        return userRepository.findById(id)
+    public UserDTO getById(String id) {
+        User user = userRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("用户不存在"));
+        return convertToUserDTO(user);
     }
     
     /**
      * 根据用户名获取用户
      */
-    public User getByUsername(String username) {
-        return userRepository.findByUsername(username)
+    public UserDTO getByUsername(String username) {
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new BusinessException("用户不存在"));
+        return convertToUserDTO(user);
     }
     
     /**
@@ -110,18 +128,20 @@ public class UserService {
     }
     
     /**
-     * 清理用户敏感信息
+     * 将Entity转换为UserResp（用于Controller响应）
      */
-    private User sanitizeUser(User user) {
-        User sanitized = new User();
-        sanitized.setId(user.getId());
-        sanitized.setUsername(user.getUsername());
-        sanitized.setNickname(user.getNickname());
-        sanitized.setEmail(user.getEmail());
-        sanitized.setAvatar(user.getAvatar());
-        sanitized.setStatus(user.getStatus());
-        sanitized.setCreatedTime(user.getCreatedTime());
-        sanitized.setLastLoginTime(user.getLastLoginTime());
-        return sanitized;
+    private UserResp convertToUserResp(User user) {
+        UserResp resp = new UserResp();
+        BeanUtils.copyProperties(user, resp);
+        return resp;
+    }
+    
+    /**
+     * 将Entity转换为UserDTO（用于Service层传递）
+     */
+    private UserDTO convertToUserDTO(User user) {
+        UserDTO dto = new UserDTO();
+        BeanUtils.copyProperties(user, dto);
+        return dto;
     }
 }

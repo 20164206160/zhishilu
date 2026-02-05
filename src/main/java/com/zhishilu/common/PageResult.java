@@ -17,7 +17,7 @@ public class PageResult<T> {
     /**
      * 数据列表
      */
-    private List<T> content;
+    private List<T> list;
     
     /**
      * 当前页码
@@ -39,9 +39,9 @@ public class PageResult<T> {
      */
     private Integer totalPages;
     
-    public static <T> PageResult<T> of(List<T> content, int page, int size, long total) {
+    public static <T> PageResult<T> of(List<T> list, int page, int size, long total) {
         PageResult<T> result = new PageResult<>();
-        result.setContent(content);
+        result.setList(list);
         result.setPage(page);
         result.setSize(size);
         result.setTotal(total);

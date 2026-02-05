@@ -8,7 +8,7 @@
     <artifactId>zhishilu</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
-    <name>知拾录</name>
+    <name>zhishilu</name>
     <description>知拾录 - 个人知识收藏管理系统</description>
 
     <parent>
@@ -53,6 +53,16 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
+        </dependency>
+
+        <!-- Redis -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-pool2</artifactId>
         </dependency>
 
         <!-- Shiro Spring Boot -->
