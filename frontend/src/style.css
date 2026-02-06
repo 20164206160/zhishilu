@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+/* 强制背景颜色以进行测试 */
+body {
+  background-color: #f0f9ff !important;
+  margin: 0;
+  padding: 0;
+}
+
+@theme {
+  --color-primary: #3b82f6;
+  --color-secondary: #10b981;
+}
