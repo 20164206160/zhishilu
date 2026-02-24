@@ -210,13 +210,55 @@ const removeImage = (index: number) => {
   form.images.splice(index, 1);
 };
 
-// 自动获取位置 (模拟根据IP)
+// 通过浏览器 Geolocation API 获取位置
+// 注意：浏览器只能获取经纬度，逆地理编码需要调用后端服务或第三方 API
+// 由于跨域限制，这里浏览器定位仅作为标记，实际地址使用 IP 定位获取
+const fetchLocationByBrowser = (): Promise<string | null> => {
+  return new Promise((resolve) => {
+    // 浏览器定位在移动端需要用户授权，且第三方逆地理编码 API 有跨域限制
+    // 因此优先使用 IP 定位，更稳定可靠
+    console.log('浏览器定位需要逆地理编码服务，优先使用 IP 定位');
+    resolve(null);
+  });
+};
+
+// 通过后端 IP 获取位置
+const fetchLocationByIP = async (): Promise<string | null> => {
+  try {
+    const res = await request.get('/article/location');
+    if (res.data.code === 200 && res.data.data) {
+      return res.data.data;
+    }
+    return null;
+  } catch (err) {
+    console.error('IP 定位失败:', err);
+    return null;
+  }
+};
+
+// 自动获取位置：优先浏览器定位，失败则使用 IP 定位
 const fetchLocation = async () => {
   try {
-    // 实际项目中可以调用 ip-api 等服务
-    form.location = '上海市 浦东新区';
+    // 1. 先尝试浏览器定位
+    const browserLocation = await fetchLocationByBrowser();
+    if (browserLocation) {
+      form.location = browserLocation;
+      return;
+    }
+
+    // 2. 浏览器定位失败，使用 IP 定位
+    const ipLocation = await fetchLocationByIP();
+    if (ipLocation) {
+      form.location = ipLocation;
+      return;
+    }
+
+    // 3. 都失败，提示用户手动输入
+    form.location = '';
+    console.log('无法自动获取位置，请手动输入');
   } catch (err) {
     console.error('Location error:', err);
+    form.location = '';
   }
 };
 

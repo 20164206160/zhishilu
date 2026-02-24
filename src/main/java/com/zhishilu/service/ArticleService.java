@@ -83,6 +83,12 @@ public class ArticleService {
         if (req.getContent() != null) {
             article.setContent(req.getContent());
         }
+        if (StringUtils.isNotBlank(req.getCategory())) {
+            article.setCategory(req.getCategory());
+        }
+        if (req.getLocation() != null) {
+            article.setLocation(req.getLocation());
+        }
         if (req.getUrl() != null) {
             article.setUrl(req.getUrl());
         }

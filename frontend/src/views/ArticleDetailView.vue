@@ -53,7 +53,24 @@
               <p class="text-[11px] text-gray-400 mt-1 uppercase tracking-wider">{{ formatDate(article.createdTime) }}</p>
             </div>
           </div>
-          <button class="px-5 py-1.5 bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-full transition-colors shadow-sm">
+          <!-- 作者操作按钮 -->
+          <div v-if="isAuthor" class="flex items-center gap-2">
+            <button 
+              @click="handleEdit"
+              class="w-9 h-9 rounded-full bg-gray-100 hover:bg-blue-50 text-gray-600 hover:text-blue-600 flex items-center justify-center transition-colors"
+              title="编辑"
+            >
+              <Edit3 :size="18" />
+            </button>
+            <button 
+              @click="handleDelete"
+              class="w-9 h-9 rounded-full bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 flex items-center justify-center transition-colors"
+              title="删除"
+            >
+              <Trash2 :size="18" />
+            </button>
+          </div>
+          <button v-else class="px-5 py-1.5 bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-full transition-colors shadow-sm">
             关注
           </button>
         </div>
@@ -132,11 +149,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { 
   ChevronLeft, ChevronRight, Share2, Tag, MapPin, 
-  Link as LinkIcon, Heart, Star, MessageCircle 
+  Link as LinkIcon, Heart, Star, MessageCircle, Edit3, Trash2
 } from 'lucide-vue-next';
 import request from '../utils/request';
 import { getImageUrl } from '../utils/image';
@@ -146,6 +163,24 @@ const router = useRouter();
 const article = ref<any>(null);
 const scrolled = ref(false);
 const currentImgIndex = ref(0);
+
+// 获取当前登录用户
+const currentUser = computed(() => {
+  const userStr = localStorage.getItem('user');
+  if (userStr) {
+    try {
+      return JSON.parse(userStr);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+});
+
+// 判断当前用户是否是文章作者
+const isAuthor = computed(() => {
+  return currentUser.value && article.value && currentUser.value.username === article.value.createdBy;
+});
 
 const handleScroll = () => {
   scrolled.value = window.scrollY > 50;
@@ -168,6 +203,27 @@ const formatDate = (dateStr: string) => {
   return date.toLocaleDateString('zh-CN', { 
     year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
   });
+};
+
+// 跳转到编辑页面
+const handleEdit = () => {
+  router.push(`/article/${route.params.id}/edit`);
+};
+
+// 删除文章
+const handleDelete = async () => {
+  if (!confirm('确定要删除这篇文章吗？此操作不可恢复。')) {
+    return;
+  }
+  try {
+    const res = await request.delete(`/article/${route.params.id}`);
+    if (res.data.code === 200) {
+      alert('删除成功');
+      router.push('/');
+    }
+  } catch (err: any) {
+    alert(err.response?.data?.message || '删除失败');
+  }
 };
 
 onMounted(() => {

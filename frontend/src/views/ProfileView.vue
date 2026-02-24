@@ -271,8 +271,7 @@ const handleEdit = (item: any) => {
   confirmConfig.type = 'primary';
   confirmConfig.show = true;
   confirmConfig.action = () => {
-    console.log('Go to edit page', item);
-    // router.push(`/article/edit/${item.id}`);
+    router.push(`/article/${item.id}/edit`);
   };
 };
 

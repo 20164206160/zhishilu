@@ -116,6 +116,13 @@
             <version>5.8.24</version>
         </dependency>
 
+        <!-- IP定位 - ip2region -->
+        <dependency>
+            <groupId>org.lionsoul</groupId>
+            <artifactId>ip2region</artifactId>
+            <version>2.7.0</version>
+        </dependency>
+
         <!-- Configuration Processor -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
