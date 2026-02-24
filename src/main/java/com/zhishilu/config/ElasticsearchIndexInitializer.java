@@ -1,6 +1,7 @@
 package com.zhishilu.config;
 
 import com.zhishilu.entity.Article;
+import com.zhishilu.entity.CategoryStats;
 import com.zhishilu.entity.OperationLog;
 import com.zhishilu.entity.User;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class ElasticsearchIndexInitializer implements CommandLineRunner {
         createIndexIfNotExists(Article.class);
         createIndexIfNotExists(User.class);
         createIndexIfNotExists(OperationLog.class);
+        createIndexIfNotExists(CategoryStats.class);
         log.info("Elasticsearch索引初始化完成");
     }
     

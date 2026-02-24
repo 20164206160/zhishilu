@@ -21,9 +21,9 @@ public class ArticleUpdateReq {
     private String content;
     
     /**
-     * 文章分类
+     * 文章分类列表
      */
-    private String category;
+    private List<String> categories;
     
     /**
      * 发布地点

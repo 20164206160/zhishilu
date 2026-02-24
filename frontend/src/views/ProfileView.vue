@@ -113,7 +113,18 @@
                   </div>
                   <div class="flex-grow py-1 flex flex-col justify-between">
                     <div @click="router.push(`/article/${item.id}`)" class="cursor-pointer">
-                      <span class="text-[10px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded-md uppercase tracking-wider mb-1 inline-block">{{ item.category }}</span>
+                      <div class="flex flex-wrap gap-1 mb-1">
+                        <span 
+                          v-for="(cat, idx) in item.categories?.slice(0, 2)" 
+                          :key="idx"
+                          class="text-[10px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded-md uppercase tracking-wider inline-block"
+                        >
+                          {{ cat }}
+                        </span>
+                        <span v-if="item.categories?.length > 2" class="text-[10px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded-md inline-block">
+                          +{{ item.categories.length - 2 }}
+                        </span>
+                      </div>
                       <h3 class="text-base font-bold text-gray-900 line-clamp-1 group-hover:text-blue-600 transition-colors">{{ item.title }}</h3>
                       <p class="text-xs text-gray-400 mt-1">{{ formatDate(item.createdTime) }} 发布</p>
                     </div>

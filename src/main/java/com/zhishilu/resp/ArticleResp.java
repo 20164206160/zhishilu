@@ -22,9 +22,9 @@ public class ArticleResp {
     private String title;
     
     /**
-     * 文章类别
+     * 文章类别列表
      */
-    private String category;
+    private List<String> categories;
     
     /**
      * 文章内容
@@ -65,4 +65,19 @@ public class ArticleResp {
      * 更新时间
      */
     private LocalDateTime updatedTime;
+    
+    /**
+     * 标题高亮片段
+     */
+    private String highlightTitle;
+    
+    /**
+     * 内容高亮片段
+     */
+    private String highlightContent;
+
+    /**
+     * 地点高亮片段
+     */
+    private String highlightLocation;
 }

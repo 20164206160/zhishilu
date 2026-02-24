@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-gray-50 flex flex-col font-sans">
     <!-- Header Overlay (Mobile Only) -->
     <header class="md:hidden fixed top-0 inset-x-0 z-50 h-16 flex items-center justify-between px-4 transition-all" :class="[scrolled ? 'bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm' : 'bg-transparent']">
-      <button @click="router.back()" class="w-10 h-10 rounded-full flex items-center justify-center transition-all" :class="[scrolled ? 'bg-gray-100 text-gray-900' : 'bg-black/20 text-white backdrop-blur-sm']">
+      <button @click="router.push('/')" class="w-10 h-10 rounded-full flex items-center justify-center transition-all" :class="[scrolled ? 'bg-gray-100 text-gray-900' : 'bg-black/20 text-white backdrop-blur-sm']">
         <ChevronLeft :size="24" />
       </button>
       <div class="flex items-center gap-3">
@@ -16,7 +16,7 @@
       <!-- Image Gallery (Left Side on Desktop) -->
       <section v-if="article.images?.length" class="w-full md:flex-grow relative bg-black flex items-center justify-center overflow-hidden group">
         <!-- Desktop Back Button -->
-        <button @click="router.back()" class="hidden md:flex absolute top-6 left-6 z-20 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md items-center justify-center transition-all">
+        <button @click="router.push('/')" class="hidden md:flex absolute top-6 left-6 z-20 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md items-center justify-center transition-all">
           <ChevronLeft :size="24" />
         </button>
 
@@ -87,9 +87,13 @@
           <!-- Tags & Location -->
           <div class="space-y-4 pt-4">
             <div class="flex flex-wrap gap-2">
-              <div class="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
+              <div 
+                v-for="(cat, index) in article.categories" 
+                :key="index"
+                class="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100"
+              >
                 <Tag :size="12" />
-                <span class="text-xs font-bold">{{ article.category }}</span>
+                <span class="text-xs font-bold">{{ cat }}</span>
               </div>
             </div>
             
@@ -219,6 +223,9 @@ const handleDelete = async () => {
     const res = await request.delete(`/article/${route.params.id}`);
     if (res.data.code === 200) {
       alert('删除成功');
+      // 删除成功，设置标记让首页刷新
+      sessionStorage.setItem('homeNeedRefresh', 'true');
+      console.log('删除成功，设置刷新标记');
       router.push('/');
     }
   } catch (err: any) {

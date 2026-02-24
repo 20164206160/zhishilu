@@ -44,19 +44,40 @@
             <button 
               v-for="cat in topCategories" 
               :key="cat"
-              @click="form.category = cat"
-              :class="['px-4 py-1.5 rounded-full text-xs font-medium transition-all border', form.category === cat ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-gray-100 text-gray-500 hover:bg-gray-50']"
+              @click="toggleCategory(cat)"
+              :class="['px-4 py-1.5 rounded-full text-xs font-medium transition-all border', form.categories.includes(cat) ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-gray-100 text-gray-500 hover:bg-gray-50']"
             >
               {{ cat }}
             </button>
-            <div class="relative min-w-[120px]">
+            <div class="relative min-w-[120px] flex items-center gap-2">
               <input 
-                v-model="form.category"
+                v-model="customCategory"
+                @keyup.enter="addCustomCategory"
                 type="text" 
                 placeholder="手动输入分类" 
                 class="w-full px-4 py-1.5 bg-gray-50 border-none rounded-full text-xs focus:ring-2 focus:ring-blue-500 transition-all"
               />
+              <button 
+                @click="addCustomCategory"
+                class="px-3 py-1.5 bg-blue-500 text-white rounded-full text-xs font-medium hover:bg-blue-600 transition-colors"
+              >
+                添加
+              </button>
             </div>
+          </div>
+          <!-- 已选类别展示 -->
+          <div v-if="form.categories.length > 0" class="flex flex-wrap gap-2 mt-2">
+            <span class="text-xs text-gray-400">已选：</span>
+            <span 
+              v-for="(cat, index) in form.categories" 
+              :key="index"
+              class="px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full text-xs font-medium flex items-center gap-1"
+            >
+              {{ cat }}
+              <button @click="removeCategory(index)" class="hover:text-blue-800">
+                <X :size="10" />
+              </button>
+            </span>
           </div>
         </section>
 
@@ -155,12 +176,40 @@ const topCategories = ref(['技术', '生活', '工作', '读书', '笔记']);
 
 const form = reactive({
   title: '',
-  category: '',
+  categories: [] as string[],
   images: [] as string[],
   content: '',
   url: '',
   location: ''
 });
+
+const customCategory = ref('');
+
+// 切换类别选择
+const toggleCategory = (cat: string) => {
+  const index = form.categories.indexOf(cat);
+  if (index > -1) {
+    form.categories.splice(index, 1);
+  } else {
+    form.categories.push(cat);
+  }
+};
+
+// 添加自定义类别
+const addCustomCategory = () => {
+  if (customCategory.value.trim()) {
+    const cat = customCategory.value.trim();
+    if (!form.categories.includes(cat)) {
+      form.categories.push(cat);
+    }
+    customCategory.value = '';
+  }
+};
+
+// 移除类别
+const removeCategory = (index: number) => {
+  form.categories.splice(index, 1);
+};
 
 const handleBack = () => {
   if (form.title || form.content || form.images.length > 0) {
@@ -263,8 +312,8 @@ const fetchLocation = async () => {
 };
 
 const handleSubmit = async () => {
-  if (!form.title || !form.category || !form.location) {
-    alert('请填写标题、分类和地点');
+  if (!form.title || form.categories.length === 0 || !form.location) {
+    alert('请填写标题、选择分类和地点');
     return;
   }
   
@@ -278,6 +327,9 @@ const handleSubmit = async () => {
     const res = await request.post('/article', form);
     if (res.data.code === 200) {
       alert('发布成功！');
+      // 发布成功，设置标记让首页刷新
+      sessionStorage.setItem('homeNeedRefresh', 'true');
+      console.log('发布成功，设置刷新标记');
       router.push('/');
     }
   } catch (err: any) {
