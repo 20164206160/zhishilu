@@ -2,6 +2,8 @@ package com.zhishilu.req;
 
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * 文章查询请求对象
  */
@@ -9,14 +11,19 @@ import lombok.Data;
 public class ArticleQueryReq {
     
     /**
+     * 关键词（全部字段模糊查询）
+     */
+    private String keyword;
+    
+    /**
      * 标题（模糊查询）
      */
     private String title;
     
     /**
-     * 类别（精确查询）
+     * 类别列表（精确查询，满足任一类别）
      */
-    private String category;
+    private List<String> categories;
     
     /**
      * 内容（模糊查询）
@@ -29,7 +36,7 @@ public class ArticleQueryReq {
     private String username;
     
     /**
-     * 地点（精确查询）
+     * 地点（模糊查询）
      */
     private String location;
     

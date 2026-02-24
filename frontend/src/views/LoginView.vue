@@ -149,7 +149,7 @@
 </style>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { LayoutGrid, Mail, Lock } from 'lucide-vue-next';
 import { useRouter, useRoute } from 'vue-router';
 import request from '../utils/request';
@@ -159,6 +159,14 @@ const route = useRoute();
 const showPassword = ref(false);
 const rememberMe = ref(false);
 const loading = ref(false);
+
+// 如果已登录，直接跳转到首页
+onMounted(() => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    router.push('/');
+  }
+});
 
 const loginForm = reactive({
   username: '',

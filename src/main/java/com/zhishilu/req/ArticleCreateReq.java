@@ -3,6 +3,7 @@ package com.zhishilu.req;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotEmpty;
 import java.util.List;
 
 /**
@@ -18,10 +19,10 @@ public class ArticleCreateReq {
     private String title;
     
     /**
-     * 文章类别
+     * 文章类别列表
      */
-    @NotBlank(message = "文章类别不能为空")
-    private String category;
+    @NotEmpty(message = "文章类别不能为空")
+    private List<String> categories;
     
     /**
      * 文章内容

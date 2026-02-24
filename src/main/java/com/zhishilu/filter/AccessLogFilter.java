@@ -66,7 +66,7 @@ public class AccessLogFilter implements Filter {
         String ip = getIpAddress(request);
         String queryParams = request.getQueryString();
         String requestBody = getPayload(request);
-        String responseBody = getPayload(response);
+        String responseBody = getPayload(response, response.getContentType());
 
         log.info("接口调用: [{} {}] IP: [{}], 耗时: {}ms, 参数: [{}], 请求体: [{}], 响应结果: [{}]", 
                 method, path, ip, duration, queryParams != null ? queryParams : "", requestBody, responseBody);
@@ -75,25 +75,28 @@ public class AccessLogFilter implements Filter {
     private String getPayload(ContentCachingRequestWrapper wrapper) {
         byte[] buf = wrapper.getContentAsByteArray();
         if (buf.length > 0) {
-            try {
-                return new String(buf, 0, buf.length, wrapper.getCharacterEncoding());
-            } catch (UnsupportedEncodingException e) {
-                return "[Unsupported Encoding]";
-            }
+            // 强制使用 UTF-8 解码，避免 ISO-8859-1 导致中文乱码
+            return new String(buf, 0, buf.length, java.nio.charset.StandardCharsets.UTF_8);
         }
         return "";
     }
 
-    private String getPayload(ContentCachingResponseWrapper wrapper) {
+    private String getPayload(ContentCachingResponseWrapper wrapper, String contentType) {
         byte[] buf = wrapper.getContentAsByteArray();
-        if (buf.length > 0) {
-            try {
-                return new String(buf, 0, buf.length, wrapper.getCharacterEncoding());
-            } catch (UnsupportedEncodingException e) {
-                return "[Unsupported Encoding]";
-            }
+        if (buf.length == 0) {
+            return "";
         }
-        return "";
+        
+        // 对于图片、文件等二进制内容，不打印响应体
+        if (contentType != null && (contentType.startsWith("image/") || 
+                                    contentType.startsWith("application/octet-stream") ||
+                                    contentType.startsWith("video/") ||
+                                    contentType.startsWith("audio/"))) {
+            return "二进制文件内容，长度: " + buf.length + " 字节";
+        }
+        
+        // 强制使用 UTF-8 解码，避免 ISO-8859-1 导致中文乱码
+        return new String(buf, 0, buf.length, java.nio.charset.StandardCharsets.UTF_8);
     }
 
     private String getIpAddress(HttpServletRequest request) {

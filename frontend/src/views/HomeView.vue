@@ -9,21 +9,50 @@
         </h1>
         
         <!-- 搜索框 -->
-        <div class="flex-grow max-w-2xl relative group">
-          <SearchIcon class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" :size="18" />
-          <input 
-            v-model="searchQuery"
-            @keyup.enter="handleSearch"
-            type="text" 
-            placeholder="搜知识、看干货、找灵感..." 
-            class="w-full pl-11 pr-24 py-2.5 bg-gray-100 border-2 border-transparent rounded-full focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all outline-none text-sm"
-          />
-          <button 
-            @click="handleSearch"
-            class="absolute right-1.5 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm active:scale-95"
-          >
-            搜索
-          </button>
+        <div class="flex-grow max-w-2xl relative">
+          <div class="flex items-center">
+            <!-- 字段选择下拉框 -->
+            <div class="relative">
+              <select 
+                v-model="searchField"
+                class="appearance-none px-4 py-2.5 bg-gray-100 border-2 border-r-0 border-transparent rounded-l-full text-sm text-gray-600 focus:bg-white focus:border-blue-500 outline-none cursor-pointer hover:bg-gray-200 transition-colors pr-8"
+              >
+                <option value="all">全部</option>
+                <option value="title">标题</option>
+                <option value="category">类别</option>
+                <option value="content">内容</option>
+                <option value="username">用户名</option>
+                <option value="location">地点</option>
+              </select>
+              <ChevronDown class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" :size="14" />
+            </div>
+            <div class="relative flex-grow group">
+              <SearchIcon class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" :size="18" />
+              <input 
+                v-model="searchQuery"
+                @keyup.enter="handleSearch"
+                type="text" 
+                :placeholder="getPlaceholder()"
+                class="w-full pl-11 pr-28 py-2.5 bg-gray-100 border-2 border-l-0 border-transparent rounded-r-full focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all outline-none text-sm"
+              />
+              <!-- 清空按钮 -->
+              <button 
+                v-if="searchQuery || selectedCategory !== '全部'"
+                @click="resetFilters"
+                class="absolute right-[70px] top-1/2 -translate-y-1/2 px-2 py-1 rounded-md bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold flex items-center gap-1 transition-colors shadow-sm"
+                title="清空查询条件"
+              >
+                <XIcon :size="12" />
+                <span>清空</span>
+              </button>
+              <button 
+                @click="handleSearch"
+                class="absolute right-1.5 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm active:scale-95"
+              >
+                搜索
+              </button>
+            </div>
+          </div>
         </div>
         
         <div class="flex items-center gap-3">
@@ -55,17 +84,28 @@
         <!-- 分类选择 -->
         <div class="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
           <button 
-            v-for="cat in categories" 
-            :key="cat"
-            @click="selectedCategory = cat"
+            @click="selectedCategory = '全部'"
             :class="[
               'px-5 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap border',
-              selectedCategory === cat 
+              selectedCategory === '全部' 
                 ? 'bg-blue-600 border-blue-600 text-white shadow-md' 
                 : 'bg-white border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-500'
             ]"
           >
-            {{ cat }}
+            全部
+          </button>
+          <button 
+            v-for="cat in categories" 
+            :key="cat.category"
+            @click="selectedCategory = cat.category"
+            :class="[
+              'px-5 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap border',
+              selectedCategory === cat.category 
+                ? 'bg-blue-600 border-blue-600 text-white shadow-md' 
+                : 'bg-white border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-500'
+            ]"
+          >
+            {{ cat.category }}
           </button>
         </div>
       </div>
@@ -78,7 +118,7 @@
       </div>
       
       <div v-else-if="articles.length > 0" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-        <ArticleCard v-for="item in articles" :key="item.id" :article="item" />
+        <ArticleCard v-for="item in articles" :key="item.id" :article="item" :search-keyword="currentSearchKeyword" />
       </div>
       
       <div v-else class="h-[50vh] flex flex-col items-center justify-center text-gray-400 bg-white rounded-3xl shadow-inner border border-gray-50">
@@ -145,30 +185,75 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+defineOptions({
+  name: 'HomeView'
+});
+
+import { ref, onMounted, watch, onActivated } from 'vue';
+import { useRoute } from 'vue-router';
 import { 
   Search as SearchIcon, 
   Plus as PlusIcon, 
   Inbox as EmptyIcon, 
   ChevronLeft, 
   ChevronRight,
+  ChevronDown,
   Github as GithubIcon,
   Mail as MailIcon,
-  Twitter as TwitterIcon
+  Twitter as TwitterIcon,
+  X as XIcon
 } from 'lucide-vue-next';
 import request from '../utils/request';
 import ArticleCard from '../components/ArticleCard.vue';
 
+const route = useRoute();
+
 // 状态定义
 const searchQuery = ref('');
+const searchField = ref('all');
 const selectedCategory = ref('全部');
-const categories = ref(['全部', '技术', '生活', '工作', '读书', '笔记', '其他']);
+const categories = ref<CategoryStatResp[]>([]);
 const hotWords = ref(['Vue3', 'SpringBoot', 'Elasticsearch', 'Tailwind', '设计模式', '面试题']);
 const articles = ref<any[]>([]);
 const loading = ref(true);
 const page = ref(0);
 const size = ref(24); // 淘宝风格网格通常每页展示较多
 const totalPages = ref(0);
+const currentSearchKeyword = ref(''); // 当前搜索关键词，用于正文高亮
+
+// 类别统计响应接口
+interface CategoryStatResp {
+  category: string;
+  count: number;
+}
+
+// 根据搜索字段获取占位符文本
+const getPlaceholder = () => {
+  const placeholders: Record<string, string> = {
+    all: '搜知识、看干货、找灵感...',
+    title: '搜索标题...',
+    category: '搜索类别...',
+    content: '搜索内容...',
+    username: '搜索用户名...',
+    location: '搜索地点...'
+  };
+  return placeholders[searchField.value] || '搜知识、看干货、找灵感...';
+};
+
+// 获取类别导航数据
+const fetchCategoryNavigation = async () => {
+  try {
+    const res = await request.get('/category/navigation', {
+      params: { maxCount: 20 }
+    });
+    if (res.data.code === 200) {
+      categories.value = res.data.data;
+      console.log('类别导航数据:', categories.value);
+    }
+  } catch (err) {
+    console.error('获取类别导航失败:', err);
+  }
+};
 
 // 获取数据
 const fetchArticles = async () => {
@@ -178,10 +263,27 @@ const fetchArticles = async () => {
       page: page.value,
       size: size.value
     };
-    if (searchQuery.value) params.title = searchQuery.value;
-    // 只有非"全部"时才传递category参数
-    if (selectedCategory.value && selectedCategory.value !== '全部') {
-      params.category = selectedCategory.value;
+    
+    // 根据搜索字段设置查询参数
+    if (searchQuery.value) {
+      if (searchField.value === 'all') {
+        params.keyword = searchQuery.value;
+      } else if (searchField.value === 'title') {
+        params.title = searchQuery.value;
+      } else if (searchField.value === 'category') {
+        params.categories = [searchQuery.value];
+      } else if (searchField.value === 'content') {
+        params.content = searchQuery.value;
+      } else if (searchField.value === 'username') {
+        params.username = searchQuery.value;
+      } else if (searchField.value === 'location') {
+        params.location = searchQuery.value;
+      }
+    }
+    
+    // 只有非"全部"时才传递categories参数（与搜索字段不冲突时）
+    if (selectedCategory.value && selectedCategory.value !== '全部' && searchField.value !== 'category') {
+      params.categories = [selectedCategory.value];
     }
 
     console.log('请求参数:', params);
@@ -189,7 +291,11 @@ const fetchArticles = async () => {
     console.log('响应数据:', res.data);
     
     if (res.data.code === 200) {
-      articles.value = res.data.data.list;
+      // 将搜索关键词附加到每篇文章，用于前端片段提取
+      articles.value = res.data.data.list.map((item: any) => ({
+        ...item,
+        _searchKeyword: currentSearchKeyword.value
+      }));
       totalPages.value = Math.ceil(res.data.data.total / size.value);
       console.log('文章列表:', articles.value);
       console.log('总页数:', totalPages.value);
@@ -205,6 +311,8 @@ const fetchArticles = async () => {
 // 操作处理
 const handleSearch = () => {
   page.value = 0;
+  // 保存当前搜索关键词（用于正文/地点片段高亮）
+  currentSearchKeyword.value = (searchField.value === 'content' || searchField.value === 'location') ? searchQuery.value : '';
   fetchArticles();
 };
 
@@ -226,8 +334,40 @@ watch([selectedCategory, page], () => {
   fetchArticles();
 });
 
+// 刷新数据的通用函数
+const checkAndRefresh = (forceRefresh = false) => {
+  const needRefresh = sessionStorage.getItem('homeNeedRefresh');
+  console.log('HomeView checkAndRefresh, needRefresh:', needRefresh, 'forceRefresh:', forceRefresh);
+  
+  // 只有在有刷新标记或强制刷新时才调用接口
+  if (needRefresh || forceRefresh) {
+    if (needRefresh) {
+      sessionStorage.removeItem('homeNeedRefresh');
+      console.log('检测到刷新标记，准备刷新数据并清除查询条件');
+      // 清除查询条件
+      searchQuery.value = '';
+      searchField.value = 'all';
+      selectedCategory.value = '全部';
+      page.value = 0;
+      currentSearchKeyword.value = '';
+    }
+    fetchCategoryNavigation();
+    fetchArticles();
+  } else {
+    console.log('无刷新标记，不调用接口');
+  }
+};
+
 onMounted(() => {
-  fetchArticles();
+  // 首次加载强制刷新
+  checkAndRefresh(true);
+});
+
+// 从 keep-alive 缓存中激活时检查是否需要刷新
+onActivated(() => {
+  console.log('HomeView onActivated');
+  // 只有在有标记时才刷新，否则保持现状
+  checkAndRefresh(false);
 });
 </script>
 
@@ -238,5 +378,35 @@ onMounted(() => {
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* 自定义下拉框样式 */
+select {
+  background-image: none;
+}
+
+select option {
+  padding: 8px 12px;
+  font-size: 14px;
+  background: white;
+  color: #374151;
+}
+
+select option:hover,
+select option:focus,
+select option:checked {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+/* 移除IE的下拉箭头 */
+select::-ms-expand {
+  display: none;
+}
+
+/* 统一focus时的边框 */
+select:focus + div input,
+select:focus ~ div input {
+  border-left-color: transparent;
 }
 </style>

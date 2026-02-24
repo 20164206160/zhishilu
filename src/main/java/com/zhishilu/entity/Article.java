@@ -25,10 +25,10 @@ public class Article {
     private String title;
     
     /**
-     * 类别 - 最大32字符
+     * 类别列表
      */
     @Field(type = FieldType.Keyword)
-    private String category;
+    private List<String> categories;
     
     /**
      * 正文内容 - 不限长度
@@ -63,7 +63,7 @@ public class Article {
     /**
      * 创建地点
      */
-    @Field(type = FieldType.Keyword)
+    @Field(type = FieldType.Text, analyzer = "ik_max_word", searchAnalyzer = "ik_smart")
     private String location;
     
     /**

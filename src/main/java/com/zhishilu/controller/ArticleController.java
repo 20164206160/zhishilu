@@ -9,7 +9,10 @@ import com.zhishilu.resp.ArticleResp;
 import com.zhishilu.resp.CategoryStatResp;
 import com.zhishilu.dto.UserDTO;
 import com.zhishilu.service.ArticleService;
+import com.zhishilu.service.IpLocationService;
+import com.zhishilu.util.IpUtil;
 import com.zhishilu.util.UserContext;
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -23,8 +26,9 @@ import java.util.List;
 @RequestMapping("/article")
 @RequiredArgsConstructor
 public class ArticleController {
-    
+
     private final ArticleService articleService;
+    private final IpLocationService ipLocationService;
     
     /**
      * 创建文章
@@ -83,5 +87,19 @@ public class ArticleController {
         UserDTO currentUser = UserContext.getCurrentUser();
         List<CategoryStatResp> categories = articleService.getTopCategories(currentUser.getId(), limit);
         return Result.success(categories);
+    }
+
+    /**
+     * 根据用户 IP 获取地理位置
+     * 用于发布内容时自动填充位置信息
+     */
+    @GetMapping("/location")
+    public Result<String> getLocationByIp(HttpServletRequest request) {
+        String ip = IpUtil.getClientIp(request);
+        String location = ipLocationService.getLocation(ip);
+        if (location == null || location.isEmpty()) {
+            return Result.success("无法获取位置信息");
+        }
+        return Result.success(location);
     }
 }

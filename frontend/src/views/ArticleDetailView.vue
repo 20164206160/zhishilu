@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-gray-50 flex flex-col font-sans">
     <!-- Header Overlay (Mobile Only) -->
     <header class="md:hidden fixed top-0 inset-x-0 z-50 h-16 flex items-center justify-between px-4 transition-all" :class="[scrolled ? 'bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm' : 'bg-transparent']">
-      <button @click="router.back()" class="w-10 h-10 rounded-full flex items-center justify-center transition-all" :class="[scrolled ? 'bg-gray-100 text-gray-900' : 'bg-black/20 text-white backdrop-blur-sm']">
+      <button @click="router.push('/')" class="w-10 h-10 rounded-full flex items-center justify-center transition-all" :class="[scrolled ? 'bg-gray-100 text-gray-900' : 'bg-black/20 text-white backdrop-blur-sm']">
         <ChevronLeft :size="24" />
       </button>
       <div class="flex items-center gap-3">
@@ -16,7 +16,7 @@
       <!-- Image Gallery (Left Side on Desktop) -->
       <section v-if="article.images?.length" class="w-full md:flex-grow relative bg-black flex items-center justify-center overflow-hidden group">
         <!-- Desktop Back Button -->
-        <button @click="router.back()" class="hidden md:flex absolute top-6 left-6 z-20 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md items-center justify-center transition-all">
+        <button @click="router.push('/')" class="hidden md:flex absolute top-6 left-6 z-20 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md items-center justify-center transition-all">
           <ChevronLeft :size="24" />
         </button>
 
@@ -53,7 +53,24 @@
               <p class="text-[11px] text-gray-400 mt-1 uppercase tracking-wider">{{ formatDate(article.createdTime) }}</p>
             </div>
           </div>
-          <button class="px-5 py-1.5 bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-full transition-colors shadow-sm">
+          <!-- 作者操作按钮 -->
+          <div v-if="isAuthor" class="flex items-center gap-2">
+            <button 
+              @click="handleEdit"
+              class="w-9 h-9 rounded-full bg-gray-100 hover:bg-blue-50 text-gray-600 hover:text-blue-600 flex items-center justify-center transition-colors"
+              title="编辑"
+            >
+              <Edit3 :size="18" />
+            </button>
+            <button 
+              @click="handleDelete"
+              class="w-9 h-9 rounded-full bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 flex items-center justify-center transition-colors"
+              title="删除"
+            >
+              <Trash2 :size="18" />
+            </button>
+          </div>
+          <button v-else class="px-5 py-1.5 bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-full transition-colors shadow-sm">
             关注
           </button>
         </div>
@@ -70,9 +87,13 @@
           <!-- Tags & Location -->
           <div class="space-y-4 pt-4">
             <div class="flex flex-wrap gap-2">
-              <div class="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
+              <div 
+                v-for="(cat, index) in article.categories" 
+                :key="index"
+                class="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100"
+              >
                 <Tag :size="12" />
-                <span class="text-xs font-bold">{{ article.category }}</span>
+                <span class="text-xs font-bold">{{ cat }}</span>
               </div>
             </div>
             
@@ -132,11 +153,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { 
   ChevronLeft, ChevronRight, Share2, Tag, MapPin, 
-  Link as LinkIcon, Heart, Star, MessageCircle 
+  Link as LinkIcon, Heart, Star, MessageCircle, Edit3, Trash2
 } from 'lucide-vue-next';
 import request from '../utils/request';
 import { getImageUrl } from '../utils/image';
@@ -146,6 +167,24 @@ const router = useRouter();
 const article = ref<any>(null);
 const scrolled = ref(false);
 const currentImgIndex = ref(0);
+
+// 获取当前登录用户
+const currentUser = computed(() => {
+  const userStr = localStorage.getItem('user');
+  if (userStr) {
+    try {
+      return JSON.parse(userStr);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+});
+
+// 判断当前用户是否是文章作者
+const isAuthor = computed(() => {
+  return currentUser.value && article.value && currentUser.value.username === article.value.createdBy;
+});
 
 const handleScroll = () => {
   scrolled.value = window.scrollY > 50;
@@ -168,6 +207,30 @@ const formatDate = (dateStr: string) => {
   return date.toLocaleDateString('zh-CN', { 
     year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
   });
+};
+
+// 跳转到编辑页面
+const handleEdit = () => {
+  router.push(`/article/${route.params.id}/edit`);
+};
+
+// 删除文章
+const handleDelete = async () => {
+  if (!confirm('确定要删除这篇文章吗？此操作不可恢复。')) {
+    return;
+  }
+  try {
+    const res = await request.delete(`/article/${route.params.id}`);
+    if (res.data.code === 200) {
+      alert('删除成功');
+      // 删除成功，设置标记让首页刷新
+      sessionStorage.setItem('homeNeedRefresh', 'true');
+      console.log('删除成功，设置刷新标记');
+      router.push('/');
+    }
+  } catch (err: any) {
+    alert(err.response?.data?.message || '删除失败');
+  }
 };
 
 onMounted(() => {

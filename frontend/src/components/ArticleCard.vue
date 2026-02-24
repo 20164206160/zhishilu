@@ -3,8 +3,8 @@
     @click="goToDetail"
     class="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col h-full cursor-pointer relative"
   >
-    <!-- 正方形展示区域 -->
-    <div class="aspect-square w-full relative overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
+    <!-- 顶部图片区域 - 高度减少为3/4正方形 -->
+    <div class="aspect-[4/3] w-full relative overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
       <!-- 图片模式 -->
       <template v-if="article.images && article.images.length > 0">
         <img 
@@ -17,23 +17,41 @@
       
       <!-- 文字模式 (无图片时展示正文内容) -->
       <div v-else class="w-full h-full p-4 flex flex-col justify-center">
-        <p class="text-sm text-gray-600 line-clamp-6 leading-relaxed">
-          {{ article.content || '暂无内容' }}
-        </p>
+        <p 
+          class="text-sm text-gray-600 line-clamp-4 leading-relaxed"
+          v-html="getDisplayContent()"
+        ></p>
       </div>
 
       <!-- 分类标签 -->
-      <div class="absolute top-2 left-2 px-2.5 py-1 bg-white/90 backdrop-blur-sm text-blue-600 text-[10px] font-bold rounded-lg shadow-sm z-20 uppercase tracking-wider">
-        {{ article.category }}
+      <div class="absolute top-2 left-2 flex flex-wrap gap-1 max-w-[80%]">
+        <span 
+          v-for="(cat, index) in article.categories?.slice(0, 2)" 
+          :key="index"
+          class="px-2 py-0.5 bg-white/90 backdrop-blur-sm text-blue-600 text-[10px] font-bold rounded-lg shadow-sm z-20 uppercase tracking-wider"
+        >
+          {{ cat }}
+        </span>
+        <span v-if="article.categories?.length > 2" class="px-2 py-0.5 bg-white/90 backdrop-blur-sm text-blue-600 text-[10px] font-bold rounded-lg shadow-sm z-20">
+          +{{ article.categories.length - 2 }}
+        </span>
       </div>
     </div>
 
     <!-- 底部信息区 -->
-    <div class="p-3 space-y-2.5 flex flex-col flex-grow">
+    <div class="p-3 space-y-2 flex flex-col flex-grow">
       <!-- 标题 -->
-      <h3 class="text-sm text-gray-800 line-clamp-2 font-medium leading-snug min-h-[2.5rem] group-hover:text-blue-600 transition-colors">
-        {{ article.title }}
-      </h3>
+      <h3 
+        class="text-sm text-gray-800 line-clamp-2 font-medium leading-snug group-hover:text-blue-600 transition-colors"
+        v-html="article.highlightTitle || article.title"
+      ></h3>
+      
+      <!-- 正文摘要（有图片时展示） -->
+      <p 
+        v-if="article.images && article.images.length > 0"
+        class="text-xs text-gray-500 line-clamp-2 leading-relaxed"
+        v-html="getDisplayContent()"
+      ></p>
       
       <!-- 发布人信息 -->
       <div class="flex items-center space-x-2">
@@ -49,9 +67,9 @@
           <ClockIcon :size="12" />
           <span>{{ formatDate(article.createdTime) }}</span>
         </div>
-        <div v-if="article.location" class="flex items-center space-x-1 truncate max-w-[100px]" :title="article.location">
+        <div v-if="article.location || article.highlightLocation" class="flex items-center space-x-1 truncate max-w-[100px]" :title="article.location">
           <MapPinIcon :size="12" />
-          <span class="truncate">{{ article.location }}</span>
+          <span class="truncate" v-html="article.highlightLocation || article.location"></span>
         </div>
       </div>
       
@@ -71,6 +89,7 @@ import { getImageUrl } from '../utils/image';
 
 const props = defineProps<{
   article: any
+  searchKeyword?: string
 }>();
 
 const router = useRouter();
@@ -91,6 +110,89 @@ const getUserInitial = (username: string) => {
   return username.charAt(0).toUpperCase();
 };
 
+// 获取正文预览（默认展示前25个字符）
+const getContentPreview = (content: string | undefined): string => {
+  if (!content) return '';
+  // 去除HTML标签
+  const plainText = content.replace(/<[^>]+>/g, '');
+  // 截取前25个字符，超出则添加省略号
+  if (plainText.length <= 25) {
+    return plainText;
+  }
+  return plainText.substring(0, 25) + '...';
+};
+
+// 获取展示内容：优先使用ES高亮，如果没有则以匹配关键词为中心提取片段
+const getDisplayContent = (): string => {
+  const article = props.article;
+  
+  // 如果有ES返回的高亮内容，直接使用
+  if (article.highlightContent) {
+    return article.highlightContent;
+  }
+  
+  // 如果没有高亮内容但有原始内容，尝试以匹配关键词为中心提取
+  const content = article.content;
+  if (!content) return '暂无内容';
+  
+  // 获取搜索关键词（从props或article对象）
+  const searchKeyword = props.searchKeyword || article._searchKeyword || '';
+  if (!searchKeyword) {
+    return getContentPreview(content);
+  }
+  
+  // 以关键词为中心提取片段
+  return extractSnippetAroundKeyword(content, searchKeyword);
+};
+
+// 以关键词为中心提取文本片段
+const extractSnippetAroundKeyword = (content: string, keyword: string): string => {
+  if (!content || !keyword) return getContentPreview(content);
+  
+  // 去除HTML标签获取纯文本
+  const plainText = content.replace(/<[^>]+>/g, '');
+  
+  // 查找关键词位置（不区分大小写）
+  const lowerText = plainText.toLowerCase();
+  const lowerKeyword = keyword.toLowerCase();
+  const index = lowerText.indexOf(lowerKeyword);
+  
+  if (index === -1) {
+    // 没找到关键词，返回默认预览
+    return getContentPreview(content);
+  }
+  
+  // 计算片段起始和结束位置（关键词前后各12个字符，总共约25字）
+  const contextLength = 12;
+  let start = Math.max(0, index - contextLength);
+  let end = Math.min(plainText.length, index + keyword.length + contextLength);
+  
+  // 调整以避免截断单词（向前找最近的标点或空格）
+  if (start > 0) {
+    const nextPunct = plainText.slice(start).search(/[，。！？、；：\s]/);
+    if (nextPunct > 0 && nextPunct < 5) {
+      start += nextPunct + 1;
+    }
+  }
+  
+  // 提取片段
+  let snippet = plainText.substring(start, end);
+  
+  // 添加省略号
+  if (start > 0) {
+    snippet = '...' + snippet;
+  }
+  if (end < plainText.length) {
+    snippet = snippet + '...';
+  }
+  
+  // 高亮关键词
+  const regex = new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  snippet = snippet.replace(regex, '<mark class="search-highlight">$1</mark>');
+  
+  return snippet;
+};
+
 // 格式化URL显示（只显示域名）
 const formatUrl = (url: string) => {
   if (!url) return '';
@@ -109,3 +211,14 @@ const openUrl = (url: string) => {
   }
 };
 </script>
+
+<style scoped>
+/* 高亮样式 */
+:deep(.search-highlight) {
+  background: linear-gradient(120deg, #fde047 0%, #fde047 100%);
+  color: #1f2937;
+  padding: 0 2px;
+  border-radius: 2px;
+  font-weight: 600;
+}
+</style>

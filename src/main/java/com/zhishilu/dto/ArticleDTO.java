@@ -22,9 +22,9 @@ public class ArticleDTO {
     private String title;
     
     /**
-     * 文章类别
+     * 文章类别列表
      */
-    private String category;
+    private List<String> categories;
     
     /**
      * 文章内容
