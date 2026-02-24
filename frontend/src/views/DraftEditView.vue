@@ -7,11 +7,11 @@
           <ChevronLeft :size="20" />
           <span class="font-bold">取消</span>
         </button>
-        <h1 class="text-lg font-black text-gray-900">发布新内容</h1>
+        <h1 class="text-lg font-black text-gray-900">编辑草稿</h1>
         <div class="flex items-center gap-3">
           <span v-if="autoSaveStatus" class="text-xs text-gray-400">{{ autoSaveStatus }}</span>
           <button 
-            @click="handleSubmit"
+            @click="handlePublish"
             :disabled="loading"
             class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-1.5 rounded-full text-sm font-bold shadow-lg shadow-blue-100 transition-all active:scale-95"
           >
@@ -22,7 +22,11 @@
     </header>
 
     <main class="max-w-3xl mx-auto w-full px-4 py-8">
-      <div class="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100 space-y-8">
+      <div v-if="loading && !form.title" class="flex items-center justify-center py-20">
+        <div class="animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
+      </div>
+      
+      <div v-else class="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100 space-y-8">
         <!-- Title -->
         <section class="space-y-2">
           <input 
@@ -132,7 +136,7 @@
               <input 
                 v-model="form.location"
                 type="text" 
-                placeholder="正在获取位置..." 
+                placeholder="输入地点..." 
                 class="w-full pl-10 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 transition-all text-sm"
               />
               <MapPin class="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500" :size="16" />
@@ -168,14 +172,16 @@ import { ref, reactive, onMounted, onUnmounted } from 'vue';
 import { 
   ChevronLeft, Tag, Image as ImageIcon, X, Plus, Type, MapPin, Link as LinkIcon 
 } from 'lucide-vue-next';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import request from '../utils/request';
 import { getImageUrl } from '../utils/image';
 
+const route = useRoute();
 const router = useRouter();
 const loading = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 const topCategories = ref(['技术', '生活', '工作', '读书', '笔记']);
+const draftId = ref('');
 
 const form = reactive({
   title: '',
@@ -187,7 +193,6 @@ const form = reactive({
 });
 
 const customCategory = ref('');
-const draftId = ref<string | null>(null);
 const autoSaveStatus = ref('');
 const autoSaveTimer = ref<number | null>(null);
 const lastSavedContent = ref('');
@@ -255,7 +260,6 @@ const saveDraftSync = async () => {
     
     const res = await request.post('/article/draft', draftData);
     if (res.data.code === 200) {
-      draftId.value = res.data.data.id;
       lastSavedContent.value = currentContent;
     }
   } catch (err) {
@@ -266,7 +270,13 @@ const saveDraftSync = async () => {
 const handleBack = async () => {
   // 先保存最新内容
   await saveDraftSync();
-  router.back();
+  // 返回个人中心时带上from参数，让导航栏显示草稿箱tab
+  const fromTab = route.query.from as string;
+  if (fromTab) {
+    router.push({ path: '/profile', query: { from: fromTab } });
+  } else {
+    router.back();
+  }
 };
 
 const triggerUpload = () => {
@@ -309,55 +319,30 @@ const removeImage = (index: number) => {
   form.images.splice(index, 1);
 };
 
-// 通过浏览器 Geolocation API 获取位置
-// 注意：浏览器只能获取经纬度，逆地理编码需要调用后端服务或第三方 API
-// 由于跨域限制，这里浏览器定位仅作为标记，实际地址使用 IP 定位获取
-const fetchLocationByBrowser = (): Promise<string | null> => {
-  return new Promise((resolve) => {
-    // 浏览器定位在移动端需要用户授权，且第三方逆地理编码 API 有跨域限制
-    // 因此优先使用 IP 定位，更稳定可靠
-    console.log('浏览器定位需要逆地理编码服务，优先使用 IP 定位');
-    resolve(null);
-  });
-};
-
-// 通过后端 IP 获取位置
-const fetchLocationByIP = async (): Promise<string | null> => {
+const loadDraft = async () => {
+  loading.value = true;
   try {
-    const res = await request.get('/article/location');
-    if (res.data.code === 200 && res.data.data) {
-      return res.data.data;
+    const res = await request.get(`/article/draft/${draftId.value}`);
+    if (res.data.code === 200) {
+      const draft = res.data.data;
+      form.title = draft.title || '';
+      form.categories = draft.categories || [];
+      form.images = draft.images || [];
+      form.content = draft.content || '';
+      form.url = draft.url || '';
+      form.location = draft.location || '';
+      // 记录初始内容hash
+      lastSavedContent.value = getFormContentHash();
+    } else {
+      alert('加载草稿失败');
+      router.back();
     }
-    return null;
   } catch (err) {
-    console.error('IP 定位失败:', err);
-    return null;
-  }
-};
-
-// 自动获取位置：优先浏览器定位，失败则使用 IP 定位
-const fetchLocation = async () => {
-  try {
-    // 1. 先尝试浏览器定位
-    const browserLocation = await fetchLocationByBrowser();
-    if (browserLocation) {
-      form.location = browserLocation;
-      return;
-    }
-
-    // 2. 浏览器定位失败，使用 IP 定位
-    const ipLocation = await fetchLocationByIP();
-    if (ipLocation) {
-      form.location = ipLocation;
-      return;
-    }
-
-    // 3. 都失败，提示用户手动输入
-    form.location = '';
-    console.log('无法自动获取位置，请手动输入');
-  } catch (err) {
-    console.error('Location error:', err);
-    form.location = '';
+    console.error('Load draft error:', err);
+    alert('加载草稿失败');
+    router.back();
+  } finally {
+    loading.value = false;
   }
 };
 
@@ -389,7 +374,6 @@ const autoSaveDraft = async () => {
     
     const res = await request.post('/article/draft', draftData);
     if (res.data.code === 200) {
-      draftId.value = res.data.data.id;
       lastSavedContent.value = currentContent;
       autoSaveStatus.value = '已保存';
       // 2秒后清除状态提示
@@ -423,7 +407,7 @@ const stopAutoSave = () => {
   }
 };
 
-const handleSubmit = async () => {
+const handlePublish = async () => {
   if (!form.title || form.categories.length === 0 || !form.location) {
     alert('请填写标题、选择分类和地点');
     return;
@@ -436,23 +420,12 @@ const handleSubmit = async () => {
 
   loading.value = true;
   try {
-    // 如果有草稿ID，使用发布草稿接口
-    if (draftId.value) {
-      const res = await request.post(`/article/draft/${draftId.value}/publish`, form);
-      if (res.data.code === 200) {
-        alert('发布成功！');
-        sessionStorage.setItem('homeNeedRefresh', 'true');
-        stopAutoSave();
-        router.push('/');
-      }
-    } else {
-      const res = await request.post('/article', form);
-      if (res.data.code === 200) {
-        alert('发布成功！');
-        sessionStorage.setItem('homeNeedRefresh', 'true');
-        stopAutoSave();
-        router.push('/');
-      }
+    const res = await request.post(`/article/draft/${draftId.value}/publish`, form);
+    if (res.data.code === 200) {
+      alert('发布成功！');
+      sessionStorage.setItem('homeNeedRefresh', 'true');
+      stopAutoSave();
+      router.push('/');
     }
   } catch (err: any) {
     alert(err.response?.data?.message || '发布失败');
@@ -462,11 +435,14 @@ const handleSubmit = async () => {
 };
 
 onMounted(async () => {
-  fetchLocation();
+  draftId.value = route.params.id as string;
+  if (!draftId.value) {
+    alert('草稿ID不存在');
+    router.back();
+    return;
+  }
+  await loadDraft();
   startAutoSave();
-  // TODO: 获取用户常用分类
-  // const res = await axios.get('/api/article/categories/top');
-  // if(res.data.code === 200) topCategories.value = res.data.data;
 });
 
 onUnmounted(async () => {

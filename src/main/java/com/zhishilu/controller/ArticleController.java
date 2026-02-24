@@ -5,8 +5,10 @@ import com.zhishilu.common.Result;
 import com.zhishilu.req.ArticleCreateReq;
 import com.zhishilu.req.ArticleQueryReq;
 import com.zhishilu.req.ArticleUpdateReq;
+import com.zhishilu.req.DraftSaveReq;
 import com.zhishilu.resp.ArticleResp;
 import com.zhishilu.resp.CategoryStatResp;
+import com.zhishilu.resp.DraftResp;
 import com.zhishilu.dto.UserDTO;
 import com.zhishilu.service.ArticleService;
 import com.zhishilu.service.IpLocationService;
@@ -101,5 +103,55 @@ public class ArticleController {
             return Result.success("无法获取位置信息");
         }
         return Result.success(location);
+    }
+    
+    /**
+     * 保存草稿（新建或更新）
+     */
+    @PostMapping("/draft")
+    public Result<DraftResp> saveDraft(@RequestBody DraftSaveReq req) {
+        UserDTO currentUser = UserContext.getCurrentUser();
+        DraftResp resp = articleService.saveDraft(req, currentUser);
+        return Result.success("保存成功", resp);
+    }
+    
+    /**
+     * 获取当前用户的草稿列表
+     */
+    @GetMapping("/draft/list")
+    public Result<List<DraftResp>> getUserDrafts() {
+        UserDTO currentUser = UserContext.getCurrentUser();
+        List<DraftResp> drafts = articleService.getUserDrafts(currentUser.getId());
+        return Result.success(drafts);
+    }
+    
+    /**
+     * 获取草稿详情
+     */
+    @GetMapping("/draft/{id}")
+    public Result<DraftResp> getDraftById(@PathVariable String id) {
+        UserDTO currentUser = UserContext.getCurrentUser();
+        DraftResp resp = articleService.getDraftById(id, currentUser);
+        return Result.success(resp);
+    }
+    
+    /**
+     * 删除草稿
+     */
+    @DeleteMapping("/draft/{id}")
+    public Result<Void> deleteDraft(@PathVariable String id) {
+        UserDTO currentUser = UserContext.getCurrentUser();
+        articleService.deleteDraft(id, currentUser);
+        return Result.success("删除成功", null);
+    }
+    
+    /**
+     * 将草稿发布为正式文章
+     */
+    @PostMapping("/draft/{id}/publish")
+    public Result<ArticleResp> publishDraft(@PathVariable String id, @Valid @RequestBody ArticleCreateReq req) {
+        UserDTO currentUser = UserContext.getCurrentUser();
+        ArticleResp resp = articleService.publishDraft(id, req, currentUser);
+        return Result.success("发布成功", resp);
     }
 }

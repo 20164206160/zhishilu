@@ -17,5 +17,8 @@ public interface ArticleRepository extends ElasticsearchRepository<Article, Stri
      */
     List<Article> findByCreatorId(String creatorId);
     
-
+    /**
+     * 根据创建者ID和状态查询
+     */
+    List<Article> findByCreatorIdAndStatus(String creatorId, String status);
 }

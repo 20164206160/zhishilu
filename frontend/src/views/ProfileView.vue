@@ -29,6 +29,13 @@
             <BookOpen :size="18" /> 内容管理
           </button>
           <button 
+            @click="activeTab = 'drafts'"
+            :class="['w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all', activeTab === 'drafts' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-100']"
+          >
+            <FileText :size="18" /> 草稿箱
+            <span v-if="drafts.length > 0" class="ml-auto bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">{{ drafts.length }}</span>
+          </button>
+          <button 
             @click="handleLogout"
             class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-red-500 bg-white hover:bg-red-50 border border-gray-100 transition-all"
           >
@@ -155,6 +162,79 @@
               <router-link to="/" class="mt-4 text-blue-600 text-sm font-bold hover:underline">去首页逛逛</router-link>
             </div>
           </div>
+
+          <!-- Drafts Management Tab -->
+          <div v-if="activeTab === 'drafts'" class="space-y-4">
+            <div class="flex items-center justify-between mb-2">
+              <h2 class="text-2xl font-black text-gray-900">草稿箱</h2>
+              <router-link 
+                to="/post" 
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-blue-100 transition-all flex items-center gap-2"
+              >
+                <Plus :size="16" /> 新建草稿
+              </router-link>
+            </div>
+
+            <div v-if="draftsLoading" class="space-y-4">
+              <div v-for="i in 3" :key="i" class="bg-white p-4 rounded-3xl animate-pulse flex gap-4 h-32 border border-gray-50"></div>
+            </div>
+
+            <div v-else-if="drafts.length > 0" class="grid grid-cols-1 gap-4">
+              <div v-for="item in drafts" :key="item.id" class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
+                <div class="flex gap-4">
+                  <div class="w-24 h-24 rounded-2xl bg-gray-50 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                    <img v-if="item.images?.length" :src="getImageUrl(item.images[0])" class="w-full h-full object-cover" />
+                    <FileText v-else :size="24" class="text-gray-200" />
+                  </div>
+                  <div class="flex-grow py-1 flex flex-col justify-between">
+                    <div>
+                      <div class="flex flex-wrap gap-1 mb-1">
+                        <span 
+                          v-for="(cat, idx) in item.categories?.slice(0, 2)" 
+                          :key="idx"
+                          class="text-[10px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded-md uppercase tracking-wider inline-block"
+                        >
+                          {{ cat }}
+                        </span>
+                        <span v-if="item.categories?.length > 2" class="text-[10px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded-md inline-block">
+                          +{{ item.categories.length - 2 }}
+                        </span>
+                        <span v-if="!item.categories?.length" class="text-[10px] text-gray-300">未分类</span>
+                      </div>
+                      <h3 class="text-base font-bold text-gray-900 line-clamp-1 group-hover:text-blue-600 transition-colors">
+                        {{ item.title || '无标题' }}
+                      </h3>
+                      <p class="text-xs text-gray-400 mt-1">
+                        最后编辑：{{ formatDate(item.updatedTime) }}
+                      </p>
+                    </div>
+                    <div class="flex gap-2">
+                      <button 
+                        @click="handleEditDraft(item)"
+                        class="px-4 py-1.5 bg-gray-50 hover:bg-blue-50 text-gray-600 hover:text-blue-600 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
+                      >
+                        <Edit2 :size="14" /> 继续编辑
+                      </button>
+                      <button 
+                        @click="confirmDeleteDraft(item)"
+                        class="px-4 py-1.5 bg-gray-50 hover:bg-red-50 text-gray-600 hover:text-red-500 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
+                      >
+                        <Trash2 :size="14" /> 删除
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div v-else class="bg-white rounded-[32px] p-20 flex flex-col items-center justify-center text-center border border-dashed border-gray-200">
+              <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                <FileText :size="32" class="text-gray-200" />
+              </div>
+              <p class="text-gray-400 font-bold">还没有草稿</p>
+              <router-link to="/post" class="mt-4 text-blue-600 text-sm font-bold hover:underline">去创建草稿</router-link>
+            </div>
+          </div>
         </div>
       </div>
     </main>
@@ -175,18 +255,21 @@
 import { ref, reactive, onMounted } from 'vue';
 import { 
   ChevronLeft, User as UserIcon, BookOpen, LogOut, 
-  Camera, Edit2, Trash2, Image as ImageIcon 
+  Camera, Edit2, Trash2, Image as ImageIcon, FileText, Plus
 } from 'lucide-vue-next';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import request from '../utils/request';
 import ConfirmationModal from '@/components/ConfirmationModal.vue';
 import { getImageUrl } from '../utils/image';
 
 const router = useRouter();
+const route = useRoute();
 const activeTab = ref('profile');
 const loading = ref(true);
 const user = ref({ username: '用户', email: '', avatar: '' });
 const myArticles = ref<any[]>([]);
+const drafts = ref<any[]>([]);
+const draftsLoading = ref(false);
 
 const pwdForm = reactive({
   oldPassword: '',
@@ -218,10 +301,28 @@ const loadData = async () => {
     if (res.data.code === 200) {
       myArticles.value = res.data.data.list;
     }
+    
+    // 获取草稿列表
+    await loadDrafts();
   } catch (err) {
     console.error('Load error:', err);
   } finally {
     loading.value = false;
+  }
+};
+
+// 获取草稿列表
+const loadDrafts = async () => {
+  draftsLoading.value = true;
+  try {
+    const res = await request.get('/article/draft/list');
+    if (res.data.code === 200) {
+      drafts.value = res.data.data;
+    }
+  } catch (err) {
+    console.error('Load drafts error:', err);
+  } finally {
+    draftsLoading.value = false;
   }
 };
 
@@ -282,7 +383,33 @@ const handleEdit = (item: any) => {
   confirmConfig.type = 'primary';
   confirmConfig.show = true;
   confirmConfig.action = () => {
-    router.push(`/article/${item.id}/edit`);
+    // 跳转到编辑页，带上返回时的tab参数
+    router.push(`/article/${item.id}/edit?from=content`);
+  };
+};
+
+// 编辑草稿
+const handleEditDraft = (item: any) => {
+  // 跳转到草稿编辑页，带上返回时的tab参数
+  router.push(`/draft/${item.id}/edit?from=drafts`);
+};
+
+// 删除草稿确认
+const confirmDeleteDraft = (item: any) => {
+  confirmConfig.title = '确认删除此草稿？';
+  confirmConfig.message = `删除 "${item.title || '无标题'}" 后将无法找回，请谨慎操作。`;
+  confirmConfig.type = 'danger';
+  confirmConfig.show = true;
+  confirmConfig.action = async () => {
+    try {
+      const res = await request.delete(`/article/draft/${item.id}`);
+      if (res.data.code === 200) {
+        drafts.value = drafts.value.filter(d => d.id !== item.id);
+      }
+    } catch (err) {
+      console.error('Delete draft error:', err);
+      alert('删除草稿失败');
+    }
   };
 };
 
@@ -291,5 +418,12 @@ const formatDate = (dateStr: string) => {
   return new Date(dateStr).toLocaleDateString();
 };
 
-onMounted(loadData);
+onMounted(() => {
+  // 检查路由参数，如果有from参数则切换到对应tab
+  const fromTab = route.query.from as string;
+  if (fromTab && ['profile', 'content', 'drafts'].includes(fromTab)) {
+    activeTab.value = fromTab;
+  }
+  loadData();
+});
 </script>
