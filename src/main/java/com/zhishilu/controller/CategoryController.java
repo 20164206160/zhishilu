@@ -26,12 +26,23 @@ public class CategoryController {
      * 1. 首先展示用户最常用的类别（按文章数从大到小排序）
      * 2. 不足20个时，补充其他类别（排除用户已使用的类别，按文章数从大到小排序）
      * 3. 最多展示20个
+     * 4. 支持游客访问（未登录用户）
+     * 5. 最大限制100条，防止数据滥用
      */
     @GetMapping("/navigation")
     public Result<List<CategoryStatResp>> getCategoryNavigation(
             @RequestParam(defaultValue = "20") int maxCount) {
+        // 限制最大数量，防止数据滥用
+        if (maxCount > 100) {
+            maxCount = 100;
+        }
+        if (maxCount <= 0) {
+            maxCount = 20;
+        }
+        
         UserDTO currentUser = UserContext.getCurrentUser();
-        List<CategoryStatResp> categories = categoryStatsService.getCategoryNavigation(currentUser.getId(), maxCount);
+        String userId = currentUser != null ? currentUser.getId() : null;
+        List<CategoryStatResp> categories = categoryStatsService.getCategoryNavigation(userId, maxCount);
         return Result.success(categories);
     }
     

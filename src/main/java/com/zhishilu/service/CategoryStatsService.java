@@ -153,12 +153,22 @@ public class CategoryStatsService {
      * 1. 首先展示用户最常用的类别（按文章数从大到小排序）
      * 2. 不足20个时，补充其他类别（排除用户已使用的类别，按文章数从大到小排序）
      * 3. 最多展示20个
+     * 4. 支持游客访问（userId为null时只返回热门类别）
      * 
-     * @param userId 用户ID
+     * @param userId 用户ID（可为null，表示游客）
      * @param maxCount 最大展示数量（默认20）
      * @return 类别导航栏列表
      */
     public List<CategoryStatResp> getCategoryNavigation(String userId, int maxCount) {
+        // 游客访问（userId为null），直接返回热门类别
+        if (userId == null) {
+            List<CategoryStatResp> allCategories = getAllCategoryStats();
+            if (allCategories.size() > maxCount) {
+                return allCategories.subList(0, maxCount);
+            }
+            return allCategories;
+        }
+        
         // 1. 获取用户最常用的类别
         List<CategoryStatResp> userCategories = getUserTopCategories(userId, maxCount);
         

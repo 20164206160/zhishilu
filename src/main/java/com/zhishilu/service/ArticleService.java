@@ -294,6 +294,9 @@ public class ArticleService {
         
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
         
+        // 只查询已发布的文章
+        boolQuery.must(QueryBuilders.termQuery("status", "PUBLISHED"));
+        
         // 关键词全部字段模糊查询（优先级最高）
         if (StringUtils.isNotBlank(req.getKeyword())) {
             BoolQueryBuilder keywordQuery = QueryBuilders.boolQuery();

@@ -78,6 +78,7 @@ public class ShiroConfig {
         // 公开接口（无需登录）
         filterRuleMap.put("/auth/**", "anon");              // 登录注册
         filterRuleMap.put("/article/list", "anon");         // 首页列表
+        filterRuleMap.put("/category/navigation", "anon");  // 首页导航栏
         filterRuleMap.put("/article/search", "anon");       // 搜索
         filterRuleMap.put("/file/img/**", "anon");          // 图片访问
         filterRuleMap.put("/file/download/**", "anon");     // 文件下载

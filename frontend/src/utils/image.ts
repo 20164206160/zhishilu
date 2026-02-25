@@ -9,7 +9,7 @@ export function getImageUrl(path: string): string {
     return path;
   }
   
-  // 如果是服务器相对路径，拼接API基础URL
-  const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
-  return `${baseURL}/file/img/${path}`;
+  // 如果是服务器相对路径，使用相对路径拼接
+  // 这样会自动使用当前页面的域名和端口，支持局域网访问
+  return `/api/file/img/${path}`;
 }
