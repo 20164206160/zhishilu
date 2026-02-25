@@ -57,6 +57,11 @@ public class ArticleResp {
     private String creatorId;
     
     /**
+     * 创建者头像
+     */
+    private String creatorAvatar;
+    
+    /**
      * 创建时间
      */
     private LocalDateTime createdTime;

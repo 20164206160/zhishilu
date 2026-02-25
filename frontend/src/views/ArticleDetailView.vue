@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-gray-50 flex flex-col font-sans">
     <!-- Header Overlay (Mobile Only) -->
     <header class="md:hidden fixed top-0 inset-x-0 z-50 h-16 flex items-center justify-between px-4 transition-all" :class="[scrolled ? 'bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm' : 'bg-transparent']">
-      <button @click="router.push('/')" class="w-10 h-10 rounded-full flex items-center justify-center transition-all" :class="[scrolled ? 'bg-gray-100 text-gray-900' : 'bg-black/20 text-white backdrop-blur-sm']">
+      <button @click="handleBack" class="w-10 h-10 rounded-full flex items-center justify-center transition-all" :class="[scrolled ? 'bg-gray-100 text-gray-900' : 'bg-black/20 text-white backdrop-blur-sm']">
         <ChevronLeft :size="24" />
       </button>
       <div class="flex items-center gap-3">
@@ -16,7 +16,7 @@
       <!-- Image Gallery (Left Side on Desktop) -->
       <section v-if="article.images?.length" class="w-full md:flex-grow relative bg-black flex items-center justify-center overflow-hidden group">
         <!-- Desktop Back Button -->
-        <button @click="router.push('/')" class="hidden md:flex absolute top-6 left-6 z-20 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md items-center justify-center transition-all">
+        <button @click="handleBack" class="hidden md:flex absolute top-6 left-6 z-20 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md items-center justify-center transition-all">
           <ChevronLeft :size="24" />
         </button>
 
@@ -45,8 +45,9 @@
         <!-- User Header (Sticky) -->
         <div class="px-4 py-4 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-blue-400 flex items-center justify-center text-white font-bold text-lg shadow-sm">
-              {{ article.createdBy?.charAt(0) || 'U' }}
+            <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-blue-400 flex items-center justify-center text-white font-bold text-lg shadow-sm overflow-hidden">
+              <img v-if="article.creatorAvatar" :src="getAvatarUrl(article.creatorAvatar)" class="w-full h-full object-cover" alt="avatar" />
+              <template v-else>{{ article.createdBy?.charAt(0) || 'U' }}</template>
             </div>
             <div>
               <p class="text-[15px] font-bold text-gray-900 leading-none">{{ article.createdBy }}</p>
@@ -160,13 +161,26 @@ import {
   Link as LinkIcon, Heart, Star, MessageCircle, Edit3, Trash2
 } from 'lucide-vue-next';
 import request from '../utils/request';
-import { getImageUrl } from '../utils/image';
+import { getImageUrl, getAvatarUrl } from '../utils/image';
 
 const route = useRoute();
 const router = useRouter();
 const article = ref<any>(null);
 const scrolled = ref(false);
 const currentImgIndex = ref(0);
+
+// 获取来源页面，用于决定返回哪里
+const from = computed(() => route.query.from as string);
+
+// 处理返回按钮
+const handleBack = () => {
+  if (from.value === 'profile') {
+    // 返回个人中心的内容管理标签
+    router.push({ path: '/profile', query: { from: 'content' } });
+  } else {
+    router.push('/');
+  }
+};
 
 // 获取当前登录用户
 const currentUser = computed(() => {
@@ -195,6 +209,8 @@ const loadDetail = async () => {
     const res = await request.get(`/article/${route.params.id}`);
     if (res.data.code === 200) {
       article.value = res.data.data;
+      // 设置页面标题为文章标题
+      document.title = article.value.title || '文章详情';
     }
   } catch (err) {
     console.error('Load detail error:', err);
@@ -211,7 +227,8 @@ const formatDate = (dateStr: string) => {
 
 // 跳转到编辑页面
 const handleEdit = () => {
-  router.push(`/article/${route.params.id}/edit`);
+  // 传递from参数，保持来源信息
+  router.push(`/article/${route.params.id}/edit?from=${from.value || ''}`);
 };
 
 // 删除文章

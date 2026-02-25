@@ -55,8 +55,9 @@
       
       <!-- 发布人信息 -->
       <div class="flex items-center space-x-2">
-        <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-500 to-blue-400 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
-          {{ getUserInitial(article.createdBy) }}
+        <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-500 to-blue-400 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 overflow-hidden">
+          <img v-if="article.creatorAvatar" :src="getAvatarUrl(article.creatorAvatar)" class="w-full h-full object-cover" alt="avatar" />
+          <template v-else>{{ getUserInitial(article.createdBy) }}</template>
         </div>
         <span class="text-xs text-gray-600 truncate flex-1">{{ article.createdBy }}</span>
       </div>
@@ -83,9 +84,9 @@
 </template>
 
 <script setup lang="ts">
-import { Clock as ClockIcon, MapPin as MapPinIcon, Link as LinkIcon } from 'lucide-vue-next';
+import { Clock as ClockIcon, MapPin as MapPinIcon, Link as LinkIcon, User as UserIcon } from 'lucide-vue-next';
 import { useRouter } from 'vue-router';
-import { getImageUrl } from '../utils/image';
+import { getImageUrl, getAvatarUrl } from '../utils/image';
 
 const props = defineProps<{
   article: any

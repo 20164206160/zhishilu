@@ -4,6 +4,7 @@ import com.zhishilu.exception.BusinessException;
 import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -35,8 +36,12 @@ public class FileService {
     @Value("${upload.max-size}")
     private Long maxSize;
     
+    @Value("${upload.avatar-path:./uploads/avatar}")
+    private String avatarPath;
+    
     private List<String> allowedTypeList;
     private String absoluteUploadPath;
+    private String absoluteAvatarPath;
     
     @PostConstruct
     public void init() {
@@ -54,6 +59,17 @@ public class FileService {
             }
         }
         log.info("文件上传路径: {}", absoluteUploadPath);
+        
+        // 初始化头像目录
+        File avatarDir = new File(avatarPath);
+        absoluteAvatarPath = avatarDir.getAbsolutePath();
+        if (!avatarDir.exists()) {
+            boolean created = avatarDir.mkdirs();
+            if (created) {
+                log.info("创建头像目录: {}", absoluteAvatarPath);
+            }
+        }
+        log.info("头像上传路径: {}", absoluteAvatarPath);
     }
     
     /**
@@ -112,5 +128,58 @@ public class FileService {
      */
     public String getAbsolutePath(String relativePath) {
         return Paths.get(absoluteUploadPath, relativePath).toAbsolutePath().toString();
+    }
+    
+    /**
+     * 上传头像
+     */
+    public String uploadAvatar(MultipartFile file, String userId) throws IOException {
+        // 检查文件是否为空
+        if (file.isEmpty()) {
+            throw new BusinessException("文件不能为空");
+        }
+        
+        // 检查文件大小（头像限制为2MB）
+        if (file.getSize() > 2 * 1024 * 1024) {
+            throw new BusinessException("头像文件大小不能超过2MB");
+        }
+        
+        // 检查文件类型
+        String extension = FilenameUtils.getExtension(file.getOriginalFilename()).toLowerCase();
+        List<String> avatarAllowedTypes = Arrays.asList("jpg", "jpeg", "png", "gif", "webp");
+        if (!avatarAllowedTypes.contains(extension)) {
+            throw new BusinessException("不支持的文件类型: " + extension + "，仅支持: jpg, jpeg, png, gif, webp");
+        }
+        
+        // 生成文件名：userId_时间戳.扩展名
+        String fileName = userId + "_" + System.currentTimeMillis() + "." + extension;
+        
+        // 保存文件 - 使用绝对路径
+        Path filePath = Paths.get(absoluteAvatarPath, fileName);
+        file.transferTo(filePath.toFile());
+        
+        log.info("头像上传成功: {}", fileName);
+        return fileName;
+    }
+    
+    /**
+     * 获取头像绝对路径
+     */
+    public String getAvatarAbsolutePath(String fileName) {
+        return Paths.get(absoluteAvatarPath, fileName).toAbsolutePath().toString();
+    }
+    
+    /**
+     * 删除旧头像
+     */
+    public void deleteAvatar(String fileName) throws IOException {
+        if (StringUtils.isBlank(fileName)) {
+            return;
+        }
+        Path filePath = Paths.get(absoluteAvatarPath, fileName);
+        if (Files.exists(filePath)) {
+            Files.delete(filePath);
+            log.info("旧头像删除成功: {}", fileName);
+        }
     }
 }

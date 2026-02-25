@@ -81,6 +81,7 @@ public class ShiroConfig {
         filterRuleMap.put("/category/navigation", "anon");  // 首页导航栏
         filterRuleMap.put("/article/search", "anon");       // 搜索
         filterRuleMap.put("/file/img/**", "anon");          // 图片访问
+        filterRuleMap.put("/file/avatar/**", "anon");       // 头像访问
         filterRuleMap.put("/file/download/**", "anon");     // 文件下载
         filterRuleMap.put("/swagger-ui/**", "anon");        // Swagger
         filterRuleMap.put("/v3/api-docs/**", "anon");

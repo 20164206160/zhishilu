@@ -218,12 +218,12 @@ const removeCategory = (index: number) => {
 };
 
 const handleBack = () => {
-  // 返回个人中心时带上from参数，让导航栏显示正确的tab
+  // 返回到详情页，保持from参数（content或profile都表示从个人中心来）
   const fromTab = route.query.from as string;
-  if (fromTab) {
-    router.push({ path: '/profile', query: { from: fromTab } });
+  if (fromTab === 'profile' || fromTab === 'content') {
+    router.push(`/article/${articleId.value}?from=profile`);
   } else {
-    router.back();
+    router.push(`/article/${articleId.value}`);
   }
 };
 
@@ -311,7 +311,13 @@ const handleSubmit = async () => {
       // 更新成功，设置标记让首页刷新
       sessionStorage.setItem('homeNeedRefresh', 'true');
       console.log('更新成功，设置刷新标记');
-      router.push(`/article/${articleId.value}`);
+      // 传递from参数回到详情页，保持来源信息（content或profile都表示从个人中心来）
+      const fromTab = route.query.from as string;
+      if (fromTab === 'profile' || fromTab === 'content') {
+        router.push(`/article/${articleId.value}?from=profile`);
+      } else {
+        router.push(`/article/${articleId.value}`);
+      }
     }
   } catch (err: any) {
     alert(err.response?.data?.message || '保存失败');

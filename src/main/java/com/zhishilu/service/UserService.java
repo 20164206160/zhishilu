@@ -121,6 +121,17 @@ public class UserService {
     }
     
     /**
+     * 更新用户头像
+     */
+    public void updateAvatar(String userId, String avatar) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("用户不存在"));
+        user.setAvatar(avatar);
+        userRepository.save(user);
+        log.info("用户 {} 头像已更新: {}", user.getUsername(), avatar);
+    }
+    
+    /**
      * 密码加密
      */
     private String encryptPassword(String password) {

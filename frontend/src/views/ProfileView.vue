@@ -59,8 +59,16 @@
                     <UserIcon v-else :size="40" class="text-blue-300" />
                   </div>
                   <div class="absolute inset-0 bg-black/40 rounded-[32px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Camera :size="20" class="text-white" />
+                    <Camera v-if="!uploadingAvatar" :size="20" class="text-white" />
+                    <div v-else class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   </div>
+                  <input
+                    ref="avatarInputRef"
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    class="hidden"
+                    @change="handleAvatarChange"
+                  />
                 </div>
                 <div class="space-y-1">
                   <p class="text-lg font-bold text-gray-900">{{ user.username }}</p>
@@ -112,14 +120,14 @@
             <div v-else-if="myArticles.length > 0" class="grid grid-cols-1 gap-4">
               <div v-for="item in myArticles" :key="item.id" class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
                 <div class="flex gap-4">
-                  <div @click="router.push(`/article/${item.id}`)" class="w-24 h-24 rounded-2xl bg-gray-50 overflow-hidden flex-shrink-0 cursor-pointer">
+                  <div @click="router.push(`/article/${item.id}?from=profile`)" class="w-24 h-24 rounded-2xl bg-gray-50 overflow-hidden flex-shrink-0 cursor-pointer">
                     <img v-if="item.images?.length" :src="getImageUrl(item.images[0])" class="w-full h-full object-cover" />
                     <div v-else class="w-full h-full flex items-center justify-center text-gray-200">
                       <ImageIcon :size="24" />
                     </div>
                   </div>
                   <div class="flex-grow py-1 flex flex-col justify-between">
-                    <div @click="router.push(`/article/${item.id}`)" class="cursor-pointer">
+                    <div @click="router.push(`/article/${item.id}?from=profile`)" class="cursor-pointer">
                       <div class="flex flex-wrap gap-1 mb-1">
                         <span 
                           v-for="(cat, idx) in item.categories?.slice(0, 2)" 
@@ -260,7 +268,7 @@ import {
 import { useRouter, useRoute } from 'vue-router';
 import request from '../utils/request';
 import ConfirmationModal from '@/components/ConfirmationModal.vue';
-import { getImageUrl } from '../utils/image';
+import { getImageUrl, getAvatarUrl } from '../utils/image';
 
 const router = useRouter();
 const route = useRoute();
@@ -290,9 +298,16 @@ const confirmConfig = reactive({
 const loadData = async () => {
   loading.value = true;
   try {
-    // 假设从本地或接口获取用户信息
+    // 从本地获取用户信息
     const storedUser = localStorage.getItem('user');
-    if (storedUser) user.value = JSON.parse(storedUser);
+    if (storedUser) {
+      const userData = JSON.parse(storedUser);
+      // 转换头像路径为完整URL
+      if (userData.avatar && !userData.avatar.startsWith('http')) {
+        userData.avatar = getAvatarUrl(userData.avatar);
+      }
+      user.value = userData;
+    }
 
     // 获取我的文章 (按当前用户查询)
     const res = await request.get('/article/list', { 
@@ -373,8 +388,69 @@ const handleLogout = () => {
   router.push('/login');
 };
 
+const avatarInputRef = ref<HTMLInputElement | null>(null);
+const uploadingAvatar = ref(false);
+
 const triggerAvatarUpload = () => {
-  alert('功能开发中：点击此处将触发文件选择，随后上传至服务器更新头像。');
+  avatarInputRef.value?.click();
+};
+
+const handleAvatarChange = async (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file) return;
+
+  // 验证文件类型
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  if (!allowedTypes.includes(file.type)) {
+    alert('请选择图片文件（jpg, png, gif, webp）');
+    return;
+  }
+
+  // 验证文件大小（2MB）
+  if (file.size > 2 * 1024 * 1024) {
+    alert('头像文件大小不能超过2MB');
+    return;
+  }
+
+  uploadingAvatar.value = true;
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await request.post('/user/avatar', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+
+    if (res.data.code === 200) {
+      // 更新本地用户头像
+      const avatarFileName = res.data.data.avatar;
+      user.value.avatar = getAvatarUrl(avatarFileName);
+      
+      // 更新 localStorage 中的用户信息
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        userData.avatar = avatarFileName;
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
+      
+      alert('头像上传成功！');
+    } else {
+      alert(res.data.message || '头像上传失败');
+    }
+  } catch (err: any) {
+    console.error('头像上传失败:', err);
+    alert(err.response?.data?.message || '头像上传失败，请重试');
+  } finally {
+    uploadingAvatar.value = false;
+    // 清空 input，允许重复选择同一文件
+    if (avatarInputRef.value) {
+      avatarInputRef.value.value = '';
+    }
+  }
 };
 
 const handleEdit = (item: any) => {
@@ -419,6 +495,8 @@ const formatDate = (dateStr: string) => {
 };
 
 onMounted(() => {
+  // 设置页面标题
+  document.title = '个人中心';
   // 检查路由参数，如果有from参数则切换到对应tab
   const fromTab = route.query.from as string;
   if (fromTab && ['profile', 'content', 'drafts'].includes(fromTab)) {

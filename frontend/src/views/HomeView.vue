@@ -60,8 +60,10 @@
             <PlusIcon :size="18" stroke-width="3" />
             <span class="hidden sm:inline">新增</span>
           </router-link>
-          <router-link to="/profile" class="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-100 to-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 font-bold cursor-pointer hover:shadow-inner">
-            U
+          <router-link to="/profile" class="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-100 to-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 font-bold cursor-pointer hover:shadow-inner overflow-hidden">
+            <img v-if="currentUserAvatar" :src="currentUserAvatar" class="w-full h-full object-cover" alt="avatar" />
+            <span v-else-if="currentUserName">{{ currentUserName.charAt(0).toUpperCase() }}</span>
+            <UserIcon v-else :size="18" />
           </router-link>
         </div>
       </div>
@@ -201,10 +203,12 @@ import {
   Github as GithubIcon,
   Mail as MailIcon,
   Twitter as TwitterIcon,
-  X as XIcon
+  X as XIcon,
+  User as UserIcon
 } from 'lucide-vue-next';
 import request from '../utils/request';
 import ArticleCard from '../components/ArticleCard.vue';
+import { getAvatarUrl } from '../utils/image';
 
 const route = useRoute();
 
@@ -220,6 +224,8 @@ const page = ref(0);
 const size = ref(24); // 淘宝风格网格通常每页展示较多
 const totalPages = ref(0);
 const currentSearchKeyword = ref(''); // 当前搜索关键词，用于正文高亮
+const currentUserAvatar = ref('');
+const currentUserName = ref('');
 
 // 类别统计响应接口
 interface CategoryStatResp {
@@ -358,14 +364,31 @@ const checkAndRefresh = (forceRefresh = false) => {
   }
 };
 
+// 加载当前用户信息
+const loadCurrentUser = () => {
+  const storedUser = localStorage.getItem('user');
+  if (storedUser) {
+    const userData = JSON.parse(storedUser);
+    currentUserName.value = userData.username || '';
+    if (userData.avatar) {
+      currentUserAvatar.value = getAvatarUrl(userData.avatar);
+    }
+  }
+};
+
 onMounted(() => {
+  // 设置页面标题
+  document.title = '知拾录';
   // 首次加载强制刷新
   checkAndRefresh(true);
+  loadCurrentUser();
 });
 
 // 从 keep-alive 缓存中激活时检查是否需要刷新
 onActivated(() => {
   console.log('HomeView onActivated');
+  // 重新设置页面标题
+  document.title = '知拾录';
   // 只有在有标记时才刷新，否则保持现状
   checkAndRefresh(false);
 });

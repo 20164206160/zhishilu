@@ -106,4 +106,28 @@ public class FileController {
                 .contentType(MediaType.parseMediaType(contentType != null ? contentType : "application/octet-stream"))
                 .body(resource);
     }
+    
+    /**
+     * 获取头像
+     */
+    @GetMapping("/avatar/{fileName}")
+    public ResponseEntity<Resource> getAvatar(@PathVariable String fileName) throws IOException {
+        log.info("请求头像: {}", fileName);
+        
+        String absolutePath = fileService.getAvatarAbsolutePath(fileName);
+        Path filePath = Paths.get(absolutePath);
+        
+        if (!Files.exists(filePath)) {
+            log.warn("头像文件不存在: {}", absolutePath);
+            return ResponseEntity.notFound().build();
+        }
+        
+        Resource resource = new FileSystemResource(filePath);
+        String contentType = Files.probeContentType(filePath);
+        
+        log.info("返回头像，类型: {}", contentType);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType != null ? contentType : "image/jpeg"))
+                .body(resource);
+    }
 }

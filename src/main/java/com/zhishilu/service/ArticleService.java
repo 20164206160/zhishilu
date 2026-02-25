@@ -48,6 +48,7 @@ public class ArticleService {
     private final ArticleRepository articleRepository;
     private final ElasticsearchOperations elasticsearchOperations;
     private final CategoryStatsService categoryStatsService;
+    private final UserService userService;
     
     /**
      * 创建文章
@@ -433,6 +434,20 @@ public class ArticleService {
     private ArticleResp convertToResp(Article article) {
         ArticleResp resp = new ArticleResp();
         BeanUtils.copyProperties(article, resp);
+        
+        // 获取创建者头像
+        try {
+            if (article.getCreatorId() != null) {
+                var user = userService.getById(article.getCreatorId());
+                if (user != null) {
+                    resp.setCreatorAvatar(user.getAvatar());
+                }
+            }
+        } catch (Exception e) {
+            // 用户不存在时不影响文章展示
+            log.debug("获取用户头像失败, userId: {}", article.getCreatorId());
+        }
+        
         return resp;
     }
     
