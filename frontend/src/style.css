@@ -5,9 +5,37 @@ body {
   background-color: #f0f9ff !important;
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
+  width: 100%;
+  min-width: 320px;
+}
+
+/* 防止内容溢出 */
+html {
+  overflow-x: hidden;
+  width: 100%;
+}
+
+#app {
+  width: 100%;
+  overflow-x: hidden;
 }
 
 @theme {
   --color-primary: #3b82f6;
   --color-secondary: #10b981;
+}
+
+/* 移动端适配优化 */
+@media (max-width: 640px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+/* iPad/平板适配 */
+@media (min-width: 768px) and (max-width: 1024px) {
+  html {
+    font-size: 15px;
+  }
 }

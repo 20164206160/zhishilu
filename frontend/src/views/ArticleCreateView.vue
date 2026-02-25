@@ -1,19 +1,19 @@
 <template>
-  <div class="min-h-screen bg-[#f8fafc] flex flex-col font-sans">
+  <div class="min-h-screen bg-[#f8fafc] flex flex-col font-sans w-full overflow-x-hidden">
     <!-- Header -->
-    <header class="bg-white border-b border-gray-100 sticky top-0 z-40">
-      <div class="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
-        <button @click="handleBack" class="flex items-center gap-2 text-gray-500 hover:text-blue-600 transition-colors">
-          <ChevronLeft :size="20" />
-          <span class="font-bold">取消</span>
+    <header class="bg-white border-b border-gray-100 sticky top-0 z-40 w-full">
+      <div class="max-w-3xl mx-auto px-2 sm:px-4 h-14 sm:h-16 flex items-center justify-between">
+        <button @click="handleBack" class="flex items-center gap-1 sm:gap-2 text-gray-500 hover:text-blue-600 transition-colors">
+          <ChevronLeft :size="18" class="sm:w-5 sm:h-5" />
+          <span class="font-bold text-sm sm:text-base">取消</span>
         </button>
-        <h1 class="text-lg font-black text-gray-900">发布新内容</h1>
-        <div class="flex items-center gap-3">
-          <span v-if="autoSaveStatus" class="text-xs text-gray-400">{{ autoSaveStatus }}</span>
-          <button 
+        <h1 class="text-base sm:text-lg font-black text-gray-900">发布新内容</h1>
+        <div class="flex items-center gap-2 sm:gap-3">
+          <span v-if="autoSaveStatus" class="text-[10px] sm:text-xs text-gray-400">{{ autoSaveStatus }}</span>
+          <button
             @click="handleSubmit"
             :disabled="loading"
-            class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-1.5 rounded-full text-sm font-bold shadow-lg shadow-blue-100 transition-all active:scale-95"
+            class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-3 sm:px-6 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-bold shadow-lg shadow-blue-100 transition-all active:scale-95"
           >
             {{ loading ? '发布中...' : '发布' }}
           </button>
@@ -21,137 +21,137 @@
       </div>
     </header>
 
-    <main class="max-w-3xl mx-auto w-full px-4 py-8">
-      <div class="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100 space-y-8">
+    <main class="max-w-3xl mx-auto w-full px-2 sm:px-4 py-4 sm:py-8">
+      <div class="bg-white rounded-2xl sm:rounded-[32px] p-4 sm:p-8 shadow-sm border border-gray-100 space-y-6 sm:space-y-8">
         <!-- Title -->
         <section class="space-y-2">
-          <input 
+          <input
             v-model="form.title"
-            type="text" 
-            placeholder="输入标题..." 
-            class="w-full text-3xl font-black placeholder:text-gray-200 border-none focus:ring-0 p-0 text-gray-900"
+            type="text"
+            placeholder="输入标题..."
+            class="w-full text-xl sm:text-3xl font-black placeholder:text-gray-200 border-none focus:ring-0 p-0 text-gray-900"
           />
           <div class="h-px bg-gray-50 w-full"></div>
         </section>
 
         <!-- Category -->
-        <section class="space-y-3">
+        <section class="space-y-2 sm:space-y-3">
           <div class="flex items-center justify-between">
-            <label class="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-              <Tag :size="14" /> 分类
+            <label class="text-xs sm:text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+              <Tag :size="12" class="sm:w-3.5 sm:h-3.5" /> 分类
             </label>
-            <span class="text-[10px] text-gray-300">必填</span>
+            <span class="text-[9px] sm:text-[10px] text-gray-300">必填</span>
           </div>
           <!-- Recommended Categories -->
-          <div class="flex flex-wrap gap-2">
-            <button 
-              v-for="cat in topCategories" 
+          <div class="flex flex-wrap gap-1.5 sm:gap-2">
+            <button
+              v-for="cat in topCategories"
               :key="cat"
               @click="toggleCategory(cat)"
-              :class="['px-4 py-1.5 rounded-full text-xs font-medium transition-all border', form.categories.includes(cat) ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-gray-100 text-gray-500 hover:bg-gray-50']"
+              :class="['px-2 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-medium transition-all border', form.categories.includes(cat) ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-gray-100 text-gray-500 hover:bg-gray-50']"
             >
               {{ cat }}
             </button>
-            <div class="relative min-w-[120px] flex items-center gap-2">
-              <input 
+            <div class="relative min-w-[100px] sm:min-w-[120px] flex items-center gap-1 sm:gap-2">
+              <input
                 v-model="customCategory"
                 @keyup.enter="addCustomCategory"
-                type="text" 
-                placeholder="手动输入分类" 
-                class="w-full px-4 py-1.5 bg-gray-50 border-none rounded-full text-xs focus:ring-2 focus:ring-blue-500 transition-all"
+                type="text"
+                placeholder="手动输入分类"
+                class="w-full px-2 sm:px-4 py-1 sm:py-1.5 bg-gray-50 border-none rounded-full text-[10px] sm:text-xs focus:ring-2 focus:ring-blue-500 transition-all"
               />
-              <button 
+              <button
                 @click="addCustomCategory"
-                class="px-3 py-1.5 bg-blue-500 text-white rounded-full text-xs font-medium hover:bg-blue-600 transition-colors"
+                class="px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-500 text-white rounded-full text-[10px] sm:text-xs font-medium hover:bg-blue-600 transition-colors"
               >
                 添加
               </button>
             </div>
           </div>
           <!-- 已选类别展示 -->
-          <div v-if="form.categories.length > 0" class="flex flex-wrap gap-2 mt-2">
-            <span class="text-xs text-gray-400">已选：</span>
-            <span 
-              v-for="(cat, index) in form.categories" 
+          <div v-if="form.categories.length > 0" class="flex flex-wrap gap-1.5 sm:gap-2 mt-2">
+            <span class="text-[10px] sm:text-xs text-gray-400">已选：</span>
+            <span
+              v-for="(cat, index) in form.categories"
               :key="index"
-              class="px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full text-xs font-medium flex items-center gap-1"
+              class="px-1.5 sm:px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full text-[10px] sm:text-xs font-medium flex items-center gap-0.5 sm:gap-1"
             >
               {{ cat }}
               <button @click="removeCategory(index)" class="hover:text-blue-800">
-                <X :size="10" />
+                <X :size="8" class="sm:w-2.5 sm:h-2.5" />
               </button>
             </span>
           </div>
         </section>
 
         <!-- Images -->
-        <section class="space-y-3">
+        <section class="space-y-2 sm:space-y-3">
           <div class="flex items-center justify-between">
-            <label class="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-              <ImageIcon :size="14" /> 图片
+            <label class="text-xs sm:text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+              <ImageIcon :size="12" class="sm:w-3.5 sm:h-3.5" /> 图片
             </label>
-            <span class="text-[10px] text-gray-300">支持多张，首张为封面</span>
+            <span class="text-[9px] sm:text-[10px] text-gray-300">支持多张，首张为封面</span>
           </div>
-          <div class="grid grid-cols-3 sm:grid-cols-4 gap-4">
-            <div v-for="(img, index) in form.images" :key="index" class="aspect-square rounded-2xl bg-gray-100 relative group overflow-hidden">
+          <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-4">
+            <div v-for="(img, index) in form.images" :key="index" class="aspect-square rounded-xl sm:rounded-2xl bg-gray-100 relative group overflow-hidden">
               <img :src="getImageUrl(img)" class="w-full h-full object-cover" />
-              <button @click="removeImage(index)" class="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                <X :size="12" />
+              <button @click="removeImage(index)" class="absolute top-1 right-1 bg-black/50 text-white p-0.5 sm:p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                <X :size="10" class="sm:w-3 sm:h-3" />
               </button>
             </div>
-            <button 
+            <button
               @click="triggerUpload"
-              class="aspect-square rounded-2xl border-2 border-dashed border-gray-100 hover:border-blue-200 hover:bg-blue-50 transition-all flex flex-col items-center justify-center text-gray-300 hover:text-blue-400 gap-1"
+              class="aspect-square rounded-xl sm:rounded-2xl border-2 border-dashed border-gray-100 hover:border-blue-200 hover:bg-blue-50 transition-all flex flex-col items-center justify-center text-gray-300 hover:text-blue-400 gap-0.5 sm:gap-1"
             >
-              <Plus :size="24" />
-              <span class="text-[10px] font-bold">添加图片</span>
+              <Plus :size="20" class="sm:w-6 sm:h-6" />
+              <span class="text-[9px] sm:text-[10px] font-bold">添加图片</span>
             </button>
           </div>
         </section>
 
         <!-- Content -->
-        <section class="space-y-3">
-          <label class="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-            <Type :size="14" /> 正文
+        <section class="space-y-2 sm:space-y-3">
+          <label class="text-xs sm:text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+            <Type :size="12" class="sm:w-3.5 sm:h-3.5" /> 正文
           </label>
-          <textarea 
+          <textarea
             v-model="form.content"
-            rows="8"
+            rows="6"
             placeholder="记下这一刻的想法..."
-            class="w-full p-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 transition-all text-sm resize-none"
+            class="w-full p-3 sm:p-4 bg-gray-50 border-none rounded-xl sm:rounded-2xl focus:ring-2 focus:ring-blue-500 transition-all text-xs sm:text-sm resize-none"
           ></textarea>
         </section>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-50">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 pt-3 sm:pt-4 border-t border-gray-50">
           <!-- Location -->
-          <section class="space-y-3">
-            <label class="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-              <MapPin :size="14" /> 地点
+          <section class="space-y-2 sm:space-y-3">
+            <label class="text-xs sm:text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+              <MapPin :size="12" class="sm:w-3.5 sm:h-3.5" /> 地点
             </label>
             <div class="relative">
-              <input 
+              <input
                 v-model="form.location"
-                type="text" 
-                placeholder="正在获取位置..." 
-                class="w-full pl-10 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 transition-all text-sm"
+                type="text"
+                placeholder="正在获取位置..."
+                class="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-3 bg-gray-50 border-none rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 transition-all text-xs sm:text-sm"
               />
-              <MapPin class="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500" :size="16" />
+              <MapPin class="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 text-blue-500" :size="14" />
             </div>
           </section>
 
           <!-- Source URL -->
-          <section class="space-y-3">
-            <label class="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-              <LinkIcon :size="14" /> 来源网址
+          <section class="space-y-2 sm:space-y-3">
+            <label class="text-xs sm:text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+              <LinkIcon :size="12" class="sm:w-3.5 sm:h-3.5" /> 来源网址
             </label>
             <div class="relative">
-              <input 
+              <input
                 v-model="form.url"
-                type="text" 
-                placeholder="https://..." 
-                class="w-full pl-10 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 transition-all text-sm"
+                type="text"
+                placeholder="https://..."
+                class="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-3 bg-gray-50 border-none rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 transition-all text-xs sm:text-sm"
               />
-              <LinkIcon class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" :size="16" />
+              <LinkIcon class="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 text-gray-300" :size="14" />
             </div>
           </section>
         </div>

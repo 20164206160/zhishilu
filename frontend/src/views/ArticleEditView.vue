@@ -1,29 +1,29 @@
 <template>
-  <div class="min-h-screen bg-[#f8fafc] flex flex-col font-sans">
+  <div class="min-h-screen bg-[#f8fafc] flex flex-col font-sans w-full overflow-x-hidden">
     <!-- Header -->
-    <header class="bg-white border-b border-gray-100 sticky top-0 z-40">
-      <div class="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
-        <button @click="handleBack" class="flex items-center gap-2 text-gray-500 hover:text-blue-600 transition-colors">
-          <ChevronLeft :size="20" />
-          <span class="font-bold">取消</span>
+    <header class="bg-white border-b border-gray-100 sticky top-0 z-40 w-full">
+      <div class="max-w-3xl mx-auto px-2 sm:px-4 h-14 sm:h-16 flex items-center justify-between">
+        <button @click="handleBack" class="flex items-center gap-1 sm:gap-2 text-gray-500 hover:text-blue-600 transition-colors">
+          <ChevronLeft :size="18" class="sm:w-5 sm:h-5" />
+          <span class="font-bold text-sm sm:text-base">取消</span>
         </button>
-        <h1 class="text-lg font-black text-gray-900">编辑内容</h1>
-        <button 
+        <h1 class="text-base sm:text-lg font-black text-gray-900">编辑内容</h1>
+        <button
           @click="handleSubmit"
           :disabled="loading"
-          class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-1.5 rounded-full text-sm font-bold shadow-lg shadow-blue-100 transition-all active:scale-95"
+          class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-3 sm:px-6 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-bold shadow-lg shadow-blue-100 transition-all active:scale-95"
         >
           {{ loading ? '保存中...' : '保存' }}
         </button>
       </div>
     </header>
 
-    <main class="max-w-3xl mx-auto w-full px-4 py-8">
+    <main class="max-w-3xl mx-auto w-full px-2 sm:px-4 py-4 sm:py-8">
       <div v-if="loading && !form.title" class="flex items-center justify-center py-20">
         <div class="animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
       </div>
-      
-      <div v-else class="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100 space-y-8">
+
+      <div v-else class="bg-white rounded-2xl sm:rounded-[32px] p-4 sm:p-8 shadow-sm border border-gray-100 space-y-6 sm:space-y-8">
         <!-- Title -->
         <section class="space-y-2">
           <input 

@@ -1,7 +1,7 @@
 <template>
-  <div 
+  <div
     @click="goToDetail"
-    class="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col h-full cursor-pointer relative"
+    class="group bg-white rounded-lg sm:rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col h-full cursor-pointer relative"
   >
     <!-- 顶部图片区域 - 高度减少为3/4正方形 -->
     <div class="aspect-[4/3] w-full relative overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
@@ -24,59 +24,59 @@
       </div>
 
       <!-- 分类标签 -->
-      <div class="absolute top-2 left-2 flex flex-wrap gap-1 max-w-[80%]">
-        <span 
-          v-for="(cat, index) in article.categories?.slice(0, 2)" 
+      <div class="absolute top-1.5 sm:top-2 left-1.5 sm:left-2 flex flex-wrap gap-0.5 sm:gap-1 max-w-[75%] sm:max-w-[80%]">
+        <span
+          v-for="(cat, index) in article.categories?.slice(0, 2)"
           :key="index"
-          class="px-2 py-0.5 bg-white/90 backdrop-blur-sm text-blue-600 text-[10px] font-bold rounded-lg shadow-sm z-20 uppercase tracking-wider"
+          class="px-1.5 sm:px-2 py-0.5 bg-white/90 backdrop-blur-sm text-blue-600 text-[9px] sm:text-[10px] font-bold rounded-md sm:rounded-lg shadow-sm z-20 uppercase tracking-wider"
         >
           {{ cat }}
         </span>
-        <span v-if="article.categories?.length > 2" class="px-2 py-0.5 bg-white/90 backdrop-blur-sm text-blue-600 text-[10px] font-bold rounded-lg shadow-sm z-20">
+        <span v-if="article.categories?.length > 2" class="px-1.5 sm:px-2 py-0.5 bg-white/90 backdrop-blur-sm text-blue-600 text-[9px] sm:text-[10px] font-bold rounded-md sm:rounded-lg shadow-sm z-20">
           +{{ article.categories.length - 2 }}
         </span>
       </div>
     </div>
 
     <!-- 底部信息区 -->
-    <div class="p-3 space-y-2 flex flex-col flex-grow">
+    <div class="p-2 sm:p-3 space-y-1 sm:space-y-2 flex flex-col flex-grow">
       <!-- 标题 -->
-      <h3 
-        class="text-sm text-gray-800 line-clamp-2 font-medium leading-snug group-hover:text-blue-600 transition-colors"
+      <h3
+        class="text-xs sm:text-sm text-gray-800 line-clamp-2 font-medium leading-snug group-hover:text-blue-600 transition-colors"
         v-html="article.highlightTitle || article.title"
       ></h3>
-      
+
       <!-- 正文摘要（有图片时展示） -->
-      <p 
+      <p
         v-if="article.images && article.images.length > 0"
-        class="text-xs text-gray-500 line-clamp-2 leading-relaxed"
+        class="text-[10px] sm:text-xs text-gray-500 line-clamp-2 leading-relaxed hidden sm:block"
         v-html="getDisplayContent()"
       ></p>
-      
+
       <!-- 发布人信息 -->
-      <div class="flex items-center space-x-2">
-        <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-500 to-blue-400 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 overflow-hidden">
+      <div class="flex items-center space-x-1.5 sm:space-x-2">
+        <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gradient-to-tr from-blue-500 to-blue-400 flex items-center justify-center text-white text-[8px] sm:text-[10px] font-bold flex-shrink-0 overflow-hidden">
           <img v-if="article.creatorAvatar" :src="getAvatarUrl(article.creatorAvatar)" class="w-full h-full object-cover" alt="avatar" />
           <template v-else>{{ getUserInitial(article.createdBy) }}</template>
         </div>
-        <span class="text-xs text-gray-600 truncate flex-1">{{ article.createdBy }}</span>
+        <span class="text-[10px] sm:text-xs text-gray-600 truncate flex-1">{{ article.createdBy }}</span>
       </div>
-      
+
       <!-- 时间和地点 -->
-      <div class="flex items-center justify-between text-[11px] text-gray-400">
-        <div class="flex items-center space-x-1">
-          <ClockIcon :size="12" />
+      <div class="flex items-center justify-between text-[9px] sm:text-[11px] text-gray-400">
+        <div class="flex items-center space-x-0.5 sm:space-x-1">
+          <ClockIcon :size="10" class="sm:w-3 sm:h-3" />
           <span>{{ formatDate(article.createdTime) }}</span>
         </div>
-        <div v-if="article.location || article.highlightLocation" class="flex items-center space-x-1 truncate max-w-[100px]" :title="article.location">
-          <MapPinIcon :size="12" />
+        <div v-if="article.location || article.highlightLocation" class="flex items-center space-x-0.5 sm:space-x-1 truncate max-w-[70px] sm:max-w-[100px]" :title="article.location">
+          <MapPinIcon :size="10" class="sm:w-3 sm:h-3" />
           <span class="truncate" v-html="article.highlightLocation || article.location"></span>
         </div>
       </div>
-      
+
       <!-- 链接 -->
-      <div v-if="article.url" class="flex items-center space-x-1 text-[11px] text-blue-500 hover:text-blue-600 transition-colors" @click.stop="openUrl(article.url)">
-        <LinkIcon :size="12" />
+      <div v-if="article.url" class="flex items-center space-x-0.5 sm:space-x-1 text-[9px] sm:text-[11px] text-blue-500 hover:text-blue-600 transition-colors" @click.stop="openUrl(article.url)">
+        <LinkIcon :size="10" class="sm:w-3 sm:h-3" />
         <span class="truncate">{{ formatUrl(article.url) }}</span>
       </div>
     </div>

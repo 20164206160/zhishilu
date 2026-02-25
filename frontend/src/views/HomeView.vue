@@ -1,21 +1,21 @@
 <template>
-  <div class="min-h-screen bg-[#f4f4f4] flex flex-col font-sans">
+  <div class="min-h-screen bg-[#f4f4f4] flex flex-col font-sans w-full overflow-x-hidden">
     <!-- 上部分：导航与搜索 (Header) -->
-    <header class="bg-white shadow-sm sticky top-0 z-50">
+    <header class="bg-white shadow-sm sticky top-0 z-50 w-full">
       <!-- 顶栏：品牌与主操作 -->
-      <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
-        <h1 class="text-2xl font-black italic tracking-tighter text-blue-600 flex-shrink-0">
+      <div class="max-w-7xl mx-auto px-2 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
+        <h1 class="text-xl sm:text-2xl font-black italic tracking-tighter text-blue-600 flex-shrink-0">
           知拾录<span class="text-emerald-500">.</span>
         </h1>
-        
+
         <!-- 搜索框 -->
-        <div class="flex-grow max-w-2xl relative">
+        <div class="flex-grow max-w-2xl relative min-w-0">
           <div class="flex items-center">
             <!-- 字段选择下拉框 -->
-            <div class="relative">
-              <select 
+            <div class="relative flex-shrink-0">
+              <select
                 v-model="searchField"
-                class="appearance-none px-4 py-2.5 bg-gray-100 border-2 border-r-0 border-transparent rounded-l-full text-sm text-gray-600 focus:bg-white focus:border-blue-500 outline-none cursor-pointer hover:bg-gray-200 transition-colors pr-8"
+                class="appearance-none px-2 sm:px-4 py-2 sm:py-2.5 bg-gray-100 border-2 border-r-0 border-transparent rounded-l-full text-xs sm:text-sm text-gray-600 focus:bg-white focus:border-blue-500 outline-none cursor-pointer hover:bg-gray-200 transition-colors pr-6 sm:pr-8"
               >
                 <option value="all">全部</option>
                 <option value="title">标题</option>
@@ -24,86 +24,87 @@
                 <option value="username">用户名</option>
                 <option value="location">地点</option>
               </select>
-              <ChevronDown class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" :size="14" />
+              <ChevronDown class="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" :size="12" />
             </div>
-            <div class="relative flex-grow group">
-              <SearchIcon class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" :size="18" />
-              <input 
+            <div class="relative flex-grow group min-w-0">
+              <SearchIcon class="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" :size="16" />
+              <input
                 v-model="searchQuery"
                 @keyup.enter="handleSearch"
-                type="text" 
+                type="text"
                 :placeholder="getPlaceholder()"
-                class="w-full pl-11 pr-28 py-2.5 bg-gray-100 border-2 border-l-0 border-transparent rounded-r-full focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all outline-none text-sm"
+                class="w-full pl-8 sm:pl-11 pr-16 sm:pr-28 py-2 sm:py-2.5 bg-gray-100 border-2 border-l-0 border-transparent rounded-r-full focus:bg-white focus:border-blue-500 focus:ring-2 sm:focus:ring-4 focus:ring-blue-50 transition-all outline-none text-xs sm:text-sm"
               />
               <!-- 清空按钮 -->
-              <button 
+              <button
                 v-if="searchQuery || selectedCategory !== '全部'"
                 @click="resetFilters"
-                class="absolute right-[70px] top-1/2 -translate-y-1/2 px-2 py-1 rounded-md bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold flex items-center gap-1 transition-colors shadow-sm"
+                class="hidden sm:flex absolute right-[70px] top-1/2 -translate-y-1/2 px-2 py-1 rounded-md bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold items-center gap-1 transition-colors shadow-sm"
                 title="清空查询条件"
               >
                 <XIcon :size="12" />
                 <span>清空</span>
               </button>
-              <button 
+              <button
                 @click="handleSearch"
-                class="absolute right-1.5 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm active:scale-95"
+                class="absolute right-1 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-700 text-white px-2 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs font-bold transition-all shadow-sm active:scale-95"
               >
-                搜索
+                <span class="hidden sm:inline">搜索</span>
+                <SearchIcon class="sm:hidden" :size="14" />
               </button>
             </div>
           </div>
         </div>
-        
-        <div class="flex items-center gap-3">
-          <router-link to="/post" class="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-full text-sm font-bold transition-all shadow-md active:scale-95">
-            <PlusIcon :size="18" stroke-width="3" />
+
+        <div class="flex items-center gap-1 sm:gap-3 flex-shrink-0">
+          <router-link to="/post" class="flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white px-2 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all shadow-md active:scale-95">
+            <PlusIcon :size="16" stroke-width="3" />
             <span class="hidden sm:inline">新增</span>
           </router-link>
-          <router-link to="/profile" class="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-100 to-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 font-bold cursor-pointer hover:shadow-inner overflow-hidden">
+          <router-link to="/profile" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-blue-100 to-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 font-bold cursor-pointer hover:shadow-inner overflow-hidden flex-shrink-0">
             <img v-if="currentUserAvatar" :src="currentUserAvatar" class="w-full h-full object-cover" alt="avatar" />
             <span v-else-if="currentUserName">{{ currentUserName.charAt(0).toUpperCase() }}</span>
-            <UserIcon v-else :size="18" />
+            <UserIcon v-else :size="16" />
           </router-link>
         </div>
       </div>
 
       <!-- 搜索下栏：热门与分类 -->
-      <div class="max-w-7xl mx-auto px-4 pb-3 flex flex-col gap-3">
+      <div class="max-w-7xl mx-auto px-2 sm:px-4 pb-2 sm:pb-3 flex flex-col gap-2 sm:gap-3">
         <!-- 热门提示词 -->
-        <div class="flex items-center gap-3 overflow-x-auto scrollbar-hide py-1">
-          <span class="text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap flex-shrink-0">热门搜索:</span>
-          <button 
-            v-for="word in hotWords" 
+        <div class="flex items-center gap-2 sm:gap-3 overflow-x-auto scrollbar-hide py-1">
+          <span class="text-[10px] sm:text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap flex-shrink-0">热门:</span>
+          <button
+            v-for="word in hotWords"
             :key="word"
             @click="quickSearch(word)"
-            class="text-xs text-gray-500 hover:text-blue-600 transition-colors whitespace-nowrap"
+            class="text-[11px] sm:text-xs text-gray-500 hover:text-blue-600 transition-colors whitespace-nowrap"
           >
             {{ word }}
           </button>
         </div>
 
         <!-- 分类选择 -->
-        <div class="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
-          <button 
+        <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-hide pb-1">
+          <button
             @click="selectedCategory = '全部'"
             :class="[
-              'px-5 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap border',
-              selectedCategory === '全部' 
-                ? 'bg-blue-600 border-blue-600 text-white shadow-md' 
+              'px-3 sm:px-5 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-medium transition-all whitespace-nowrap border',
+              selectedCategory === '全部'
+                ? 'bg-blue-600 border-blue-600 text-white shadow-md'
                 : 'bg-white border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-500'
             ]"
           >
             全部
           </button>
-          <button 
-            v-for="cat in categories" 
+          <button
+            v-for="cat in categories"
             :key="cat.category"
             @click="selectedCategory = cat.category"
             :class="[
-              'px-5 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap border',
-              selectedCategory === cat.category 
-                ? 'bg-blue-600 border-blue-600 text-white shadow-md' 
+              'px-3 sm:px-5 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-medium transition-all whitespace-nowrap border',
+              selectedCategory === cat.category
+                ? 'bg-blue-600 border-blue-600 text-white shadow-md'
                 : 'bg-white border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-500'
             ]"
           >
@@ -114,12 +115,13 @@
     </header>
 
     <!-- 中部分：内容展示区 (Main Grid) -->
-    <main class="flex-grow max-w-7xl mx-auto w-full px-4 py-6">
-      <div v-if="loading" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+    <main class="flex-grow max-w-7xl mx-auto w-full px-2 sm:px-4 py-4 sm:py-6">
+      <!-- 移动端：2列，平板：3列，小桌面：4列，大桌面：5列，超大屏：6列 -->
+      <div v-if="loading" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
         <div v-for="i in 12" :key="i" class="aspect-square bg-white border border-gray-100 rounded-xl animate-pulse"></div>
       </div>
-      
-      <div v-else-if="articles.length > 0" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+
+      <div v-else-if="articles.length > 0" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
         <ArticleCard v-for="item in articles" :key="item.id" :article="item" :search-keyword="currentSearchKeyword" />
       </div>
       
@@ -132,52 +134,52 @@
       </div>
 
       <!-- 分页 -->
-      <div v-if="totalPages > 1" class="mt-12 mb-8 flex items-center justify-center gap-4">
-        <button 
+      <div v-if="totalPages > 1" class="mt-8 sm:mt-12 mb-6 sm:mb-8 flex items-center justify-center gap-2 sm:gap-4">
+        <button
           @click="page--"
           :disabled="page === 0"
-          class="p-2 rounded-xl border border-gray-200 bg-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors shadow-sm"
+          class="p-1.5 sm:p-2 rounded-xl border border-gray-200 bg-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors shadow-sm"
         >
-          <ChevronLeft :size="20" />
+          <ChevronLeft :size="18" class="sm:w-5 sm:h-5" />
         </button>
-        <div class="flex items-center gap-2">
-          <span class="px-4 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-blue-600 shadow-sm">
+        <div class="flex items-center gap-1.5 sm:gap-2">
+          <span class="px-3 sm:px-4 py-1 sm:py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-blue-600 shadow-sm">
             {{ page + 1 }}
           </span>
           <span class="text-xs text-gray-400 font-medium">/ {{ totalPages }}</span>
         </div>
-        <button 
+        <button
           @click="page++"
           :disabled="page >= totalPages - 1"
-          class="p-2 rounded-xl border border-gray-200 bg-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors shadow-sm"
+          class="p-1.5 sm:p-2 rounded-xl border border-gray-200 bg-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors shadow-sm"
         >
-          <ChevronRight :size="20" />
+          <ChevronRight :size="18" class="sm:w-5 sm:h-5" />
         </button>
       </div>
     </main>
 
     <!-- 下部分：开发者信息 (Footer) -->
-    <footer class="bg-white border-t border-gray-100 py-10 mt-auto">
-      <div class="max-w-7xl mx-auto px-4">
-        <div class="flex flex-col md:flex-row justify-between items-center gap-8">
+    <footer class="bg-white border-t border-gray-100 py-6 sm:py-10 mt-auto w-full">
+      <div class="max-w-7xl mx-auto px-2 sm:px-4">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-4 sm:gap-8">
           <!-- 站点信息 -->
-          <div class="text-center md:text-left space-y-2">
-            <h2 class="text-lg font-bold text-gray-800">知拾录 <span class="text-gray-300 font-light ml-1 text-base">Personal Knowledge Library</span></h2>
-            <p class="text-xs text-gray-400 max-w-xs leading-relaxed">
+          <div class="text-center md:text-left space-y-1 sm:space-y-2">
+            <h2 class="text-base sm:text-lg font-bold text-gray-800">知拾录 <span class="text-gray-300 font-light ml-1 text-sm sm:text-base">Personal Knowledge Library</span></h2>
+            <p class="text-[10px] sm:text-xs text-gray-400 max-w-xs leading-relaxed px-4 md:px-0">
               知拾录致力于为用户提供一个优雅、高效的个人知识收藏与管理平台。随时随地，随手记，随心搜。
             </p>
           </div>
 
           <!-- 开发者信息 -->
-          <div class="flex flex-col items-center md:items-end gap-4">
-            <div class="flex items-center gap-6">
-              <a href="#" class="text-gray-400 hover:text-blue-500 transition-colors"><GithubIcon :size="20" /></a>
-              <a href="#" class="text-gray-400 hover:text-blue-500 transition-colors"><MailIcon :size="20" /></a>
-              <a href="#" class="text-gray-400 hover:text-blue-500 transition-colors"><TwitterIcon :size="20" /></a>
+          <div class="flex flex-col items-center md:items-end gap-2 sm:gap-4">
+            <div class="flex items-center gap-4 sm:gap-6">
+              <a href="#" class="text-gray-400 hover:text-blue-500 transition-colors"><GithubIcon :size="18" class="sm:w-5 sm:h-5" /></a>
+              <a href="#" class="text-gray-400 hover:text-blue-500 transition-colors"><MailIcon :size="18" class="sm:w-5 sm:h-5" /></a>
+              <a href="#" class="text-gray-400 hover:text-blue-500 transition-colors"><TwitterIcon :size="18" class="sm:w-5 sm:h-5" /></a>
             </div>
-            <div class="text-[11px] text-gray-400 text-center md:text-right font-medium">
+            <div class="text-[10px] sm:text-[11px] text-gray-400 text-center md:text-right font-medium">
               <p>© 2026 知拾录. 版权所有.</p>
-              <p class="mt-1">Designed & Developed by <span class="text-gray-600 hover:text-blue-500 cursor-pointer">Zhishilu Team</span></p>
+              <p class="mt-0.5 sm:mt-1">Designed & Developed by <span class="text-gray-600 hover:text-blue-500 cursor-pointer">Zhishilu Team</span></p>
             </div>
           </div>
         </div>
