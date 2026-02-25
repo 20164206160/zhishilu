@@ -180,7 +180,7 @@ const route = useRoute();
 const router = useRouter();
 const loading = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
-const topCategories = ref(['技术', '生活', '工作', '读书', '笔记']);
+const topCategories = ref<string[]>([]);
 const draftId = ref('');
 
 const form = reactive({
@@ -434,6 +434,20 @@ const handlePublish = async () => {
   }
 };
 
+// 获取分类导航数据
+const fetchCategoryNavigation = async () => {
+  try {
+    const res = await request.get('/category/navigation', {
+      params: { maxCount: 20 }
+    });
+    if (res.data.code === 200) {
+      topCategories.value = res.data.data.map((item: { category: string }) => item.category);
+    }
+  } catch (err) {
+    console.error('获取分类导航失败:', err);
+  }
+};
+
 onMounted(async () => {
   draftId.value = route.params.id as string;
   if (!draftId.value) {
@@ -443,6 +457,7 @@ onMounted(async () => {
   }
   await loadDraft();
   startAutoSave();
+  fetchCategoryNavigation();
 });
 
 onUnmounted(async () => {
