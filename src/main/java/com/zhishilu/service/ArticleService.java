@@ -6,8 +6,10 @@ import com.zhishilu.dto.UserDTO;
 import com.zhishilu.req.ArticleCreateReq;
 import com.zhishilu.req.ArticleQueryReq;
 import com.zhishilu.req.ArticleUpdateReq;
+import com.zhishilu.req.DraftSaveReq;
 import com.zhishilu.resp.ArticleResp;
 import com.zhishilu.resp.CategoryStatResp;
+import com.zhishilu.resp.DraftResp;
 import com.zhishilu.entity.Article;
 import com.zhishilu.exception.BusinessException;
 import com.zhishilu.repository.ArticleRepository;
@@ -62,12 +64,142 @@ public class ArticleService {
         article.setCreatorId(currentUser.getId());
         article.setCreatedTime(LocalDateTime.now());
         article.setUpdatedTime(LocalDateTime.now());
+        article.setStatus("PUBLISHED");
         
         article = articleRepository.save(article);
         
         // 更新类别统计计数
         categoryStatsService.incrementCategoryCount(req.getCategories());
         log.info("文章创建成功，类别统计已更新: {}", req.getCategories());
+        
+        return convertToResp(article);
+    }
+    
+    /**
+     * 保存草稿（新建或更新）
+     */
+    public DraftResp saveDraft(DraftSaveReq req, UserDTO currentUser) {
+        Article article;
+        
+        if (StringUtils.isNotBlank(req.getId())) {
+            // 更新现有草稿
+            article = articleRepository.findById(req.getId())
+                    .orElseThrow(() -> new BusinessException("草稿不存在"));
+            
+            // 权限检查
+            if (!article.getCreatorId().equals(currentUser.getId())) {
+                throw new BusinessException(403, "没有权限修改此草稿");
+            }
+            
+            // 只能更新草稿状态的文章
+            if (!"DRAFT".equals(article.getStatus())) {
+                throw new BusinessException("只能编辑草稿状态的文章");
+            }
+        } else {
+            // 创建新草稿
+            article = new Article();
+            article.setCreatedBy(currentUser.getUsername());
+            article.setCreatorId(currentUser.getId());
+            article.setCreatedTime(LocalDateTime.now());
+            article.setStatus("DRAFT");
+        }
+        
+        // 更新字段
+        article.setTitle(req.getTitle());
+        article.setCategories(req.getCategories());
+        article.setContent(req.getContent());
+        article.setUrl(req.getUrl());
+        article.setImages(req.getImages());
+        article.setLocation(req.getLocation());
+        article.setUpdatedTime(LocalDateTime.now());
+        
+        article = articleRepository.save(article);
+        log.info("草稿保存成功，ID: {}", article.getId());
+        
+        return convertToDraftResp(article);
+    }
+    
+    /**
+     * 获取用户的草稿列表
+     */
+    public List<DraftResp> getUserDrafts(String userId) {
+        List<Article> drafts = articleRepository.findByCreatorIdAndStatus(userId, "DRAFT");
+        return drafts.stream()
+                .sorted((a, b) -> b.getUpdatedTime().compareTo(a.getUpdatedTime()))
+                .map(this::convertToDraftResp)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * 获取草稿详情
+     */
+    public DraftResp getDraftById(String id, UserDTO currentUser) {
+        Article article = articleRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("草稿不存在"));
+        
+        // 权限检查
+        if (!article.getCreatorId().equals(currentUser.getId())) {
+            throw new BusinessException(403, "没有权限查看此草稿");
+        }
+        
+        if (!"DRAFT".equals(article.getStatus())) {
+            throw new BusinessException("该文章不是草稿状态");
+        }
+        
+        return convertToDraftResp(article);
+    }
+    
+    /**
+     * 删除草稿
+     */
+    public void deleteDraft(String id, UserDTO currentUser) {
+        Article article = articleRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("草稿不存在"));
+        
+        // 权限检查
+        if (!article.getCreatorId().equals(currentUser.getId())) {
+            throw new BusinessException(403, "没有权限删除此草稿");
+        }
+        
+        if (!"DRAFT".equals(article.getStatus())) {
+            throw new BusinessException("只能删除草稿状态的文章");
+        }
+        
+        articleRepository.deleteById(id);
+        log.info("草稿删除成功，ID: {}", id);
+    }
+    
+    /**
+     * 将草稿发布为正式文章
+     */
+    public ArticleResp publishDraft(String id, ArticleCreateReq req, UserDTO currentUser) {
+        Article article = articleRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("草稿不存在"));
+        
+        // 权限检查
+        if (!article.getCreatorId().equals(currentUser.getId())) {
+            throw new BusinessException(403, "没有权限发布此草稿");
+        }
+        
+        if (!"DRAFT".equals(article.getStatus())) {
+            throw new BusinessException("该文章不是草稿状态");
+        }
+        
+        // 更新为发布状态
+        article.setTitle(req.getTitle());
+        article.setCategories(req.getCategories());
+        article.setContent(req.getContent());
+        article.setUrl(req.getUrl());
+        article.setImages(req.getImages());
+        article.setLocation(req.getLocation());
+        article.setStatus("PUBLISHED");
+        article.setUpdatedTime(LocalDateTime.now());
+        
+        article = articleRepository.save(article);
+        
+        // 更新类别统计计数
+        categoryStatsService.incrementCategoryCount(req.getCategories());
+        log.info("草稿发布成功，ID: {}, 类别统计已更新: {}", id, req.getCategories());
         
         return convertToResp(article);
     }
@@ -308,5 +440,14 @@ public class ArticleService {
         ArticleDTO dto = new ArticleDTO();
         BeanUtils.copyProperties(article, dto);
         return dto;
+    }
+    
+    /**
+     * 将Entity转换为DraftResp
+     */
+    private DraftResp convertToDraftResp(Article article) {
+        DraftResp resp = new DraftResp();
+        BeanUtils.copyProperties(article, resp);
+        return resp;
     }
 }

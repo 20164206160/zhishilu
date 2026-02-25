@@ -218,7 +218,13 @@ const removeCategory = (index: number) => {
 };
 
 const handleBack = () => {
-  router.back();
+  // 返回个人中心时带上from参数，让导航栏显示正确的tab
+  const fromTab = route.query.from as string;
+  if (fromTab) {
+    router.push({ path: '/profile', query: { from: fromTab } });
+  } else {
+    router.back();
+  }
 };
 
 const triggerUpload = () => {

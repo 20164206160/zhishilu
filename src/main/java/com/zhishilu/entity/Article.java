@@ -77,4 +77,10 @@ public class Article {
      */
     @Field(type = FieldType.Date, format = DateFormat.date_hour_minute_second_millis)
     private LocalDateTime updatedTime;
+    
+    /**
+     * 文章状态：PUBLISHED-已发布，DRAFT-草稿
+     */
+    @Field(type = FieldType.Keyword)
+    private String status;
 }
