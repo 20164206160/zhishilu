@@ -34,6 +34,13 @@ npm install
 ```sh
 npm run dev
 ```
+#### 局域网地址
+```sh
+npm run dev -- --host
+```
+```sh
+npx vite --host
+```
 
 ### Type-Check, Compile and Minify for Production
 
