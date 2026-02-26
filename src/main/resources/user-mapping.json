@@ -1,0 +1,34 @@
+{
+  "properties": {
+    "id": {
+      "type": "keyword"
+    },
+    "username": {
+      "type": "keyword"
+    },
+    "password": {
+      "type": "keyword",
+      "index": false
+    },
+    "nickname": {
+      "type": "keyword"
+    },
+    "email": {
+      "type": "keyword"
+    },
+    "avatar": {
+      "type": "keyword"
+    },
+    "status": {
+      "type": "integer"
+    },
+    "createdTime": {
+      "type": "date",
+      "format": "yyyy-MM-dd'T'HH:mm:ss.SSS"
+    },
+    "lastLoginTime": {
+      "type": "date",
+      "format": "yyyy-MM-dd'T'HH:mm:ss.SSS"
+    }
+  }
+}

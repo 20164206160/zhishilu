@@ -1,0 +1,35 @@
+{
+  "properties": {
+    "id": {
+      "type": "keyword"
+    },
+    "titleSuggest": {
+      "type": "completion",
+      "analyzer": "my_pinyin_analyzer",
+      "search_analyzer": "my_pinyin_analyzer"
+    },
+    "categorySuggest": {
+      "type": "completion",
+      "analyzer": "my_pinyin_analyzer",
+      "search_analyzer": "my_pinyin_analyzer"
+    },
+    "contentSuggest": {
+      "type": "completion",
+      "analyzer": "my_pinyin_analyzer",
+      "search_analyzer": "my_pinyin_analyzer"
+    },
+    "usernameSuggest": {
+      "type": "completion",
+      "analyzer": "my_pinyin_analyzer",
+      "search_analyzer": "my_pinyin_analyzer"
+    },
+    "locationSuggest": {
+      "type": "completion",
+      "analyzer": "my_pinyin_analyzer",
+      "search_analyzer": "my_pinyin_analyzer"
+    },
+    "locationText": {
+      "type": "keyword"
+    }
+  }
+}

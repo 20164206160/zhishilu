@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 @Data
 @Document(indexName = "zhishilu_category_stats")
 @Setting(shards = 1, replicas = 0)
+@Mapping(mappingPath = "category-stats-mapping.json")
 public class CategoryStats {
     
     @Id

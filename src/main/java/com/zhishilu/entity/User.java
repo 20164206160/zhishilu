@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 @Data
 @Document(indexName = "zhishilu_user")
 @Setting(shards = 1, replicas = 0)
+@Mapping(mappingPath = "user-mapping.json")
 public class User {
     
     @Id

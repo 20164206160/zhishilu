@@ -9,6 +9,7 @@ import com.zhishilu.req.DraftSaveReq;
 import com.zhishilu.resp.ArticleResp;
 import com.zhishilu.resp.CategoryStatResp;
 import com.zhishilu.resp.DraftResp;
+import com.zhishilu.resp.SearchSuggestionResp;
 import com.zhishilu.dto.UserDTO;
 import com.zhishilu.service.ArticleService;
 import com.zhishilu.service.IpLocationService;
@@ -153,5 +154,19 @@ public class ArticleController {
         UserDTO currentUser = UserContext.getCurrentUser();
         ArticleResp resp = articleService.publishDraft(id, req, currentUser);
         return Result.success("发布成功", resp);
+    }
+    
+    /**
+     * 搜索补全（自动完成）
+     * @param keyword 搜索关键词
+     * @param field 搜索字段（all/title/category/content/username/location）
+     * @return 各字段的补全建议
+     */
+    @GetMapping("/suggestions")
+    public Result<SearchSuggestionResp> getSearchSuggestions(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "all") String field) {
+        SearchSuggestionResp resp = articleService.getSearchSuggestions(keyword, field);
+        return Result.success(resp);
     }
 }

@@ -14,7 +14,13 @@
 
     <main v-if="article" class="flex-grow flex flex-col md:flex-row md:max-w-7xl md:mx-auto md:w-full md:bg-white md:shadow-2xl md:my-8 md:rounded-2xl overflow-hidden md:h-[calc(100vh-64px)]">
       <!-- Image Gallery (Left Side on Desktop) -->
-      <section v-if="article.images?.length" class="w-full md:flex-grow relative bg-black flex items-center justify-center overflow-hidden group">
+      <section 
+        v-if="article.images?.length" 
+        class="w-full md:flex-grow relative bg-black flex items-center justify-center overflow-hidden group"
+        @touchstart="handleTouchStart"
+        @touchmove="handleTouchMove"
+        @touchend="handleTouchEnd"
+      >
         <!-- Desktop Back Button -->
         <button @click="handleBack" class="hidden md:flex absolute top-6 left-6 z-20 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md items-center justify-center transition-all">
           <ChevronLeft :size="24" />
@@ -202,6 +208,38 @@ const isAuthor = computed(() => {
 
 const handleScroll = () => {
   scrolled.value = window.scrollY > 50;
+};
+
+// 触摸滑动相关
+const touchStartX = ref(0);
+const touchEndX = ref(0);
+const minSwipeDistance = 50; // 最小滑动距离
+
+const handleTouchStart = (e: TouchEvent) => {
+  touchStartX.value = e.touches[0].clientX;
+};
+
+const handleTouchMove = (e: TouchEvent) => {
+  touchEndX.value = e.touches[0].clientX;
+};
+
+const handleTouchEnd = () => {
+  if (!article.value || article.value.images.length <= 1) return;
+  
+  const swipeDistance = touchEndX.value - touchStartX.value;
+  
+  // 向左滑动（下一张）
+  if (swipeDistance < -minSwipeDistance) {
+    currentImgIndex.value = (currentImgIndex.value + 1) % article.value.images.length;
+  }
+  // 向右滑动（上一张）
+  else if (swipeDistance > minSwipeDistance) {
+    currentImgIndex.value = (currentImgIndex.value - 1 + article.value.images.length) % article.value.images.length;
+  }
+  
+  // 重置
+  touchStartX.value = 0;
+  touchEndX.value = 0;
 };
 
 const loadDetail = async () => {

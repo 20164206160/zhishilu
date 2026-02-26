@@ -31,6 +31,9 @@
               <input
                 v-model="searchQuery"
                 @keyup.enter="handleSearch"
+                @input="handleInput"
+                @focus="handleInputFocus"
+                @blur="handleInputBlur"
                 type="text"
                 :placeholder="getPlaceholder()"
                 class="w-full pl-8 sm:pl-11 pr-16 sm:pr-28 py-2 sm:py-2.5 bg-gray-100 border-2 border-l-0 border-transparent rounded-r-full focus:bg-white focus:border-blue-500 focus:ring-2 sm:focus:ring-4 focus:ring-blue-50 transition-all outline-none text-xs sm:text-sm"
@@ -52,6 +55,82 @@
                 <span class="hidden sm:inline">搜索</span>
                 <SearchIcon class="sm:hidden" :size="14" />
               </button>
+              
+              <!-- 搜索补全下拉框 -->
+              <div
+                v-if="showSuggestions && hasSuggestions"
+                class="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50"
+              >
+                <!-- 用户名补全 -->
+                <div v-if="suggestions.usernames?.length" class="border-b border-gray-50 last:border-b-0">
+                  <div class="px-3 py-1.5 bg-gray-50 text-[10px] text-gray-400 font-medium">用户名</div>
+                  <div
+                    v-for="item in suggestions.usernames"
+                    :key="'user-' + item.text"
+                    @mousedown.prevent="applySuggestion(item.text, 'username')"
+                    class="px-3 py-2 hover:bg-blue-50 cursor-pointer flex items-center justify-between group"
+                  >
+                    <span class="text-sm text-gray-700 group-hover:text-blue-600">{{ item.text }}</span>
+                    <span class="text-[10px] text-gray-400">{{ item.count }}条</span>
+                  </div>
+                </div>
+                
+                <!-- 地点补全 -->
+                <div v-if="suggestions.locations?.length" class="border-b border-gray-50 last:border-b-0">
+                  <div class="px-3 py-1.5 bg-gray-50 text-[10px] text-gray-400 font-medium">地点</div>
+                  <div
+                    v-for="item in suggestions.locations"
+                    :key="'loc-' + item.text"
+                    @mousedown.prevent="applySuggestion(item.text, 'location')"
+                    class="px-3 py-2 hover:bg-blue-50 cursor-pointer flex items-center justify-between group"
+                  >
+                    <span class="text-sm text-gray-700 group-hover:text-blue-600">{{ item.text }}</span>
+                    <span class="text-[10px] text-gray-400">{{ item.count }}条</span>
+                  </div>
+                </div>
+                
+                <!-- 类别补全 -->
+                <div v-if="suggestions.categories?.length" class="border-b border-gray-50 last:border-b-0">
+                  <div class="px-3 py-1.5 bg-gray-50 text-[10px] text-gray-400 font-medium">类别</div>
+                  <div
+                    v-for="item in suggestions.categories"
+                    :key="'cat-' + item.text"
+                    @mousedown.prevent="applySuggestion(item.text, 'category')"
+                    class="px-3 py-2 hover:bg-blue-50 cursor-pointer flex items-center justify-between group"
+                  >
+                    <span class="text-sm text-gray-700 group-hover:text-blue-600">{{ item.text }}</span>
+                    <span class="text-[10px] text-gray-400">{{ item.count }}条</span>
+                  </div>
+                </div>
+                
+                <!-- 标题补全 -->
+                <div v-if="suggestions.titles?.length" class="border-b border-gray-50 last:border-b-0">
+                  <div class="px-3 py-1.5 bg-gray-50 text-[10px] text-gray-400 font-medium">标题</div>
+                  <div
+                    v-for="item in suggestions.titles"
+                    :key="'title-' + item.text"
+                    @mousedown.prevent="applySuggestion(item.text, 'title')"
+                    class="px-3 py-2 hover:bg-blue-50 cursor-pointer flex items-center justify-between group"
+                  >
+                    <span class="text-sm text-gray-700 group-hover:text-blue-600 truncate max-w-[200px]">{{ item.text }}</span>
+                    <span class="text-[10px] text-gray-400">{{ item.count }}条</span>
+                  </div>
+                </div>
+                
+                <!-- 内容补全 -->
+                <div v-if="suggestions.contents?.length">
+                  <div class="px-3 py-1.5 bg-gray-50 text-[10px] text-gray-400 font-medium">内容</div>
+                  <div
+                    v-for="item in suggestions.contents"
+                    :key="'content-' + item.text"
+                    @mousedown.prevent="applySuggestion(item.text, 'content')"
+                    class="px-3 py-2 hover:bg-blue-50 cursor-pointer flex items-center justify-between group"
+                  >
+                    <span class="text-sm text-gray-700 group-hover:text-blue-600 truncate max-w-[200px]">{{ item.text }}</span>
+                    <span class="text-[10px] text-gray-400">{{ item.count }}条</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -193,7 +272,7 @@ defineOptions({
   name: 'HomeView'
 });
 
-import { ref, onMounted, watch, onActivated } from 'vue';
+import { ref, onMounted, watch, onActivated, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { 
   Search as SearchIcon, 
@@ -228,6 +307,26 @@ const totalPages = ref(0);
 const currentSearchKeyword = ref(''); // 当前搜索关键词，用于正文高亮
 const currentUserAvatar = ref('');
 const currentUserName = ref('');
+
+// 搜索补全相关
+const suggestions = ref({
+  usernames: [],
+  locations: [],
+  categories: [],
+  titles: [],
+  contents: []
+});
+const showSuggestions = ref(false);
+let suggestionDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+// 计算是否有补全建议
+const hasSuggestions = computed(() => {
+  return suggestions.value.usernames?.length > 0 ||
+         suggestions.value.locations?.length > 0 ||
+         suggestions.value.categories?.length > 0 ||
+         suggestions.value.titles?.length > 0 ||
+         suggestions.value.contents?.length > 0;
+});
 
 // 类别统计响应接口
 interface CategoryStatResp {
@@ -329,10 +428,78 @@ const quickSearch = (word: string) => {
   handleSearch();
 };
 
+// 处理输入事件（带防抖）
+const handleInput = () => {
+  if (suggestionDebounceTimer) {
+    clearTimeout(suggestionDebounceTimer);
+  }
+  
+  if (!searchQuery.value || searchQuery.value.length < 1) {
+    showSuggestions.value = false;
+    return;
+  }
+  
+  suggestionDebounceTimer = setTimeout(() => {
+    fetchSuggestions();
+  }, 300);
+};
+
+// 获取搜索补全建议
+const fetchSuggestions = async () => {
+  if (!searchQuery.value) return;
+  
+  try {
+    const res = await request.get('/article/suggestions', {
+      params: {
+        keyword: searchQuery.value,
+        field: searchField.value
+      }
+    });
+    
+    if (res.data.code === 200) {
+      suggestions.value = res.data.data;
+      showSuggestions.value = hasSuggestions.value;
+    }
+  } catch (err) {
+    console.error('获取搜索建议失败:', err);
+  }
+};
+
+// 应用补全建议
+const applySuggestion = (text: string, field: string) => {
+  searchQuery.value = text;
+  searchField.value = field;
+  showSuggestions.value = false;
+  handleSearch();
+};
+
+// 处理输入框聚焦
+const handleInputFocus = () => {
+  if (hasSuggestions.value && searchQuery.value) {
+    showSuggestions.value = true;
+  }
+};
+
+// 处理输入框失焦
+const handleInputBlur = () => {
+  // 延迟关闭，让点击事件先执行
+  setTimeout(() => {
+    showSuggestions.value = false;
+  }, 200);
+};
+
 const resetFilters = () => {
   searchQuery.value = '';
   selectedCategory.value = '全部';
   page.value = 0;
+  showSuggestions.value = false;
+  suggestions.value = {
+    usernames: [],
+    locations: [],
+    categories: [],
+    titles: [],
+    contents: []
+  };
   fetchArticles();
 };
 

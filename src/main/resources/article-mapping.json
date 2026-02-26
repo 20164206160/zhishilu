@@ -1,0 +1,48 @@
+{
+  "properties": {
+    "id": {
+      "type": "keyword"
+    },
+    "title": {
+      "type": "text",
+      "analyzer": "ik_max_word",
+      "search_analyzer": "ik_smart"
+    },
+    "categories": {
+      "type": "keyword"
+    },
+    "content": {
+      "type": "text",
+      "analyzer": "ik_max_word",
+      "search_analyzer": "ik_smart"
+    },
+    "url": {
+      "type": "keyword"
+    },
+    "images": {
+      "type": "keyword"
+    },
+    "createdBy": {
+      "type": "keyword"
+    },
+    "creatorId": {
+      "type": "keyword"
+    },
+    "location": {
+      "type": "text",
+      "analyzer": "ik_max_word",
+      "search_analyzer": "ik_smart"
+    },
+    "createdTime": {
+      "type": "date",
+      "format": "yyyy-MM-dd'T'HH:mm:ss.SSS"
+    },
+    "updatedTime": {
+      "type": "date",
+      "format": "yyyy-MM-dd'T'HH:mm:ss.SSS"
+    },
+    "status": {
+      "type": "keyword"
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "id": {
+      "type": "keyword"
+    },
+    "category": {
+      "type": "keyword"
+    },
+    "count": {
+      "type": "long"
+    },
+    "statsTime": {
+      "type": "date",
+      "format": "yyyy-MM-dd'T'HH:mm:ss.SSS"
+    }
+  }
+}

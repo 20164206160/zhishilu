@@ -21,7 +21,7 @@
     <properties>
         <java.version>17</java.version>
         <shiro.version>2.0.4</shiro.version>
-        <elasticsearch.version>7.17.16</elasticsearch.version>
+        <elasticsearch.version>7.17.29</elasticsearch.version>
     </properties>
 
     <dependencies>

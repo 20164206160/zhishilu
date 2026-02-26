@@ -12,7 +12,7 @@ import java.util.List;
  */
 @Data
 @Document(indexName = "zhishilu_article")
-@Setting(shards = 1, replicas = 0)
+@Mapping(mappingPath = "article-mapping.json")
 public class Article {
     
     @Id

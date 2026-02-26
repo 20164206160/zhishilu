@@ -1,0 +1,36 @@
+{
+  "properties": {
+    "id": {
+      "type": "keyword"
+    },
+    "username": {
+      "type": "keyword"
+    },
+    "userId": {
+      "type": "keyword"
+    },
+    "path": {
+      "type": "keyword"
+    },
+    "method": {
+      "type": "keyword"
+    },
+    "params": {
+      "type": "text",
+      "index": false
+    },
+    "ip": {
+      "type": "keyword"
+    },
+    "statusCode": {
+      "type": "integer"
+    },
+    "executionTime": {
+      "type": "long"
+    },
+    "operationTime": {
+      "type": "date",
+      "format": "yyyy-MM-dd'T'HH:mm:ss.SSS"
+    }
+  }
+}
