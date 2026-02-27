@@ -1,177 +1,246 @@
 <template>
-  <div class="min-h-screen bg-gray-50 flex flex-col font-sans">
-    <!-- Header Overlay (Mobile Only) -->
-    <header class="md:hidden fixed top-0 inset-x-0 z-50 h-16 flex items-center justify-between px-4 transition-all" :class="[scrolled ? 'bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm' : 'bg-transparent']">
-      <button @click="handleBack" class="w-10 h-10 rounded-full flex items-center justify-center transition-all" :class="[scrolled ? 'bg-gray-100 text-gray-900' : 'bg-black/20 text-white backdrop-blur-sm']">
-        <ChevronLeft :size="24" />
+  <div class="min-h-screen bg-black md:bg-[#f5f5f5] flex flex-col font-sans">
+    <!-- Mobile Header -->
+    <header class="md:hidden fixed top-0 inset-x-0 z-50 h-14 flex items-center justify-between px-4 bg-black/50 backdrop-blur-sm">
+      <button @click="handleBack" class="w-9 h-9 rounded-full bg-black/30 text-white flex items-center justify-center">
+        <ChevronLeft :size="22" />
       </button>
-      <div class="flex items-center gap-3">
-        <button class="w-10 h-10 rounded-full flex items-center justify-center transition-all" :class="[scrolled ? 'bg-gray-100 text-gray-900' : 'bg-black/20 text-white backdrop-blur-sm']">
-          <Share2 :size="20" />
+      <div class="flex items-center gap-2">
+        <button class="w-9 h-9 rounded-full bg-black/30 text-white flex items-center justify-center">
+          <Share2 :size="18" />
         </button>
       </div>
     </header>
 
-    <main v-if="article" class="flex-grow flex flex-col md:flex-row md:max-w-7xl md:mx-auto md:w-full md:bg-white md:shadow-2xl md:my-8 md:rounded-2xl overflow-hidden md:h-[calc(100vh-64px)]">
-      <!-- Image Gallery (Left Side on Desktop) -->
+    <main v-if="article" class="flex-grow flex flex-col md:flex-row md:max-w-[1100px] md:mx-auto md:w-full md:bg-white md:shadow-2xl md:my-4 md:rounded-xl overflow-hidden md:h-[calc(100vh-32px)]">
+      <!-- Left: Image Gallery -->
       <section 
         v-if="article.images?.length" 
-        class="w-full h-[100vw] md:h-auto md:flex-grow relative bg-black flex items-center justify-center overflow-hidden group"
+        class="gallery-section w-full h-[100vw] md:h-auto relative bg-black flex items-center justify-center overflow-hidden group"
         @touchstart="handleTouchStart"
         @touchmove="handleTouchMove"
         @touchend="handleTouchEnd"
       >
-        <!-- Desktop Back Button -->
-        <button @click="handleBack" class="hidden md:flex absolute top-6 left-6 z-20 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md items-center justify-center transition-all">
-          <ChevronLeft :size="24" />
+        <!-- Desktop Close Button -->
+        <button @click="handleBack" class="hidden md:flex absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 text-white items-center justify-center transition-all backdrop-blur-sm">
+          <XIcon :size="20" />
         </button>
 
-                <div class="flex h-full w-full transition-transform duration-500" :style="{ transform: `translateX(-${currentImgIndex * 100}%)` }">
-          <img v-for="(img, i) in article.images" :key="i" :src="getImageUrl(img)" @click="openImagePreview(i)" class="w-full h-full object-cover flex-shrink-0 cursor-pointer" />
-        </div>
-        
-        <!-- Indicators -->
-        <div v-if="article.images.length > 1" class="absolute bottom-6 inset-x-0 flex justify-center gap-1.5 z-10">
-          <div v-for="(_, i) in article.images" :key="i" class="h-1.5 rounded-full transition-all" :class="[currentImgIndex === i ? 'w-6 bg-white' : 'w-1.5 bg-white/50']"></div>
+        <!-- Image Counter -->
+        <div v-if="article.images.length > 1" class="absolute top-4 left-1/2 -translate-x-1/2 z-10 px-3 py-1 bg-black/40 rounded-full text-white text-xs font-medium backdrop-blur-sm">
+          {{ currentImgIndex + 1 }} / {{ article.images.length }}
         </div>
 
-        <!-- Navigation Buttons -->
+        <div class="flex h-full w-full transition-transform duration-300 ease-out" :style="{ transform: `translateX(-${currentImgIndex * 100}%)` }">
+          <img v-for="(img, i) in article.images" :key="i" :src="getImageUrl(img)" @click="openImagePreview(i)" class="w-full h-full object-contain flex-shrink-0 cursor-zoom-in" />
+        </div>
+        
+        <!-- Dot Indicators -->
+        <div v-if="article.images.length > 1" class="absolute bottom-4 inset-x-0 flex justify-center gap-2 z-10">
+          <button 
+            v-for="(_, i) in article.images" 
+            :key="i" 
+            @click="currentImgIndex = i"
+            class="h-2 rounded-full transition-all duration-300" 
+            :class="[currentImgIndex === i ? 'w-5 bg-white' : 'w-2 bg-white/40 hover:bg-white/60']"
+          ></button>
+        </div>
+
+        <!-- Navigation Arrows -->
         <template v-if="article.images.length > 1">
-          <button @click="currentImgIndex = (currentImgIndex - 1 + article.images.length) % article.images.length" class="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/20 hover:bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
+          <button 
+            @click="prevImage" 
+            class="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm"
+          >
             <ChevronLeft :size="24" />
           </button>
-          <button @click="currentImgIndex = (currentImgIndex + 1) % article.images.length" class="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/20 hover:bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
+          <button 
+            @click="nextImage" 
+            class="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm"
+          >
             <ChevronRight :size="24" />
           </button>
         </template>
       </section>
 
-      <!-- Content Area (Right Side Sidebar on Desktop) -->
-      <aside class="w-full md:w-[420px] lg:w-[480px] flex flex-col bg-white overflow-hidden">
-        <!-- User Header (Sticky) -->
-        <div class="px-4 py-4 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
+      <!-- Right: Content Area -->
+      <aside class="w-full md:w-[420px] lg:w-[460px] flex flex-col bg-white overflow-hidden">
+        <!-- Author Header (Sticky) -->
+        <div class="px-5 py-4 border-b border-[#f0f0f0] flex items-center justify-between bg-white shrink-0">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-blue-400 flex items-center justify-center text-white font-bold text-lg shadow-sm overflow-hidden">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-blue-400 flex items-center justify-center text-white font-bold text-base shadow-sm overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
               <img v-if="article.creatorAvatar" :src="getAvatarUrl(article.creatorAvatar)" class="w-full h-full object-cover" alt="avatar" />
               <template v-else>{{ article.createdBy?.charAt(0) || 'U' }}</template>
             </div>
             <div>
-              <p class="text-[15px] font-bold text-gray-900 leading-none">{{ article.createdBy }}</p>
-              <p class="text-[11px] text-gray-400 mt-1 uppercase tracking-wider">{{ formatDate(article.createdTime) }}</p>
+              <p class="text-[15px] font-semibold text-[#333] leading-tight cursor-pointer hover:text-blue-600 transition-colors">{{ article.createdBy }}</p>
+              <p class="text-[12px] text-[#999] mt-0.5">{{ formatDate(article.createdTime) }}</p>
             </div>
           </div>
-          <!-- 作者操作按钮 -->
+          <!-- Author Actions -->
           <div v-if="isAuthor" class="flex items-center gap-2">
             <button 
               @click="handleEdit"
-              class="w-9 h-9 rounded-full bg-gray-100 hover:bg-blue-50 text-gray-600 hover:text-blue-600 flex items-center justify-center transition-colors"
+              class="w-9 h-9 rounded-full bg-[#f5f5f5] hover:bg-[#e8e8e8] text-[#666] flex items-center justify-center transition-colors"
               title="编辑"
             >
-              <Edit3 :size="18" />
+              <Edit3 :size="17" />
             </button>
             <button 
               @click="handleDelete"
-              class="w-9 h-9 rounded-full bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 flex items-center justify-center transition-colors"
+              class="w-9 h-9 rounded-full bg-[#f5f5f5] hover:bg-red-50 text-[#666] hover:text-red-500 flex items-center justify-center transition-colors"
               title="删除"
             >
-              <Trash2 :size="18" />
+              <Trash2 :size="17" />
             </button>
           </div>
-          <button v-else class="px-5 py-1.5 bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-full transition-colors shadow-sm">
+          <button v-else class="px-5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-full transition-colors">
             关注
           </button>
         </div>
 
         <!-- Scrollable Content -->
-        <div class="flex-grow overflow-y-auto px-6 py-6 space-y-6">
-          <div class="space-y-4">
-            <h1 class="text-xl font-black text-gray-900 leading-tight">{{ article.title }}</h1>
-            <div v-if="article.content" class="text-[15px] text-gray-800 leading-relaxed whitespace-pre-wrap">
+        <div class="flex-grow overflow-y-auto">
+          <!-- Article Content -->
+          <div class="px-5 py-5">
+            <h1 class="text-lg font-bold text-[#333] leading-snug mb-4">{{ article.title }}</h1>
+            <div v-if="article.content" class="text-[15px] text-[#333] leading-[1.8] whitespace-pre-wrap">
               {{ article.content }}
+            </div>
+
+            <!-- Tags -->
+            <div v-if="article.categories?.length" class="flex flex-wrap gap-2 mt-5">
+              <span 
+                v-for="(cat, index) in article.categories" 
+                :key="index"
+                class="text-[#576b95] text-[14px] hover:underline cursor-pointer"
+              >
+                #{{ cat }}
+              </span>
+            </div>
+
+            <!-- Location -->
+            <div v-if="article.location" class="flex items-center gap-1.5 mt-4 text-[#576b95]">
+              <MapPin :size="14" />
+              <span class="text-[13px]">{{ article.location }}</span>
+            </div>
+
+            <!-- Publish Time -->
+            <div class="mt-4 text-[12px] text-[#999]">
+              {{ formatFullDate(article.createdTime) }}
             </div>
           </div>
 
-          <!-- Tags & Location -->
-          <div class="space-y-4 pt-4">
-            <div class="flex flex-wrap gap-2">
-              <div 
-                v-for="(cat, index) in article.categories" 
-                :key="index"
-                class="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100"
-              >
-                <Tag :size="12" />
-                <span class="text-xs font-bold">{{ cat }}</span>
+          <!-- Comments Section -->
+          <div class="border-t border-[#f0f0f0]">
+            <div class="px-5 py-3 flex items-center justify-between">
+              <span class="text-[14px] font-medium text-[#333]">共 {{ mockComments.length }} 条评论</span>
+              <div class="flex items-center gap-3 text-[13px] text-[#666]">
+                <button class="hover:text-blue-600 transition-colors font-medium">最热</button>
+                <span class="text-[#e0e0e0]">|</span>
+                <button class="hover:text-blue-600 transition-colors">最新</button>
               </div>
             </div>
-            
-            <div v-if="article.location" class="flex items-center gap-2 text-gray-500">
-              <MapPin :size="16" class="text-blue-500" />
-              <span class="text-sm font-medium">{{ article.location }}</span>
-            </div>
-            
-            <div v-if="article.url" class="flex items-center gap-2">
-              <LinkIcon :size="16" class="text-gray-400" />
-              <a :href="article.url" target="_blank" class="text-sm font-bold text-blue-600 hover:underline line-clamp-1">
-                查看原文来源
-              </a>
+
+            <!-- Comment List -->
+            <div class="px-5 pb-4 space-y-4">
+              <div v-for="(comment, idx) in mockComments" :key="idx" class="flex gap-3">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-400 to-gray-300 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
+                  {{ comment.user.charAt(0) }}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="text-[13px] text-[#576b95] font-medium">{{ comment.user }}</span>
+                    <span v-if="comment.isAuthor" class="px-1.5 py-0.5 bg-blue-600 text-white text-[10px] rounded">作者</span>
+                  </div>
+                  <p class="text-[14px] text-[#333] mt-1 leading-relaxed">{{ comment.content }}</p>
+                  <div class="flex items-center gap-4 mt-2 text-[12px] text-[#999]">
+                    <span>{{ comment.time }}</span>
+                    <button class="hover:text-[#666] transition-colors">回复</button>
+                  </div>
+                  <!-- Replies -->
+                  <div v-if="comment.replies?.length" class="mt-3 bg-[#f8f8f8] rounded-lg p-3 space-y-2">
+                    <div v-for="(reply, rIdx) in comment.replies" :key="rIdx" class="text-[13px]">
+                      <span class="text-[#576b95] font-medium">{{ reply.user }}</span>
+                      <span v-if="reply.to" class="text-[#999]"> 回复 </span>
+                      <span v-if="reply.to" class="text-[#576b95] font-medium">{{ reply.to }}</span>
+                      <span class="text-[#333]">：{{ reply.content }}</span>
+                    </div>
+                  </div>
+                </div>
+                <button class="flex flex-col items-center gap-1 text-[#999] hover:text-blue-600 transition-colors flex-shrink-0">
+                  <Heart :size="16" />
+                  <span class="text-[11px]">{{ comment.likes }}</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- Interaction Footer (Sticky) -->
-        <div class="px-6 py-4 border-t border-gray-50 bg-white shrink-0">
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-6">
-              <button class="flex items-center gap-1.5 text-gray-600 hover:text-red-500 transition-colors">
-                <Heart :size="22" />
-                <span class="text-xs font-bold">3.5万</span>
+        <div class="px-5 py-3 border-t border-[#f0f0f0] bg-white shrink-0">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-5">
+              <button class="flex items-center gap-1.5 text-[#333] hover:text-blue-600 transition-colors group">
+                <Heart :size="22" class="group-hover:scale-110 transition-transform" />
+                <span class="text-[13px] font-medium">3.5万</span>
               </button>
-              <button class="flex items-center gap-1.5 text-gray-600 hover:text-yellow-500 transition-colors">
-                <Star :size="22" />
-                <span class="text-xs font-bold">3720</span>
+              <button class="flex items-center gap-1.5 text-[#333] hover:text-[#ffac33] transition-colors group">
+                <Star :size="22" class="group-hover:scale-110 transition-transform" />
+                <span class="text-[13px] font-medium">3720</span>
               </button>
-              <button class="flex items-center gap-1.5 text-gray-600 hover:text-blue-500 transition-colors">
-                <MessageCircle :size="22" />
-                <span class="text-xs font-bold">3933</span>
+              <button class="flex items-center gap-1.5 text-[#333] hover:text-[#576b95] transition-colors group">
+                <MessageCircle :size="22" class="group-hover:scale-110 transition-transform" />
+                <span class="text-[13px] font-medium">3933</span>
               </button>
             </div>
-            <button class="text-gray-600 hover:text-gray-900 transition-colors">
+            <button class="text-[#333] hover:text-[#666] transition-colors">
               <Share2 :size="22" />
             </button>
           </div>
           
-          <!-- Comment Input Placeholder -->
+          <!-- Comment Input -->
           <div class="relative">
             <input 
               type="text" 
               placeholder="说点什么..." 
-              class="w-full bg-gray-100 border-none rounded-full py-2.5 px-5 text-sm focus:ring-2 focus:ring-blue-100 transition-all"
+              class="w-full bg-[#f5f5f5] border-none rounded-full py-2.5 px-4 pr-12 text-[14px] text-[#333] placeholder:text-[#999] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
             />
+            <button class="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-blue-600 text-[13px] font-medium hover:bg-blue-50 rounded-full transition-colors">
+              发送
+            </button>
           </div>
         </div>
       </aside>
     </main>
 
     <!-- Loading State -->
-    <div v-else class="flex-grow flex items-center justify-center">
-      <div class="animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
+    <div v-else class="flex-grow flex items-center justify-center bg-white">
+      <div class="flex flex-col items-center gap-3">
+        <div class="animate-spin rounded-full h-8 w-8 border-3 border-blue-600 border-t-transparent"></div>
+        <span class="text-[13px] text-[#999]">加载中...</span>
+      </div>
     </div>
 
-    <!-- 图片大图预览 -->
+    <!-- Image Preview Modal -->
     <teleport to="body">
       <transition name="fade">
-        <div v-if="showImagePreview" @click="closeImagePreview" class="fixed inset-0 bg-black/95 z-[110] flex items-center justify-center">
-          <button @click="closeImagePreview" class="absolute top-4 right-4 z-50 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
-            <XIcon :size="24" />
+        <div v-if="showImagePreview" @click="closeImagePreview" class="fixed inset-0 bg-black z-[110] flex items-center justify-center">
+          <button @click="closeImagePreview" class="absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
+            <XIcon :size="22" />
           </button>
           
-          <div class="relative w-screen h-screen overflow-hidden">
-            <div class="flex h-full transition-transform duration-500 ease-out" :style="{ transform: `translateX(-${previewImgIndex * 100}vw)` }">
+          <!-- Image Counter -->
+          <div v-if="(article?.images?.length || 0) > 1" class="absolute top-4 left-1/2 -translate-x-1/2 z-10 px-3 py-1 bg-black/50 rounded-full text-white text-sm font-medium">
+            {{ previewImgIndex + 1 }} / {{ article?.images?.length }}
+          </div>
+          
+          <div class="relative w-screen h-screen overflow-hidden" @click.stop>
+            <div class="flex h-full transition-transform duration-300 ease-out" :style="{ transform: `translateX(-${previewImgIndex * 100}vw)` }">
               <div 
                 v-for="(img, i) in (article?.images || [])" 
                 :key="i" 
                 class="w-screen h-full flex-shrink-0 flex items-center justify-center p-4"
-                @click.stop
               >
                 <img 
                   :src="getImageUrl(img)" 
@@ -180,19 +249,31 @@
               </div>
             </div>
             
-            <!-- 导航按钮 -->
+            <!-- Navigation -->
             <template v-if="(article?.images?.length || 0) > 1">
-              <button @click.stop="previewImgIndex = (previewImgIndex - 1 + (article?.images?.length || 0)) % (article?.images?.length || 1)" class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
+              <button 
+                @click.stop="previewImgIndex = (previewImgIndex - 1 + (article?.images?.length || 0)) % (article?.images?.length || 1)" 
+                class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors backdrop-blur-sm"
+              >
                 <ChevronLeft :size="28" />
               </button>
-              <button @click.stop="previewImgIndex = (previewImgIndex + 1) % (article?.images?.length || 1)" class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
+              <button 
+                @click.stop="previewImgIndex = (previewImgIndex + 1) % (article?.images?.length || 1)" 
+                class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors backdrop-blur-sm"
+              >
                 <ChevronRight :size="28" />
               </button>
             </template>
 
-            <!-- 指示器 -->
+            <!-- Indicators -->
             <div v-if="(article?.images?.length || 0) > 1" class="absolute bottom-8 inset-x-0 flex justify-center gap-2 z-10">
-              <div v-for="(_, i) in (article?.images || [])" :key="i" class="h-2 rounded-full transition-all" :class="[previewImgIndex === i ? 'w-8 bg-white' : 'w-2 bg-white/50']"></div>
+              <button 
+                v-for="(_, i) in (article?.images || [])" 
+                :key="i" 
+                @click.stop="previewImgIndex = i"
+                class="h-2 rounded-full transition-all" 
+                :class="[previewImgIndex === i ? 'w-6 bg-white' : 'w-2 bg-white/40']"
+              ></button>
             </div>
           </div>
         </div>
@@ -259,7 +340,7 @@ const handleScroll = () => {
 // 触摸滑动相关
 const touchStartX = ref(0);
 const touchEndX = ref(0);
-const minSwipeDistance = 50; // 最小滑动距离
+const minSwipeDistance = 50;
 
 const handleTouchStart = (e: TouchEvent) => {
   touchStartX.value = e.touches[0].clientX;
@@ -274,23 +355,88 @@ const handleTouchEnd = () => {
   
   const swipeDistance = touchEndX.value - touchStartX.value;
   
-  // 向左滑动（下一张）
   if (swipeDistance < -minSwipeDistance) {
-    currentImgIndex.value = (currentImgIndex.value + 1) % article.value.images.length;
-  }
-  // 向右滑动（上一张）
-  else if (swipeDistance > minSwipeDistance) {
-    currentImgIndex.value = (currentImgIndex.value - 1 + article.value.images.length) % article.value.images.length;
+    nextImage();
+  } else if (swipeDistance > minSwipeDistance) {
+    prevImage();
   }
   
-  // 重置
   touchStartX.value = 0;
   touchEndX.value = 0;
 };
 
+// 图片导航
+const nextImage = () => {
+  if (!article.value) return;
+  currentImgIndex.value = (currentImgIndex.value + 1) % article.value.images.length;
+};
+
+const prevImage = () => {
+  if (!article.value) return;
+  currentImgIndex.value = (currentImgIndex.value - 1 + article.value.images.length) % article.value.images.length;
+};
+
+// 键盘导航
+const handleKeydown = (e: KeyboardEvent) => {
+  if (showImagePreview.value) {
+    if (e.key === 'Escape') {
+      closeImagePreview();
+    } else if (e.key === 'ArrowLeft') {
+      previewImgIndex.value = (previewImgIndex.value - 1 + (article.value?.images?.length || 1)) % (article.value?.images?.length || 1);
+    } else if (e.key === 'ArrowRight') {
+      previewImgIndex.value = (previewImgIndex.value + 1) % (article.value?.images?.length || 1);
+    }
+  } else {
+    if (e.key === 'ArrowLeft') {
+      prevImage();
+    } else if (e.key === 'ArrowRight') {
+      nextImage();
+    }
+  }
+};
+
+// 模拟评论数据
+const mockComments = ref([
+  {
+    user: '小明同学',
+    content: '写得真好，学到了很多！收藏了~',
+    time: '2小时前',
+    likes: 128,
+    isAuthor: false,
+    replies: [
+      { user: '作者', to: '小明同学', content: '谢谢支持！会继续分享更多内容' }
+    ]
+  },
+  {
+    user: '技术达人',
+    content: '这个思路很清晰，我之前也遇到过类似的问题，用这种方法确实能解决。',
+    time: '5小时前',
+    likes: 86,
+    isAuthor: false
+  },
+  {
+    user: '产品经理',
+    content: '从产品的角度来看，这个设计方案很合理，用户体验会很好。',
+    time: '昨天',
+    likes: 45,
+    isAuthor: false
+  },
+  {
+    user: '前端小白',
+    content: '请问这个是怎么实现的？能详细讲讲吗？',
+    time: '昨天',
+    likes: 12,
+    isAuthor: false,
+    replies: [
+      { user: '作者', to: '前端小白', content: '可以的，我后面会出一篇详细教程' },
+      { user: '热心网友', to: '前端小白', content: '可以看官方文档，里面有详细说明' }
+    ]
+  }
+]);
+
 const loadDetail = async () => {
   try {
-    const res = await request.get(`/article/${route.params.id}`);
+    const res = await request.get(`/article/detail/${route.params.id}`);
     if (res.data.code === 200) {
       article.value = res.data.data;
       // 设置页面标题为文章标题
@@ -302,6 +448,22 @@ const loadDetail = async () => {
 };
 
 const formatDate = (dateStr: string) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  
+  if (minutes < 1) return '刚刚';
+  if (minutes < 60) return `${minutes}分钟前`;
+  if (hours < 24) return `${hours}小时前`;
+  if (days < 7) return `${days}天前`;
+  return date.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' });
+};
+
+const formatFullDate = (dateStr: string) => {
   if (!dateStr) return '';
   const date = new Date(dateStr);
   return date.toLocaleDateString('zh-CN', { 
@@ -321,7 +483,7 @@ const handleDelete = async () => {
     return;
   }
   try {
-    const res = await request.delete(`/article/${route.params.id}`);
+    const res = await request.delete(`/article/delete/${route.params.id}`);
     if (res.data.code === 200) {
       alert('删除成功');
       // 删除成功，设置标记让首页刷新
@@ -347,11 +509,13 @@ const closeImagePreview = () => {
 
 onMounted(() => {
   window.addEventListener('scroll', handleScroll);
+  window.addEventListener('keydown', handleKeydown);
   loadDetail();
 });
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll);
+  window.removeEventListener('keydown', handleKeydown);
 });
 </script>
 
@@ -365,5 +529,35 @@ onUnmounted(() => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* 图片区域宽度控制 */
+@media (min-width: 768px) {
+  .gallery-section {
+    width: 55% !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .gallery-section {
+    width: 58% !important;
+  }
+}
+
+@media (min-width: 1280px) {
+  .gallery-section {
+    width: 60% !important;
+  }
+}
+
+/* 隐藏滚动条但保持滚动功能 */
+aside::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+aside {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 </style>

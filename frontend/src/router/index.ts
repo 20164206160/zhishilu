@@ -45,7 +45,7 @@ const router = createRouter({
       path: '/article/:id',
       name: 'article-detail',
       component: ArticleDetailView,
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: false }
     },
     {
       path: '/article/:id/edit',

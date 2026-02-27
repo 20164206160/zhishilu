@@ -78,8 +78,10 @@ public class ShiroConfig {
         // 公开接口（无需登录）
         filterRuleMap.put("/auth/**", "anon");              // 登录注册
         filterRuleMap.put("/article/list", "anon");         // 首页列表
+        filterRuleMap.put("/article/detail/**", "anon");    // 文章详情
         filterRuleMap.put("/category/navigation", "anon");  // 首页导航栏
         filterRuleMap.put("/article/search", "anon");       // 搜索
+		filterRuleMap.put("/article/suggestions", "anon");  // 搜索补全
         filterRuleMap.put("/file/img/**", "anon");          // 图片访问
         filterRuleMap.put("/file/avatar/**", "anon");       // 头像访问
         filterRuleMap.put("/file/download/**", "anon");     // 文件下载
@@ -88,9 +90,9 @@ public class ShiroConfig {
         filterRuleMap.put("/error", "anon");
         
         // 需要认证的接口
-        filterRuleMap.put("/article", "jwt");               // 发布内容
-        filterRuleMap.put("/article/*", "jwt");             // 内容详情
-        filterRuleMap.put("/article/*/edit", "jwt");        // 编辑内容
+        filterRuleMap.put("/article/create", "jwt");        // 创建文章
+        filterRuleMap.put("/article/update/**", "jwt");     // 更新文章
+        filterRuleMap.put("/article/delete/**", "jwt");     // 删除文章
         filterRuleMap.put("/profile/**", "jwt");            // 个人中心
         filterRuleMap.put("/user/**", "jwt");               // 用户相关
         filterRuleMap.put("/**", "jwt");                    // 其他接口默认需要认证

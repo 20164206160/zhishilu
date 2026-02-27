@@ -263,116 +263,160 @@
     <!-- 桌面端详情页弹窗 -->
     <teleport to="body">
       <transition name="modal">
-        <div v-if="showModal" @click="closeModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 md:p-8">
-          <div @click.stop class="relative w-full max-w-7xl h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex">
+        <div v-if="showModal" @click="closeModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center p-0 md:p-4">
+          <div @click.stop class="relative w-full md:max-w-[1000px] lg:max-w-[1100px] h-full md:h-[90vh] bg-white md:rounded-2xl shadow-2xl overflow-hidden flex">
             <!-- 关闭按钮 -->
-            <button @click="closeModal" class="absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 flex items-center justify-center transition-colors">
+            <button @click="closeModal" class="hidden md:flex absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 text-white items-center justify-center transition-all backdrop-blur-sm">
+              <XIcon :size="20" />
+            </button>
+            
+            <!-- Mobile Close Button -->
+            <button @click="closeModal" class="md:hidden absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-black/30 text-white flex items-center justify-center">
               <XIcon :size="20" />
             </button>
             
             <!-- 详情页内容 -->
-            <div v-if="modalArticle" class="flex w-full h-full">
+            <div v-if="modalArticle" class="flex w-full h-full flex-col md:flex-row">
               <!-- 左侧图片区 -->
               <section 
                 v-if="modalArticle.images?.length" 
-                class="flex-grow relative bg-black flex items-center justify-center overflow-hidden group"
+                class="w-full md:flex-1 h-[50vh] md:h-auto relative bg-black flex items-center justify-center overflow-hidden group"
                 @touchstart="handleTouchStart"
                 @touchmove="handleTouchMove"
                 @touchend="handleTouchEnd"
               >
-                <div class="flex h-full w-full transition-transform duration-500" :style="{ transform: `translateX(-${currentImgIndex * 100}%)` }">
-                  <img v-for="(img, i) in modalArticle.images" :key="i" :src="getImageUrl(img)" @click="openImagePreview(i)" class="w-full h-full object-cover flex-shrink-0 cursor-pointer" />
-                </div>
-                
-                <!-- 指示器 -->
-                <div v-if="modalArticle.images.length > 1" class="absolute bottom-6 inset-x-0 flex justify-center gap-1.5 z-10">
-                  <div v-for="(_, i) in modalArticle.images" :key="i" class="h-1.5 rounded-full transition-all" :class="[currentImgIndex === i ? 'w-6 bg-white' : 'w-1.5 bg-white/50']"></div>
+                <!-- Image Counter -->
+                <div v-if="modalArticle.images.length > 1" class="absolute top-4 left-1/2 -translate-x-1/2 z-10 px-3 py-1 bg-black/40 rounded-full text-white text-xs font-medium backdrop-blur-sm">
+                  {{ currentImgIndex + 1 }} / {{ modalArticle.images.length }}
                 </div>
 
-                <!-- 导航按钮 -->
+                <div class="flex h-full w-full transition-transform duration-300 ease-out" :style="{ transform: `translateX(-${currentImgIndex * 100}%)` }">
+                  <img v-for="(img, i) in modalArticle.images" :key="i" :src="getImageUrl(img)" @click="openImagePreview(i)" class="w-full h-full object-contain flex-shrink-0 cursor-zoom-in" />
+                </div>
+                
+                <!-- Dot Indicators -->
+                <div v-if="modalArticle.images.length > 1" class="absolute bottom-4 inset-x-0 flex justify-center gap-2 z-10">
+                  <button 
+                    v-for="(_, i) in modalArticle.images" 
+                    :key="i" 
+                    @click="currentImgIndex = i"
+                    class="h-2 rounded-full transition-all duration-300" 
+                    :class="[currentImgIndex === i ? 'w-5 bg-white' : 'w-2 bg-white/40 hover:bg-white/60']"
+                  ></button>
+                </div>
+
+                <!-- Navigation Arrows -->
                 <template v-if="modalArticle.images.length > 1">
-                  <button @click="currentImgIndex = (currentImgIndex - 1 + modalArticle.images.length) % modalArticle.images.length" class="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/20 hover:bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
+                  <button 
+                    @click="currentImgIndex = (currentImgIndex - 1 + modalArticle.images.length) % modalArticle.images.length" 
+                    class="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm"
+                  >
                     <ChevronLeft :size="24" />
                   </button>
-                  <button @click="currentImgIndex = (currentImgIndex + 1) % modalArticle.images.length" class="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/20 hover:bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
+                  <button 
+                    @click="currentImgIndex = (currentImgIndex + 1) % modalArticle.images.length" 
+                    class="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm"
+                  >
                     <ChevronRight :size="24" />
                   </button>
                 </template>
               </section>
 
               <!-- 右侧内容区 -->
-              <aside class="w-[420px] lg:w-[480px] flex flex-col bg-white overflow-hidden">
+              <aside class="w-full md:w-[380px] lg:w-[420px] flex flex-col bg-white overflow-hidden">
                 <!-- 用户信息 -->
-                <div class="px-4 py-4 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
+                <div class="px-5 py-4 border-b border-[#f0f0f0] flex items-center justify-between bg-white shrink-0">
                   <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-blue-400 flex items-center justify-center text-white font-bold text-lg shadow-sm overflow-hidden">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-blue-400 flex items-center justify-center text-white font-bold text-base shadow-sm overflow-hidden">
                       <img v-if="modalArticle.creatorAvatar" :src="getAvatarUrl(modalArticle.creatorAvatar)" class="w-full h-full object-cover" alt="avatar" />
                       <template v-else>{{ modalArticle.createdBy?.charAt(0) || 'U' }}</template>
                     </div>
                     <div>
-                      <p class="text-[15px] font-bold text-gray-900 leading-none">{{ modalArticle.createdBy }}</p>
-                      <p class="text-[11px] text-gray-400 mt-1 uppercase tracking-wider">{{ formatModalDate(modalArticle.createdTime) }}</p>
+                      <p class="text-[15px] font-semibold text-[#333] leading-tight">{{ modalArticle.createdBy }}</p>
+                      <p class="text-[12px] text-[#999] mt-0.5">{{ formatModalDate(modalArticle.createdTime) }}</p>
                     </div>
                   </div>
-                  <button class="px-5 py-1.5 bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-full transition-colors shadow-sm">
+                  <button class="px-5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-full transition-colors">
                     关注
                   </button>
                 </div>
 
                 <!-- 可滚动内容 -->
-                <div class="flex-grow overflow-y-auto px-6 py-6 space-y-6">
-                  <div class="space-y-4">
-                    <h1 class="text-xl font-black text-gray-900 leading-tight">{{ modalArticle.title }}</h1>
-                    <div v-if="modalArticle.content" class="text-[15px] text-gray-800 leading-relaxed whitespace-pre-wrap">
+                <div class="flex-grow overflow-y-auto">
+                  <div class="px-5 py-5">
+                    <h1 class="text-lg font-bold text-[#333] leading-snug mb-4">{{ modalArticle.title }}</h1>
+                    <div v-if="modalArticle.content" class="text-[15px] text-[#333] leading-[1.8] whitespace-pre-wrap">
                       {{ modalArticle.content }}
+                    </div>
+
+                    <!-- Tags -->
+                    <div v-if="modalArticle.categories?.length" class="flex flex-wrap gap-2 mt-5">
+                      <span 
+                        v-for="(cat, index) in modalArticle.categories" 
+                        :key="index"
+                        class="text-[#576b95] text-[14px] hover:underline cursor-pointer"
+                      >
+                        #{{ cat }}
+                      </span>
+                    </div>
+
+                    <!-- Location -->
+                    <div v-if="modalArticle.location" class="flex items-center gap-1.5 mt-4 text-[#576b95]">
+                      <MapPin :size="14" />
+                      <span class="text-[13px]">{{ modalArticle.location }}</span>
+                    </div>
+
+                    <!-- Publish Time -->
+                    <div class="mt-4 text-[12px] text-[#999]">
+                      {{ formatFullModalDate(modalArticle.createdTime) }}
                     </div>
                   </div>
 
-                  <!-- 标签和位置 -->
-                  <div class="space-y-4 pt-4">
-                    <div class="flex flex-wrap gap-2">
-                      <div 
-                        v-for="(cat, index) in modalArticle.categories" 
-                        :key="index"
-                        class="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100"
-                      >
-                        <Tag :size="12" />
-                        <span class="text-xs font-bold">{{ cat }}</span>
+                  <!-- Comments Section -->
+                  <div class="border-t border-[#f0f0f0]">
+                    <div class="px-5 py-3">
+                      <span class="text-[14px] font-medium text-[#333]">共 {{ mockComments.length }} 条评论</span>
+                    </div>
+                    <div class="px-5 pb-4 space-y-4">
+                      <div v-for="(comment, idx) in mockComments" :key="idx" class="flex gap-3">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-400 to-gray-300 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
+                          {{ comment.user.charAt(0) }}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <span class="text-[13px] text-[#576b95] font-medium">{{ comment.user }}</span>
+                          <p class="text-[14px] text-[#333] mt-0.5 leading-relaxed">{{ comment.content }}</p>
+                          <div class="flex items-center gap-3 mt-1.5 text-[12px] text-[#999]">
+                            <span>{{ comment.time }}</span>
+                            <button class="hover:text-[#666] transition-colors">回复</button>
+                          </div>
+                        </div>
+                        <button class="flex flex-col items-center gap-0.5 text-[#999] hover:text-blue-600 transition-colors flex-shrink-0">
+                          <Heart :size="14" />
+                          <span class="text-[10px]">{{ comment.likes }}</span>
+                        </button>
                       </div>
-                    </div>
-                    
-                    <div v-if="modalArticle.location" class="flex items-center gap-2 text-gray-500">
-                      <MapPin :size="16" class="text-blue-500" />
-                      <span class="text-sm font-medium">{{ modalArticle.location }}</span>
-                    </div>
-                    
-                    <div v-if="modalArticle.url" class="flex items-center gap-2">
-                      <LinkIcon :size="16" class="text-gray-400" />
-                      <a :href="modalArticle.url" target="_blank" class="text-sm font-bold text-blue-600 hover:underline line-clamp-1">
-                        查看原文来源
-                      </a>
                     </div>
                   </div>
                 </div>
 
                 <!-- 互动底部 -->
-                <div class="px-6 py-4 border-t border-gray-50 bg-white shrink-0">
-                  <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center gap-6">
-                      <button class="flex items-center gap-1.5 text-gray-600 hover:text-red-500 transition-colors">
-                        <Heart :size="22" />
-                        <span class="text-xs font-bold">3.5万</span>
+                <div class="px-5 py-3 border-t border-[#f0f0f0] bg-white shrink-0">
+                  <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-5">
+                      <button class="flex items-center gap-1.5 text-[#333] hover:text-blue-600 transition-colors group">
+                        <Heart :size="22" class="group-hover:scale-110 transition-transform" />
+                        <span class="text-[13px] font-medium">3.5万</span>
                       </button>
-                      <button class="flex items-center gap-1.5 text-gray-600 hover:text-yellow-500 transition-colors">
-                        <Star :size="22" />
-                        <span class="text-xs font-bold">3720</span>
+                      <button class="flex items-center gap-1.5 text-[#333] hover:text-[#ffac33] transition-colors group">
+                        <Star :size="22" class="group-hover:scale-110 transition-transform" />
+                        <span class="text-[13px] font-medium">3720</span>
                       </button>
-                      <button class="flex items-center gap-1.5 text-gray-600 hover:text-blue-500 transition-colors">
-                        <MessageCircle :size="22" />
-                        <span class="text-xs font-bold">3933</span>
+                      <button class="flex items-center gap-1.5 text-[#333] hover:text-[#576b95] transition-colors group">
+                        <MessageCircle :size="22" class="group-hover:scale-110 transition-transform" />
+                        <span class="text-[13px] font-medium">3933</span>
                       </button>
                     </div>
-                    <button class="text-gray-600 hover:text-gray-900 transition-colors">
+                    <button class="text-[#333] hover:text-[#666] transition-colors">
                       <Share2 :size="22" />
                     </button>
                   </div>
@@ -381,8 +425,11 @@
                     <input 
                       type="text" 
                       placeholder="说点什么..." 
-                      class="w-full bg-gray-100 border-none rounded-full py-2.5 px-5 text-sm focus:ring-2 focus:ring-blue-100 transition-all"
+                      class="w-full bg-[#f5f5f5] border-none rounded-full py-2.5 px-4 pr-12 text-[14px] text-[#333] placeholder:text-[#999] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
                     />
+                    <button class="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-blue-600 text-[13px] font-medium hover:bg-blue-50 rounded-full transition-colors">
+                      发送
+                    </button>
                   </div>
                 </div>
               </aside>
@@ -390,7 +437,10 @@
 
             <!-- Loading State -->
             <div v-else class="flex items-center justify-center w-full h-full">
-              <div class="animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
+              <div class="flex flex-col items-center gap-3">
+                <div class="animate-spin rounded-full h-8 w-8 border-3 border-blue-600 border-t-transparent"></div>
+                <span class="text-[13px] text-[#999]">加载中...</span>
+              </div>
             </div>
           </div>
         </div>
@@ -703,7 +753,7 @@ const openArticleModal = async (articleId: string) => {
   showModal.value = true;
   currentImgIndex.value = 0;
   try {
-    const res = await request.get(`/article/${articleId}`);
+    const res = await request.get(`/article/detail/${articleId}`);
     if (res.data.code === 200) {
       modalArticle.value = res.data.data;
     }
@@ -759,10 +809,54 @@ const handleTouchEnd = () => {
 const formatModalDate = (dateStr: string) => {
   if (!dateStr) return '';
   const date = new Date(dateStr);
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  
+  if (minutes < 1) return '刚刚';
+  if (minutes < 60) return `${minutes}分钟前`;
+  if (hours < 24) return `${hours}小时前`;
+  if (days < 7) return `${days}天前`;
+  return date.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' });
+};
+
+const formatFullModalDate = (dateStr: string) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
   return date.toLocaleDateString('zh-CN', { 
     year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
   });
 };
+
+// 模拟评论数据
+const mockComments = ref([
+  {
+    user: '小明同学',
+    content: '写得真好，学到了很多！收藏了~',
+    time: '2小时前',
+    likes: 128
+  },
+  {
+    user: '技术达人',
+    content: '这个思路很清晰，我之前也遇到过类似的问题。',
+    time: '5小时前',
+    likes: 86
+  },
+  {
+    user: '产品经理',
+    content: '从产品的角度来看，这个设计方案很合理。',
+    time: '昨天',
+    likes: 45
+  },
+  {
+    user: '前端小白',
+    content: '请问这个是怎么实现的？能详细讲讲吗？',
+    time: '昨天',
+    likes: 12
+  }
+]);
 
 // 监听器
 watch([selectedCategory, page], () => {

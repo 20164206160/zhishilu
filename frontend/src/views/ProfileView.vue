@@ -367,7 +367,7 @@ const confirmDelete = (item: any) => {
   confirmConfig.show = true;
   confirmConfig.action = async () => {
     try {
-      const res = await request.delete(`/article/${item.id}`);
+      const res = await request.delete(`/article/delete/${item.id}`);
       if (res.data.code === 200) {
         myArticles.value = myArticles.value.filter(a => a.id !== item.id);
       }

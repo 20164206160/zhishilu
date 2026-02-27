@@ -36,7 +36,7 @@ public class ArticleController {
     /**
      * 创建文章
      */
-    @PostMapping
+    @PostMapping("/create")
     public Result<ArticleResp> create(@Valid @RequestBody ArticleCreateReq req) {
         UserDTO currentUser = UserContext.getCurrentUser();
         ArticleResp resp = articleService.create(req, currentUser);
@@ -46,7 +46,7 @@ public class ArticleController {
     /**
      * 更新文章
      */
-    @PutMapping("/{id}")
+    @PutMapping("/update/{id}")
     public Result<ArticleResp> update(@PathVariable String id, @Valid @RequestBody ArticleUpdateReq req) {
         UserDTO currentUser = UserContext.getCurrentUser();
         ArticleResp resp = articleService.update(id, req, currentUser);
@@ -56,7 +56,7 @@ public class ArticleController {
     /**
      * 删除文章
      */
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/delete/{id}")
     public Result<Void> delete(@PathVariable String id) {
         UserDTO currentUser = UserContext.getCurrentUser();
         articleService.delete(id, currentUser);
@@ -66,7 +66,7 @@ public class ArticleController {
     /**
      * 获取文章详情
      */
-    @GetMapping("/{id}")
+    @GetMapping("/detail/{id}")
     public Result<ArticleResp> getById(@PathVariable String id) {
         ArticleResp resp = articleService.getById(id);
         return Result.success(resp);

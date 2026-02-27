@@ -270,7 +270,7 @@ const removeImage = (index: number) => {
 const loadArticle = async () => {
   loading.value = true;
   try {
-    const res = await request.get(`/article/${articleId.value}`);
+    const res = await request.get(`/article/detail/${articleId.value}`);
     if (res.data.code === 200) {
       const article = res.data.data;
       form.title = article.title || '';
@@ -305,7 +305,7 @@ const handleSubmit = async () => {
 
   loading.value = true;
   try {
-    const res = await request.put(`/article/${articleId.value}`, form);
+    const res = await request.put(`/article/update/${articleId.value}`, form);
     if (res.data.code === 200) {
       alert('保存成功！');
       // 更新成功，设置标记让首页刷新
