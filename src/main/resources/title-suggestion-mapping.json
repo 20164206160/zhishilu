@@ -1,0 +1,15 @@
+{
+  "properties": {
+    "text": {
+      "type": "keyword"
+    },
+    "searchCount": {
+      "type": "long"
+    },
+    "suggest": {
+      "type": "completion",
+      "analyzer": "my_pinyin_analyzer",
+      "search_analyzer": "my_pinyin_analyzer"
+    }
+  }
+}

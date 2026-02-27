@@ -93,10 +93,19 @@ const props = defineProps<{
   searchKeyword?: string
 }>();
 
+const emit = defineEmits<{
+  openModal: [articleId: string]
+}>();
+
 const router = useRouter();
 
 const goToDetail = () => {
-  router.push(`/article/${props.article.id}`);
+  // 桌面端触发弹窗，移动端跳转页面
+  if (window.innerWidth >= 768) {
+    emit('openModal', props.article.id);
+  } else {
+    router.push(`/article/${props.article.id}`);
+  }
 };
 
 const formatDate = (dateStr: string) => {

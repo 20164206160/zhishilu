@@ -16,7 +16,7 @@
       <!-- Image Gallery (Left Side on Desktop) -->
       <section 
         v-if="article.images?.length" 
-        class="w-full md:flex-grow relative bg-black flex items-center justify-center overflow-hidden group"
+        class="w-full h-[100vw] md:h-auto md:flex-grow relative bg-black flex items-center justify-center overflow-hidden group"
         @touchstart="handleTouchStart"
         @touchmove="handleTouchMove"
         @touchend="handleTouchEnd"
@@ -26,8 +26,8 @@
           <ChevronLeft :size="24" />
         </button>
 
-        <div class="flex h-full w-full transition-transform duration-500" :style="{ transform: `translateX(-${currentImgIndex * 100}%)` }">
-          <img v-for="(img, i) in article.images" :key="i" :src="getImageUrl(img)" class="w-full h-full object-contain" />
+                <div class="flex h-full w-full transition-transform duration-500" :style="{ transform: `translateX(-${currentImgIndex * 100}%)` }">
+          <img v-for="(img, i) in article.images" :key="i" :src="getImageUrl(img)" @click="openImagePreview(i)" class="w-full h-full object-cover flex-shrink-0 cursor-pointer" />
         </div>
         
         <!-- Indicators -->
@@ -156,6 +156,48 @@
     <div v-else class="flex-grow flex items-center justify-center">
       <div class="animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
     </div>
+
+    <!-- 图片大图预览 -->
+    <teleport to="body">
+      <transition name="fade">
+        <div v-if="showImagePreview" @click="closeImagePreview" class="fixed inset-0 bg-black/95 z-[110] flex items-center justify-center">
+          <button @click="closeImagePreview" class="absolute top-4 right-4 z-50 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
+            <XIcon :size="24" />
+          </button>
+          
+          <div class="relative w-screen h-screen overflow-hidden">
+            <div class="flex h-full transition-transform duration-500 ease-out" :style="{ transform: `translateX(-${previewImgIndex * 100}vw)` }">
+              <div 
+                v-for="(img, i) in (article?.images || [])" 
+                :key="i" 
+                class="w-screen h-full flex-shrink-0 flex items-center justify-center p-4"
+                @click.stop
+              >
+                <img 
+                  :src="getImageUrl(img)" 
+                  class="max-w-full max-h-full object-contain" 
+                />
+              </div>
+            </div>
+            
+            <!-- 导航按钮 -->
+            <template v-if="(article?.images?.length || 0) > 1">
+              <button @click.stop="previewImgIndex = (previewImgIndex - 1 + (article?.images?.length || 0)) % (article?.images?.length || 1)" class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
+                <ChevronLeft :size="28" />
+              </button>
+              <button @click.stop="previewImgIndex = (previewImgIndex + 1) % (article?.images?.length || 1)" class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
+                <ChevronRight :size="28" />
+              </button>
+            </template>
+
+            <!-- 指示器 -->
+            <div v-if="(article?.images?.length || 0) > 1" class="absolute bottom-8 inset-x-0 flex justify-center gap-2 z-10">
+              <div v-for="(_, i) in (article?.images || [])" :key="i" class="h-2 rounded-full transition-all" :class="[previewImgIndex === i ? 'w-8 bg-white' : 'w-2 bg-white/50']"></div>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </teleport>
   </div>
 </template>
 
@@ -164,7 +206,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { 
   ChevronLeft, ChevronRight, Share2, Tag, MapPin, 
-  Link as LinkIcon, Heart, Star, MessageCircle, Edit3, Trash2
+  Link as LinkIcon, Heart, Star, MessageCircle, Edit3, Trash2, X as XIcon
 } from 'lucide-vue-next';
 import request from '../utils/request';
 import { getImageUrl, getAvatarUrl } from '../utils/image';
@@ -174,6 +216,10 @@ const router = useRouter();
 const article = ref<any>(null);
 const scrolled = ref(false);
 const currentImgIndex = ref(0);
+
+// 图片预览相关
+const showImagePreview = ref(false);
+const previewImgIndex = ref(0);
 
 // 获取来源页面，用于决定返回哪里
 const from = computed(() => route.query.from as string);
@@ -288,6 +334,17 @@ const handleDelete = async () => {
   }
 };
 
+// 打开图片预览
+const openImagePreview = (index: number) => {
+  previewImgIndex.value = index;
+  showImagePreview.value = true;
+};
+
+// 关闭图片预览
+const closeImagePreview = () => {
+  showImagePreview.value = false;
+};
+
 onMounted(() => {
   window.addEventListener('scroll', handleScroll);
   loadDetail();
@@ -297,3 +354,16 @@ onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll);
 });
 </script>
+
+<style scoped>
+/* 图片预览淡入淡出 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>

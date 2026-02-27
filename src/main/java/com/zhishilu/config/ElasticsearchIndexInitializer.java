@@ -2,9 +2,13 @@ package com.zhishilu.config;
 
 import com.zhishilu.entity.Article;
 import com.zhishilu.entity.CategoryStats;
+import com.zhishilu.entity.CategorySuggestion;
+import com.zhishilu.entity.ContentSuggestion;
+import com.zhishilu.entity.LocationSuggestion;
 import com.zhishilu.entity.OperationLog;
-import com.zhishilu.entity.SearchSuggestion;
+import com.zhishilu.entity.TitleSuggestion;
 import com.zhishilu.entity.User;
+import com.zhishilu.entity.UsernameSuggestion;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -35,7 +39,14 @@ public class ElasticsearchIndexInitializer implements CommandLineRunner {
         createIndexWithCustomMapping(User.class, "user-mapping.json");
         createIndexWithCustomMapping(OperationLog.class, "operation-log-mapping.json");
         createIndexWithCustomMapping(CategoryStats.class, "category-stats-mapping.json");
-        createIndexWithCustomMapping(SearchSuggestion.class, "suggestion-mapping.json");
+        
+        // 创建5个独立的搜索补全索引
+        createIndexWithCustomMapping(TitleSuggestion.class, "title-suggestion-mapping.json");
+        createIndexWithCustomMapping(CategorySuggestion.class, "category-suggestion-mapping.json");
+        createIndexWithCustomMapping(ContentSuggestion.class, "content-suggestion-mapping.json");
+        createIndexWithCustomMapping(UsernameSuggestion.class, "username-suggestion-mapping.json");
+        createIndexWithCustomMapping(LocationSuggestion.class, "location-suggestion-mapping.json");
+        
         log.info("Elasticsearch索引初始化完成");
     }
 

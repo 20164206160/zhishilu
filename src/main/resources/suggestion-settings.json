@@ -2,7 +2,7 @@
   "analysis": {
     "analyzer": {
       "my_pinyin_analyzer": {
-        "tokenizer": "ik_max_word",
+        "tokenizer": "keyword",
         "filter": ["my_pinyin"]
       }
     },

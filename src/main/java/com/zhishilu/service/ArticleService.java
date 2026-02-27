@@ -12,10 +12,14 @@ import com.zhishilu.resp.CategoryStatResp;
 import com.zhishilu.resp.DraftResp;
 import com.zhishilu.resp.SearchSuggestionResp;
 import com.zhishilu.entity.Article;
-import com.zhishilu.entity.SearchSuggestion;
+import com.zhishilu.entity.CategorySuggestion;
+import com.zhishilu.entity.ContentSuggestion;
+import com.zhishilu.entity.LocationSuggestion;
+import com.zhishilu.entity.TitleSuggestion;
+import com.zhishilu.entity.UsernameSuggestion;
 import com.zhishilu.exception.BusinessException;
 import com.zhishilu.repository.ArticleRepository;
-import com.zhishilu.repository.SearchSuggestionRepository;
+import com.zhishilu.util.EsCompletionSuggestUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -28,7 +32,7 @@ import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.springframework.data.elasticsearch.core.suggest.Completion;
-import org.springframework.data.elasticsearch.core.suggest.response.Suggest;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import org.elasticsearch.client.RequestOptions;
@@ -40,13 +44,13 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.Aggregations;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
-import org.elasticsearch.search.suggest.SuggestBuilder;
-import org.elasticsearch.search.suggest.SuggestBuilders;
-import org.elasticsearch.search.suggest.completion.CompletionSuggestionBuilder;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
@@ -58,11 +62,11 @@ import java.util.stream.Collectors;
 public class ArticleService {
     
     private final ArticleRepository articleRepository;
-    private final SearchSuggestionRepository searchSuggestionRepository;
     private final ElasticsearchOperations elasticsearchOperations;
     private final RestHighLevelClient restHighLevelClient;
     private final CategoryStatsService categoryStatsService;
     private final UserService userService;
+    private final EsCompletionSuggestUtil esCompletionSuggestUtil;
     
     /**
      * 创建文章
@@ -88,7 +92,8 @@ public class ArticleService {
         log.info("文章创建成功，类别统计已更新: {}", req.getCategories());
         
         // 异步同步补全建议
-        syncSuggestions(article);
+        final Article finalArticle = article;
+        CompletableFuture.runAsync(() -> syncSuggestions(finalArticle));
         
         return convertToResp(article);
     }
@@ -220,7 +225,8 @@ public class ArticleService {
         log.info("草稿发布成功，ID: {}, 类别统计已更新: {}", id, req.getCategories());
         
         // 异步同步补全建议
-        syncSuggestions(article);
+        final Article finalArticle = article;
+        CompletableFuture.runAsync(() -> syncSuggestions(finalArticle));
         
         return convertToResp(article);
     }
@@ -274,7 +280,8 @@ public class ArticleService {
         }
         
         // 异步同步补全建议
-        syncSuggestions(article);
+        final Article finalArticle = article;
+        CompletableFuture.runAsync(() -> syncSuggestions(finalArticle));
         
         return convertToResp(article);
     }
@@ -315,6 +322,9 @@ public class ArticleService {
      */
     public PageResult<ArticleResp> search(ArticleQueryReq req) {
         log.info("搜索文章，参数: {}", req);
+        
+        // 异步更新搜索频率统计
+        CompletableFuture.runAsync(() ->  updateSearchFrequency(req));
         
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
         
@@ -413,7 +423,7 @@ public class ArticleService {
                     }
                     return resp;
                 })
-                .collect(Collectors.toList());
+                .toList();
         
         log.info("返回文章列表数量: {}", articles.size());
         
@@ -505,112 +515,72 @@ public class ArticleService {
      * 从补全索引获取用户名补全建议
      */
     private List<SearchSuggestionResp.SuggestionItem> getUsernameSuggestionsFromIndex(String keyword) {
-        return getCompletionSuggestionsFromIndex(keyword, "usernameSuggest", "username");
+        return getCompletionSuggestionsFromIndex(keyword, "suggest", "username", "text", UsernameSuggestion.class);
     }
     
     /**
      * 从补全索引获取地点补全建议
      */
     private List<SearchSuggestionResp.SuggestionItem> getLocationSuggestionsFromIndex(String keyword) {
-        return getCompletionSuggestionsFromIndex(keyword, "locationSuggest", "location");
+
+
+        return getCompletionSuggestionsFromIndex(keyword, "suggest", "location", "text", LocationSuggestion.class);
     }
     
     /**
      * 从补全索引获取类别补全建议
      */
     private List<SearchSuggestionResp.SuggestionItem> getCategorySuggestionsFromIndex(String keyword) {
-        return getCompletionSuggestionsFromIndex(keyword, "categorySuggest", "category");
+        return getCompletionSuggestionsFromIndex(keyword, "suggest", "category", "text", CategorySuggestion.class);
     }
     
     /**
      * 从补全索引获取标题补全建议
      */
     private List<SearchSuggestionResp.SuggestionItem> getTitleSuggestionsFromIndex(String keyword) {
-        return getCompletionSuggestionsFromIndex(keyword, "titleSuggest", "title");
+        return getCompletionSuggestionsFromIndex(keyword, "suggest", "title", "text", TitleSuggestion.class);
     }
     
     /**
      * 从补全索引获取内容补全建议
      */
     private List<SearchSuggestionResp.SuggestionItem> getContentSuggestionsFromIndex(String keyword) {
-        return getCompletionSuggestionsFromIndex(keyword, "contentSuggest", "content");
+        return getCompletionSuggestionsFromIndex(keyword, "suggest", "content", "text", ContentSuggestion.class);
     }
-    
+
     /**
      * 从补全索引使用 Completion Suggester 获取补全建议
      * 支持中文/拼音混合输入补全，返回中文原文
      */
-    private List<SearchSuggestionResp.SuggestionItem> getCompletionSuggestionsFromIndex(
-            String keyword, String suggestField, String fieldType) {
+    private <T> List<SearchSuggestionResp.SuggestionItem> getCompletionSuggestionsFromIndex(
+            String keyword, String suggestField, String fieldType, String columName, Class<T> suggestionClass) {
 
-        // 构建 completion suggester
-        CompletionSuggestionBuilder completionSuggestion = SuggestBuilders
-                .completionSuggestion(suggestField)
-                .prefix(keyword)
-                .size(10)
-                .skipDuplicates(true);
-
-        SuggestBuilder suggestBuilder = new SuggestBuilder();
-        suggestBuilder.addSuggestion(fieldType + "_suggest", completionSuggestion);
-
-        // 构建查询请求，使用补全索引，同时获取文档_source
-        NativeSearchQuery searchQuery = new NativeSearchQueryBuilder()
-                .withSuggestBuilder(suggestBuilder)
-                .withMaxResults(10)
-                .build();
-
-        SearchHits<SearchSuggestion> searchHits = elasticsearchOperations.search(searchQuery, SearchSuggestion.class);
-
-        // 提取建议结果，从_source中获取原始中文文本
-        List<SearchSuggestionResp.SuggestionItem> items = new ArrayList<>();
-
-        // 先从 suggest 中获取匹配的文档ID
-        if (searchHits.hasSuggest()) {
-            Suggest suggest = searchHits.getSuggest();
-            if (suggest != null) {
-                var suggestion = suggest.getSuggestion(fieldType + "_suggest");
-                if (suggestion != null) {
-                    // 获取匹配的文档ID列表
-                    List<String> matchedIds = suggestion.getEntries().stream()
-                            .flatMap(entry -> entry.getOptions().stream())
-                            .map(option -> option.getHit().getId())
-                            .distinct()
-                            .limit(5)
-                            .collect(Collectors.toList());
-
-                    // 从 searchHits 中获取对应文档的原始文本
-                    for (String docId : matchedIds) {
-                        searchHits.getSearchHits().stream()
-                                .filter(hit -> hit.getId().equals(docId))
-                                .findFirst()
-                                .ifPresent(hit -> {
-                                    SearchSuggestion doc = hit.getContent();
-                                    String displayText = getDisplayText(doc, fieldType);
-                                    if (StringUtils.isNotBlank(displayText)) {
-                                        items.add(new SearchSuggestionResp.SuggestionItem(
-                                                displayText,
-                                                fieldType,
-                                                1L));
-                                    }
-                                });
-                    }
-                }
-            }
+        if (StringUtils.isBlank(keyword)) {
+            return Collections.emptyList();
         }
 
-        return items.stream().distinct().limit(5).collect(Collectors.toList());
-    }
+        // 通过实体类获取 index 名称
+        String indexName = elasticsearchOperations.getIndexCoordinatesFor(suggestionClass).getIndexName();
 
-    /**
-     * 根据字段类型获取显示文本
-     */
-    private String getDisplayText(SearchSuggestion doc, String fieldType) {
-        switch (fieldType) {
-            case "location":
-                return doc.getLocationText();
-            default:
-                return null;
-        }
+        // 调用通用 Suggest 工具类
+        List<EsCompletionSuggestUtil.SuggestItem> suggestItems =
+                esCompletionSuggestUtil.completionSuggest(
+                        new String[]{indexName},        // index
+                        keyword,                        // prefix
+                        List.of(suggestField),          // suggest 字段
+                        20,                             // ES fetch size
+                        5,                              // 最终返回数量
+                        false                           // 不跳过重复（便于统计频次）
+                );
+
+        // 转换成你自己的返回结构
+        return suggestItems.stream()
+                .map(item -> new SearchSuggestionResp.SuggestionItem(
+                        item.getSourceAsMap().get(columName).toString(),     // 补全文本
+                        fieldType          // 类型
+                ))
+                .sorted(Comparator.comparing((SearchSuggestionResp.SuggestionItem item) -> item.getText().length()))
+                .toList();
     }
     
     /**
@@ -637,7 +607,7 @@ public class ArticleService {
                             resp.setCount(bucket.getDocCount());
                             return resp;
                         })
-                        .collect(Collectors.toList());
+                        .toList();
             }
         }
         return List.of();
@@ -686,80 +656,131 @@ public class ArticleService {
     
     /**
      * 同步文章的补全建议到搜索补全索引
-     * 对每个字段，将分词结果作为独立建议项存入补全索引
-     * 过滤掉长度小于2的项和重复项
+     * 对每个字段：
+     * 1. 先使用 ik_max_word 分词得到原文词语，过滤长度为1的词
+     * 2. 对每个原文词语再使用 my_pinyin_analyzer 分词，存储到 Completion 字段
+     * 3. 为每个原文词语创建一条独立的索引记录，如果该词语已存在则不重复添加
      */
-    private void syncSuggestions(Article article) {
+    @Async
+    public void syncSuggestions(Article article) {
         if (!"PUBLISHED".equals(article.getStatus())) {
             return;
         }
         
         try {
-            SearchSuggestion suggestion = new SearchSuggestion();
-            suggestion.setId(article.getId());
+            List<Object> allSuggestions = new ArrayList<>();
             
             // 处理标题字段
             if (StringUtils.isNotBlank(article.getTitle())) {
-                List<String> titleTerms = analyzeText(article.getTitle());
-                if (!titleTerms.isEmpty()) {
-                    Completion completion =
-                        new Completion(
-                            titleTerms.toArray(new String[0]));
-                    suggestion.setTitleSuggest(completion);
+                List<String> titleTexts = analyzeTextWithIkMaxWord(article.getTitle());
+                for (String titleText : titleTexts) {
+                    // 查重：检查该原文词语是否已经存在
+                    String suggestionId = "title_" + titleText;
+                    if (!elasticsearchOperations.exists(suggestionId, TitleSuggestion.class)) {
+                        // 对每个原文词语进行拼音分词
+                        List<String> pinyinTerms = analyzeText(titleText, "zhishilu_title_suggestion");
+                        if (!pinyinTerms.isEmpty()) {
+                            TitleSuggestion suggestion = new TitleSuggestion();
+                            suggestion.setId(suggestionId);
+                            suggestion.setText(titleText);
+                            suggestion.setSearchCount(0L);
+                            suggestion.setSuggest(new Completion(pinyinTerms.toArray(new String[0])));
+                            allSuggestions.add(suggestion);
+                        }
+                    }
                 }
             }
             
             // 处理类别字段
             if (article.getCategories() != null && !article.getCategories().isEmpty()) {
-                List<String> categoryTerms = new ArrayList<>();
                 for (String category : article.getCategories()) {
-                    List<String> terms = analyzeText(category);
-                    categoryTerms.addAll(terms);
-                }
-                if (!categoryTerms.isEmpty()) {
-                    Completion completion =
-                        new Completion(
-                            categoryTerms.toArray(new String[0]));
-                    suggestion.setCategorySuggest(completion);
+                    if (StringUtils.isNotBlank(category)) {
+                        List<String> categoryTexts = analyzeTextWithIkMaxWord(category);
+                        for (String categoryText : categoryTexts) {
+                            // 查重
+                            String suggestionId = "category_" + categoryText;
+                            if (!elasticsearchOperations.exists(suggestionId, CategorySuggestion.class)) {
+                                List<String> pinyinTerms = analyzeText(categoryText, "zhishilu_category_suggestion");
+                                if (!pinyinTerms.isEmpty()) {
+                                    CategorySuggestion suggestion = new CategorySuggestion();
+                                    suggestion.setId(suggestionId);
+                                    suggestion.setText(categoryText);
+                                    suggestion.setSearchCount(0L);
+                                    suggestion.setSuggest(new Completion(pinyinTerms.toArray(new String[0])));
+                                    allSuggestions.add(suggestion);
+                                }
+                            }
+                        }
+                    }
                 }
             }
-            
-            // 处理内容字段
+
             if (StringUtils.isNotBlank(article.getContent())) {
-                List<String> contentTerms = analyzeText(article.getContent());
-                if (!contentTerms.isEmpty()) {
-                    Completion completion =
-                        new Completion(
-                            contentTerms.toArray(new String[0]));
-                    suggestion.setContentSuggest(completion);
+                List<String> contentTexts = analyzeTextWithIkMaxWord(article.getContent());
+                for (String contentText : contentTexts) {
+                    // 查重
+                    String suggestionId = "content_" + contentText;
+                    if (!elasticsearchOperations.exists(suggestionId, ContentSuggestion.class)) {
+                        List<String> pinyinTerms = analyzeText(contentText, "zhishilu_content_suggestion");
+                        if (!pinyinTerms.isEmpty()) {
+                            ContentSuggestion suggestion = new ContentSuggestion();
+                            suggestion.setId(suggestionId);
+                            suggestion.setText(contentText);
+                            suggestion.setSearchCount(0L);
+                            suggestion.setSuggest(new Completion(pinyinTerms.toArray(new String[0])));
+                            allSuggestions.add(suggestion);
+                        }
+                    }
                 }
             }
             
             // 处理用户名字段
             if (StringUtils.isNotBlank(article.getCreatedBy())) {
-                List<String> usernameTerms = analyzeText(article.getCreatedBy());
-                if (!usernameTerms.isEmpty()) {
-                    Completion completion =
-                        new Completion(
-                            usernameTerms.toArray(new String[0]));
-                    suggestion.setUsernameSuggest(completion);
+                List<String> usernameTexts = analyzeTextWithIkMaxWord(article.getCreatedBy());
+                for (String usernameText : usernameTexts) {
+                    // 查重
+                    String suggestionId = "username_" + usernameText;
+                    if (!elasticsearchOperations.exists(suggestionId, UsernameSuggestion.class)) {
+                        List<String> pinyinTerms = analyzeText(usernameText, "zhishilu_username_suggestion");
+                        if (!pinyinTerms.isEmpty()) {
+                            UsernameSuggestion suggestion = new UsernameSuggestion();
+                            suggestion.setId(suggestionId);
+                            suggestion.setText(usernameText);
+                            suggestion.setSearchCount(0L);
+                            suggestion.setSuggest(new Completion(pinyinTerms.toArray(new String[0])));
+                            allSuggestions.add(suggestion);
+                        }
+                    }
                 }
             }
             
             // 处理地点字段
             if (StringUtils.isNotBlank(article.getLocation())) {
-                List<String> locationTerms = analyzeText(article.getLocation());
-                if (!locationTerms.isEmpty()) {
-                    Completion completion =
-                        new Completion(
-                            locationTerms.toArray(new String[0]));
-                    suggestion.setLocationSuggest(completion);
-                    suggestion.setLocationText(article.getLocation()); // 保存原始文本用于显示
+                List<String> locationTexts = analyzeTextWithIkMaxWord(article.getLocation());
+                for (String locationText : locationTexts) {
+                    // 查重
+                    String suggestionId = "location_" + locationText;
+                    if (!elasticsearchOperations.exists(suggestionId, LocationSuggestion.class)) {
+                        List<String> pinyinTerms = analyzeText(locationText, "zhishilu_location_suggestion");
+                        if (!pinyinTerms.isEmpty()) {
+                            LocationSuggestion suggestion = new LocationSuggestion();
+                            suggestion.setId(suggestionId);
+                            suggestion.setText(locationText);
+                            suggestion.setSearchCount(0L);
+                            suggestion.setSuggest(new Completion(pinyinTerms.toArray(new String[0])));
+                            allSuggestions.add(suggestion);
+                        }
+                    }
                 }
             }
             
-            searchSuggestionRepository.save(suggestion);
-            log.info("补全建议同步成功，文章ID: {}", article.getId());
+            // 批量保存所有补全建议
+            if (!allSuggestions.isEmpty()) {
+                for (Object suggestion : allSuggestions) {
+                    elasticsearchOperations.save(suggestion);
+                }
+                log.info("补全建议同步成功，文章ID: {}, 共创建 {} 条记录", article.getId(), allSuggestions.size());
+            }
         } catch (Exception e) {
             log.error("补全建议同步失败，文章ID: {}", article.getId(), e);
         }
@@ -769,7 +790,7 @@ public class ArticleService {
      * 对文本进行分词，过滤掉长度小于2的词项，并去重
      * 使用 Elasticsearch 的 my_pinyin_analyzer 分词器，支持拼音索引
      */
-    private List<String> analyzeText(String text) {
+    private List<String> analyzeText(String text, String index) {
         if (StringUtils.isBlank(text)) {
             return new ArrayList<>();
         }
@@ -777,7 +798,7 @@ public class ArticleService {
         try {
             // 使用 my_pinyin_analyzer 分词器进行分词，生成拼音和中文混合的索引项
             AnalyzeRequest request = AnalyzeRequest.withIndexAnalyzer(
-                "zhishilu_suggestion",  // 指定索引名，因为自定义分词器定义在索引中
+                index,  // 指定索引名，因为自定义分词器定义在索引中
                 "my_pinyin_analyzer",   // 使用拼音分词器，生成首字母、全拼、原文等多种索引
                 text
             );
@@ -786,16 +807,153 @@ public class ArticleService {
             List<AnalyzeResponse.AnalyzeToken> tokens = response.getTokens();
 
             // 提取 token 并过滤、去重
-            List<String> uniqueTokens = tokens.stream()
+            // 过滤单字
+            // 去重
+            return tokens.stream()
                 .map(AnalyzeResponse.AnalyzeToken::getTerm)
-                .filter(term -> term.length() >= 2)  // 过滤单字
+                // 过滤单字
+                .filter(term -> term.length() >= 2)
                 .distinct()  // 去重
-                .collect(Collectors.toList());
-
-            return uniqueTokens;
+                .toList();
         } catch (Exception e) {
             log.error("分词失败: {}", text, e);
             return new ArrayList<>();
         }
+    }
+    
+    /**
+     * 使用 ik_max_word 分词器对文本进行分词，过滤掉长度为1的词项，并去重
+     * 返回原文词语列表
+     */
+    private List<String> analyzeTextWithIkMaxWord(String text) {
+        if (StringUtils.isBlank(text)) {
+            return new ArrayList<>();
+        }
+
+        try {
+            // 使用 ik_max_word 分词器进行分词
+            AnalyzeRequest request = AnalyzeRequest.withGlobalAnalyzer(
+                "ik_max_word",
+                text
+            );
+
+            AnalyzeResponse response = restHighLevelClient.indices().analyze(request, RequestOptions.DEFAULT);
+            List<AnalyzeResponse.AnalyzeToken> tokens = response.getTokens();
+
+            // 提取 token 并过滤、去重
+            // 过滤长度为1的词
+            // 去重
+
+            return tokens.stream()
+                .map(AnalyzeResponse.AnalyzeToken::getTerm)
+                .filter(term -> term.length() > 1)  // 过滤长度为1的词
+                .distinct()  // 去重
+                .toList();
+        } catch (Exception e) {
+            log.error("ik_max_word 分词失败: {}", text, e);
+            return new ArrayList<>();
+        }
+    }
+    
+    /**
+     * 更新搜索频率统计
+     * 当用户点击搜索时，将用户搜索条件与原文词语匹配，频率加1
+     */
+    public void updateSearchFrequency(ArticleQueryReq req) {
+        try {
+            // 处理关键词搜索（全字段搜索）
+            if (StringUtils.isNotBlank(req.getKeyword())) {
+                updateFrequencyForAllFields(req.getKeyword());
+            } else {
+                // 处理单个字段搜索
+                if (StringUtils.isNotBlank(req.getTitle())) {
+                    updateSuggestionFrequency(req.getTitle(), TitleSuggestion.class);
+                }
+                if (req.getCategories() != null && !req.getCategories().isEmpty()) {
+                    for (String category : req.getCategories()) {
+                        updateSuggestionFrequency(category, CategorySuggestion.class);
+                    }
+                }
+                if (StringUtils.isNotBlank(req.getContent())) {
+                    updateSuggestionFrequency(req.getContent(), ContentSuggestion.class);
+                }
+                if (StringUtils.isNotBlank(req.getUsername())) {
+                    updateSuggestionFrequency(req.getUsername(), UsernameSuggestion.class);
+                }
+                if (StringUtils.isNotBlank(req.getLocation())) {
+                    updateSuggestionFrequency(req.getLocation(), LocationSuggestion.class);
+                }
+            }
+        } catch (Exception e) {
+            log.error("更新搜索频率失败", e);
+        }
+    }
+    
+    /**
+     * 全字段搜索时更新频率
+     */
+    private void updateFrequencyForAllFields(String keyword) {
+        updateSuggestionFrequency(keyword, TitleSuggestion.class);
+        updateSuggestionFrequency(keyword, CategorySuggestion.class);
+        updateSuggestionFrequency(keyword, ContentSuggestion.class);
+        updateSuggestionFrequency(keyword, UsernameSuggestion.class);
+        updateSuggestionFrequency(keyword, LocationSuggestion.class);
+    }
+    
+    /**
+     * 更新指定类型suggestion的搜索频率
+     * 将搜索关键词与原文词语匹配，如果匹配成功则searchCount+1
+     */
+    private <T> void updateSuggestionFrequency(String searchKeyword, Class<T> suggestionClass) {
+        if (StringUtils.isBlank(searchKeyword)) {
+            return;
+        }
+        
+        try {
+            String fieldType = getFieldTypeFromClass(suggestionClass);
+            String suggestionId = fieldType + "_" + searchKeyword;
+
+            // 检查该suggestion是否存在
+            if (elasticsearchOperations.exists(suggestionId, suggestionClass)) {
+                // 读取当前记录
+                Object suggestion = elasticsearchOperations.get(suggestionId, suggestionClass);
+                if (suggestion != null) {
+                    try {
+                        // 使用反射获取和更新searchCount字段
+                        Long currentCount = (Long) suggestion.getClass().getMethod("getSearchCount").invoke(suggestion);
+                        if (currentCount == null) {
+                            currentCount = 0L;
+                        }
+                        suggestion.getClass().getMethod("setSearchCount", Long.class).invoke(suggestion, currentCount + 1);
+
+                        // 保存更新后的记录
+                        elasticsearchOperations.save(suggestion);
+                        log.debug("更新搜索频率: {} -> {}, count: {}", fieldType, searchKeyword, currentCount + 1);
+                    } catch (Exception e) {
+                        log.error("更新searchCount字段失败", e);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("更新搜索频率失败", e);
+        }
+    }
+    
+    /**
+     * 根据实体类型获取字段类型名称
+     */
+    private <T> String getFieldTypeFromClass(Class<T> clazz) {
+        if (clazz == TitleSuggestion.class) {
+            return "title";
+        } else if (clazz == CategorySuggestion.class) {
+            return "category";
+        } else if (clazz == ContentSuggestion.class) {
+            return "content";
+        } else if (clazz == UsernameSuggestion.class) {
+            return "username";
+        } else if (clazz == LocationSuggestion.class) {
+            return "location";
+        }
+        return "unknown";
     }
 }

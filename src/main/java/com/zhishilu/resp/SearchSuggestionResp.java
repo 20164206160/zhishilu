@@ -50,15 +50,9 @@ public class SearchSuggestionResp {
          */
         private String field;
         
-        /**
-         * 匹配文档数
-         */
-        private long count;
-        
-        public SuggestionItem(String text, String field, long count) {
+        public SuggestionItem(String text, String field) {
             this.text = text;
             this.field = field;
-            this.count = count;
         }
     }
 }
