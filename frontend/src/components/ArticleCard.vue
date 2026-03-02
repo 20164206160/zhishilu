@@ -53,6 +53,9 @@
         v-html="getDisplayContent()"
       ></p>
 
+      <!-- 占位空间，将底部信息推到底部 -->
+      <div class="flex-grow"></div>
+
       <!-- 发布人信息 -->
       <div class="flex items-center space-x-1.5 sm:space-x-2">
         <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gradient-to-tr from-blue-500 to-blue-400 flex items-center justify-center text-white text-[8px] sm:text-[10px] font-bold flex-shrink-0 overflow-hidden">
