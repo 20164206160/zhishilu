@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
@@ -6,7 +6,16 @@ import ProfileView from '../views/ProfileView.vue'
 import ArticleCreateView from '../views/ArticleCreateView.vue'
 import ArticleDetailView from '../views/ArticleDetailView.vue'
 import ArticleEditView from '../views/ArticleEditView.vue'
-import DraftEditView from '../views/DraftEditView.vue'
+
+// 路由元信息类型定义
+interface RouteMeta {
+  requiresAuth: boolean
+  transition?: string
+}
+
+declare module 'vue-router' {
+  interface RouteMeta extends RouteMeta {}
+}
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -15,49 +24,75 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView,
-      meta: { requiresAuth: false }
+      meta: { 
+        requiresAuth: false,
+        transition: 'fade'
+      }
     },
     {
       path: '/login',
       name: 'login',
       component: LoginView,
-      meta: { requiresAuth: false }
+      meta: { 
+        requiresAuth: false,
+        transition: 'scale'
+      }
     },
     {
       path: '/register',
       name: 'register',
       component: RegisterView,
-      meta: { requiresAuth: false }
+      meta: { 
+        requiresAuth: false,
+        transition: 'scale'
+      }
     },
     {
       path: '/profile',
       name: 'profile',
       component: ProfileView,
-      meta: { requiresAuth: true }
+      meta: { 
+        requiresAuth: true,
+        transition: 'slide'
+      }
     },
     {
       path: '/post',
       name: 'post',
       component: ArticleCreateView,
-      meta: { requiresAuth: true }
+      meta: { 
+        requiresAuth: true,
+        transition: 'scale'
+      }
     },
     {
       path: '/article/:id',
       name: 'article-detail',
       component: ArticleDetailView,
-      meta: { requiresAuth: false }
+      meta: { 
+        requiresAuth: false,
+        transition: 'slide'
+      }
     },
+    // 文章编辑页面
     {
-      path: '/article/:id/edit',
+      path: '/article/edit/:id',
       name: 'article-edit',
       component: ArticleEditView,
-      meta: { requiresAuth: true }
+      meta: {
+        requiresAuth: true,
+        transition: 'slide'
+      }
     },
+    // 草稿编辑页面
     {
       path: '/draft/:id/edit',
       name: 'draft-edit',
-      component: DraftEditView,
-      meta: { requiresAuth: true }
+      component: ArticleEditView,
+      meta: {
+        requiresAuth: true,
+        transition: 'slide'
+      }
     },
   ],
 })

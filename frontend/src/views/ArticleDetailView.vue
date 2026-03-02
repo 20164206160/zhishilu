@@ -12,11 +12,11 @@
       </div>
     </header>
 
-    <main v-if="article" class="flex-grow flex flex-col md:flex-row md:max-w-[1100px] md:mx-auto md:w-full md:bg-white md:shadow-2xl md:my-4 md:rounded-xl overflow-hidden md:h-[calc(100vh-32px)]">
-      <!-- Left: Image Gallery -->
-      <section 
-        v-if="article.images?.length" 
-        class="gallery-section w-full h-[100vw] md:h-auto relative bg-black flex items-center justify-center overflow-hidden group"
+    <main v-if="article" :class="article.images?.length ? 'md:max-w-[1100px]' : 'md:max-w-[720px]'" class="flex-grow flex flex-col md:flex-row md:mx-auto md:w-full md:bg-white md:shadow-2xl md:my-4 md:rounded-xl overflow-hidden md:h-[calc(100vh-32px)]">
+      <!-- Left: Image Gallery (仅当有图片时显示) -->
+      <section
+        v-if="article.images?.length"
+        class="gallery-section w-full h-[100vw] md:h-full relative bg-black overflow-hidden group"
         @touchstart="handleTouchStart"
         @touchmove="handleTouchMove"
         @touchend="handleTouchEnd"
@@ -64,7 +64,7 @@
       </section>
 
       <!-- Right: Content Area -->
-      <aside class="w-full md:w-[420px] lg:w-[460px] flex flex-col bg-white overflow-hidden">
+      <aside :class="article.images?.length ? 'w-full md:w-[420px] lg:w-[460px]' : 'w-full'" class="flex flex-col bg-white overflow-hidden">
         <!-- Author Header (Sticky) -->
         <div class="px-5 py-4 border-b border-[#f0f0f0] flex items-center justify-between bg-white shrink-0">
           <div class="flex items-center gap-3">
@@ -104,9 +104,7 @@
           <!-- Article Content -->
           <div class="px-5 py-5">
             <h1 class="text-lg font-bold text-[#333] leading-snug mb-4">{{ article.title }}</h1>
-            <div v-if="article.content" class="text-[15px] text-[#333] leading-[1.8] whitespace-pre-wrap">
-              {{ article.content }}
-            </div>
+            <div v-if="article.content" class="text-[15px] text-[#333] leading-[1.8] prose prose-sm max-w-none" v-html="article.content"></div>
 
             <!-- Tags -->
             <div v-if="article.categories?.length" class="flex flex-wrap gap-2 mt-5">
@@ -200,11 +198,11 @@
           </div>
           
           <!-- Comment Input -->
-          <div class="relative">
-            <input 
-              type="text" 
-              placeholder="说点什么..." 
-              class="w-full bg-[#f5f5f5] border-none rounded-full py-2.5 px-4 pr-12 text-[14px] text-[#333] placeholder:text-[#999] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+          <div class="relative flex items-center">
+            <input
+              type="text"
+              placeholder="说点什么..."
+              class="w-full bg-[#f5f5f5] border-none rounded-full py-1.5 px-4 pr-14 text-[14px] text-[#333] placeholder:text-[#999] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all h-9 leading-5 box-border"
             />
             <button class="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-blue-600 text-[13px] font-medium hover:bg-blue-50 rounded-full transition-colors">
               发送
@@ -520,10 +518,13 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* 图片预览淡入淡出 */
-.fade-enter-active,
+/* 图片预览淡入淡出 - 优化版 */
+.fade-enter-active {
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .fade-leave-active {
-  transition: opacity 0.2s ease;
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 1, 1);
 }
 
 .fade-enter-from,

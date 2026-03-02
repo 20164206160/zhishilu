@@ -264,12 +264,7 @@
     <teleport to="body">
       <transition name="modal">
         <div v-if="showModal" @click="closeModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center p-0 md:p-4">
-          <div @click.stop class="relative w-full md:max-w-[1000px] lg:max-w-[1100px] h-full md:h-[90vh] bg-white md:rounded-2xl shadow-2xl overflow-hidden flex">
-            <!-- 关闭按钮 -->
-            <button @click="closeModal" class="hidden md:flex absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 text-white items-center justify-center transition-all backdrop-blur-sm">
-              <XIcon :size="20" />
-            </button>
-            
+          <div @click.stop :class="modalArticle?.images?.length ? 'md:max-w-[1000px] lg:max-w-[1100px]' : 'md:max-w-[680px]'" class="relative w-full h-full md:h-[90vh] bg-white md:rounded-2xl shadow-2xl overflow-hidden flex">
             <!-- Mobile Close Button -->
             <button @click="closeModal" class="md:hidden absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-black/30 text-white flex items-center justify-center">
               <XIcon :size="20" />
@@ -277,7 +272,7 @@
             
             <!-- 详情页内容 -->
             <div v-if="modalArticle" class="flex w-full h-full flex-col md:flex-row">
-              <!-- 左侧图片区 -->
+              <!-- 左侧图片区（仅当有图片时显示） -->
               <section 
                 v-if="modalArticle.images?.length" 
                 class="w-full md:flex-1 h-[50vh] md:h-auto relative bg-black flex items-center justify-center overflow-hidden group"
@@ -323,7 +318,7 @@
               </section>
 
               <!-- 右侧内容区 -->
-              <aside class="w-full md:w-[380px] lg:w-[420px] flex flex-col bg-white overflow-hidden">
+              <aside :class="modalArticle.images?.length ? 'w-full md:w-[380px] lg:w-[420px]' : 'w-full'" class="flex flex-col bg-white overflow-hidden">
                 <!-- 用户信息 -->
                 <div class="px-5 py-4 border-b border-[#f0f0f0] flex items-center justify-between bg-white shrink-0">
                   <div class="flex items-center gap-3">
@@ -336,7 +331,17 @@
                       <p class="text-[12px] text-[#999] mt-0.5">{{ formatModalDate(modalArticle.createdTime) }}</p>
                     </div>
                   </div>
-                  <button class="px-5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-full transition-colors">
+                  <button
+                    v-if="isCurrentUserArticle"
+                    @click="goToEdit"
+                    class="px-5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-full transition-colors"
+                  >
+                    编辑
+                  </button>
+                  <button
+                    v-else
+                    class="px-5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-full transition-colors"
+                  >
                     关注
                   </button>
                 </div>
@@ -345,9 +350,7 @@
                 <div class="flex-grow overflow-y-auto">
                   <div class="px-5 py-5">
                     <h1 class="text-lg font-bold text-[#333] leading-snug mb-4">{{ modalArticle.title }}</h1>
-                    <div v-if="modalArticle.content" class="text-[15px] text-[#333] leading-[1.8] whitespace-pre-wrap">
-                      {{ modalArticle.content }}
-                    </div>
+                    <div v-if="modalArticle.content" class="text-[15px] text-[#333] leading-[1.8] prose prose-sm max-w-none" v-html="modalArticle.content"></div>
 
                     <!-- Tags -->
                     <div v-if="modalArticle.categories?.length" class="flex flex-wrap gap-2 mt-5">
@@ -497,7 +500,7 @@ defineOptions({
 });
 
 import { ref, onMounted, watch, onActivated, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { 
   Search as SearchIcon, 
   Plus as PlusIcon, 
@@ -523,6 +526,7 @@ import ArticleCard from '../components/ArticleCard.vue';
 import { getAvatarUrl, getImageUrl } from '../utils/image';
 
 const route = useRoute();
+const router = useRouter();
 
 // 状态定义
 const searchQuery = ref('');
@@ -572,6 +576,25 @@ const hasSuggestions = computed(() => {
          suggestions.value.titles?.length > 0 ||
          suggestions.value.contents?.length > 0;
 });
+
+// 判断当前文章是否是当前用户发布的
+const isCurrentUserArticle = computed(() => {
+  if (!modalArticle.value) return false;
+  const storedUser = localStorage.getItem('user');
+  if (!storedUser) return false;
+  const currentUser = JSON.parse(storedUser);
+  return currentUser.id === modalArticle.value.creatorId;
+});
+
+// 跳转到编辑页面
+const goToEdit = () => {
+  const articleId = modalArticle.value?.id;
+  if (articleId) {
+    // 关闭弹窗后再跳转
+    closeModal();
+    router.push(`/article/edit/${articleId}`);
+  }
+};
 
 // 类别统计响应接口
 interface CategoryStatResp {
@@ -957,10 +980,13 @@ select:focus ~ div input {
   border-left-color: transparent;
 }
 
-/* 弹窗动画 */
-.modal-enter-active,
+/* 弹窗动画 - 优化版 */
+.modal-enter-active {
+  transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .modal-leave-active {
-  transition: all 0.3s ease;
+  transition: opacity 0.25s cubic-bezier(0.4, 0, 1, 1);
 }
 
 .modal-enter-from,
@@ -968,15 +994,53 @@ select:focus ~ div input {
   opacity: 0;
 }
 
-.modal-enter-from > div,
-.modal-leave-to > div {
-  transform: scale(0.9);
+/* 弹窗内容动画 - 桌面端缩放效果 */
+@media (min-width: 768px) {
+  .modal-enter-active > div {
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .modal-leave-active > div {
+    transition: transform 0.25s cubic-bezier(0.4, 0, 1, 1), opacity 0.25s cubic-bezier(0.4, 0, 1, 1);
+  }
+
+  .modal-enter-from > div {
+    transform: scale(0.85) translateY(20px);
+    opacity: 0;
+  }
+  
+  .modal-leave-to > div {
+    transform: scale(0.95);
+    opacity: 0;
+  }
 }
 
-/* 图片预览淡入淡出 */
-.fade-enter-active,
+/* 弹窗内容动画 - 移动端从底部滑入 */
+@media (max-width: 767px) {
+  .modal-enter-active > div {
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  
+  .modal-leave-active > div {
+    transition: transform 0.25s cubic-bezier(0.4, 0, 1, 1);
+  }
+
+  .modal-enter-from > div {
+    transform: translateY(100%);
+  }
+  
+  .modal-leave-to > div {
+    transform: translateY(100%);
+  }
+}
+
+/* 图片预览淡入淡出 - 优化版 */
+.fade-enter-active {
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .fade-leave-active {
-  transition: opacity 0.2s ease;
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 1, 1);
 }
 
 .fade-enter-from,

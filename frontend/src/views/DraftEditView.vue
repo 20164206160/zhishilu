@@ -11,6 +11,13 @@
         <div class="flex items-center gap-2 sm:gap-3">
           <span v-if="autoSaveStatus" class="text-[10px] sm:text-xs text-gray-400">{{ autoSaveStatus }}</span>
           <button
+            @click="togglePreview"
+            class="text-gray-500 hover:text-blue-600 transition-colors px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium"
+          >
+            <Eye v-if="!showPreview" :size="18" class="sm:w-5 sm:h-5" />
+            <EyeOff v-else :size="18" class="sm:w-5 sm:h-5" />
+          </button>
+          <button
             @click="handlePublish"
             :disabled="loading"
             class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-3 sm:px-6 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-bold shadow-lg shadow-blue-100 transition-all active:scale-95"
@@ -26,7 +33,8 @@
         <div class="animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
       </div>
 
-      <div v-else class="bg-white rounded-2xl sm:rounded-[32px] p-4 sm:p-8 shadow-sm border border-gray-100 space-y-6 sm:space-y-8">
+      <!-- 编辑模式 -->
+      <div v-else-if="!showPreview" class="bg-white rounded-2xl sm:rounded-[32px] p-4 sm:p-8 shadow-sm border border-gray-100 space-y-6 sm:space-y-8">
         <!-- Title -->
         <section class="space-y-2">
           <input 
@@ -57,12 +65,12 @@
               {{ cat }}
             </button>
             <div class="relative min-w-[120px] flex items-center gap-2">
-              <input 
+              <input
                 v-model="customCategory"
                 @keyup.enter="addCustomCategory"
-                type="text" 
-                placeholder="手动输入分类" 
-                class="w-full px-4 py-1.5 bg-gray-50 border-none rounded-full text-xs focus:ring-2 focus:ring-blue-500 transition-all"
+                type="text"
+                placeholder="手动输入分类"
+                class="w-full px-4 bg-gray-50 border-none rounded-full text-xs focus:ring-2 focus:ring-blue-500 transition-all h-11"
               />
               <button 
                 @click="addCustomCategory"
@@ -118,12 +126,7 @@
           <label class="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
             <Type :size="14" /> 正文
           </label>
-          <textarea 
-            v-model="form.content"
-            rows="8"
-            placeholder="记下这一刻的想法..."
-            class="w-full p-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 transition-all text-sm resize-none"
-          ></textarea>
+          <RichEditor v-model="form.content" placeholder="记下这一刻的想法..." />
         </section>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-50">
@@ -160,6 +163,42 @@
           </section>
         </div>
       </div>
+
+      <!-- 预览模式 -->
+      <div v-else class="bg-white rounded-2xl sm:rounded-[32px] p-4 sm:p-8 shadow-sm border border-gray-100">
+        <!-- 预览标题 -->
+        <h1 class="text-xl sm:text-3xl font-black text-gray-900 mb-4 sm:mb-6">{{ form.title || '无标题' }}</h1>
+        
+        <!-- 预览元信息 -->
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-4 sm:mb-6 text-xs sm:text-sm text-gray-500">
+          <span v-if="form.categories.length > 0" class="flex items-center gap-1">
+            <Tag :size="12" class="sm:w-3.5 sm:h-3.5" />
+            {{ form.categories.join(', ') }}
+          </span>
+          <span v-if="form.location" class="flex items-center gap-1">
+            <MapPin :size="12" class="sm:w-3.5 sm:h-3.5" />
+            {{ form.location }}
+          </span>
+        </div>
+
+        <!-- 预览图片 -->
+        <div v-if="form.images.length > 0" class="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
+          <div v-for="(img, index) in form.images" :key="index" class="aspect-square rounded-xl sm:rounded-2xl bg-gray-100 overflow-hidden">
+            <img :src="getImageUrl(img)" class="w-full h-full object-cover" />
+          </div>
+        </div>
+
+        <!-- 预览内容 -->
+        <div class="prose prose-sm sm:prose max-w-none text-gray-700" v-html="form.content || '<p class=\'text-gray-400 italic\'>暂无内容</p>'"></div>
+
+        <!-- 预览来源链接 -->
+        <div v-if="form.url" class="mt-6 sm:mt-8 pt-4 border-t border-gray-100">
+          <a :href="form.url" target="_blank" class="text-blue-600 hover:text-blue-700 text-xs sm:text-sm flex items-center gap-1 break-all">
+            <LinkIcon :size="12" class="sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+            {{ form.url }}
+          </a>
+        </div>
+      </div>
     </main>
 
     <!-- Hidden File Input -->
@@ -170,11 +209,12 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted } from 'vue';
 import { 
-  ChevronLeft, Tag, Image as ImageIcon, X, Plus, Type, MapPin, Link as LinkIcon 
+  ChevronLeft, Tag, Image as ImageIcon, X, Plus, Type, MapPin, Link as LinkIcon, Eye, EyeOff
 } from 'lucide-vue-next';
 import { useRoute, useRouter } from 'vue-router';
 import request from '../utils/request';
 import { getImageUrl } from '../utils/image';
+import RichEditor from '../components/RichEditor.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -196,6 +236,7 @@ const customCategory = ref('');
 const autoSaveStatus = ref('');
 const autoSaveTimer = ref<number | null>(null);
 const lastSavedContent = ref('');
+const showPreview = ref(false);
 
 // 生成表单内容的唯一标识（用于判断是否有变化）
 const getFormContentHash = () => {
@@ -275,7 +316,7 @@ const handleBack = async () => {
   if (fromTab) {
     router.push({ path: '/profile', query: { from: fromTab } });
   } else {
-    router.back();
+    router.push('/');
   }
 };
 
@@ -432,6 +473,11 @@ const handlePublish = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+// 切换预览模式
+const togglePreview = () => {
+  showPreview.value = !showPreview.value;
 };
 
 // 获取分类导航数据

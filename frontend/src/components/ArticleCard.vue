@@ -1,7 +1,7 @@
 <template>
   <div
     @click="goToDetail"
-    class="group bg-white rounded-lg sm:rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col h-full cursor-pointer relative"
+    class="group bg-white rounded-lg sm:rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 ease-out border border-gray-100 flex flex-col h-full cursor-pointer relative active:scale-[0.98] active:duration-150"
   >
     <!-- 顶部图片区域 - 高度减少为3/4正方形 -->
     <div class="aspect-[4/3] w-full relative overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">

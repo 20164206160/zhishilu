@@ -8,13 +8,22 @@
           <span class="font-bold text-sm sm:text-base">取消</span>
         </button>
         <h1 class="text-base sm:text-lg font-black text-gray-900">编辑内容</h1>
-        <button
-          @click="handleSubmit"
-          :disabled="loading"
-          class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-3 sm:px-6 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-bold shadow-lg shadow-blue-100 transition-all active:scale-95"
-        >
-          {{ loading ? '保存中...' : '保存' }}
-        </button>
+        <div class="flex items-center gap-2 sm:gap-3">
+          <button
+            @click="togglePreview"
+            class="text-gray-500 hover:text-blue-600 transition-colors px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium"
+          >
+            <Eye v-if="!showPreview" :size="18" class="sm:w-5 sm:h-5" />
+            <EyeOff v-else :size="18" class="sm:w-5 sm:h-5" />
+          </button>
+          <button
+            @click="handleSubmit"
+            :disabled="loading"
+            class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-3 sm:px-6 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-bold shadow-lg shadow-blue-100 transition-all active:scale-95"
+          >
+            {{ loading ? '保存中...' : '保存' }}
+          </button>
+        </div>
       </div>
     </header>
 
@@ -23,13 +32,14 @@
         <div class="animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
       </div>
 
-      <div v-else class="bg-white rounded-2xl sm:rounded-[32px] p-4 sm:p-8 shadow-sm border border-gray-100 space-y-6 sm:space-y-8">
+      <!-- 编辑模式 -->
+      <div v-else-if="!showPreview" class="bg-white rounded-2xl sm:rounded-[32px] p-4 sm:p-8 shadow-sm border border-gray-100 space-y-6 sm:space-y-8">
         <!-- Title -->
         <section class="space-y-2">
-          <input 
+          <input
             v-model="form.title"
-            type="text" 
-            placeholder="输入标题..." 
+            type="text"
+            placeholder="输入标题..."
             class="w-full text-3xl font-black placeholder:text-gray-200 border-none focus:ring-0 p-0 text-gray-900"
           />
           <div class="h-px bg-gray-50 w-full"></div>
@@ -45,8 +55,8 @@
           </div>
           <!-- Recommended Categories -->
           <div class="flex flex-wrap gap-2">
-            <button 
-              v-for="cat in topCategories" 
+            <button
+              v-for="cat in topCategories"
               :key="cat"
               @click="toggleCategory(cat)"
               :class="['px-4 py-1.5 rounded-full text-xs font-medium transition-all border', form.categories.includes(cat) ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-gray-100 text-gray-500 hover:bg-gray-50']"
@@ -54,14 +64,14 @@
               {{ cat }}
             </button>
             <div class="relative min-w-[120px] flex items-center gap-2">
-              <input 
+              <input
                 v-model="customCategory"
                 @keyup.enter="addCustomCategory"
-                type="text" 
-                placeholder="手动输入分类" 
-                class="w-full px-4 py-1.5 bg-gray-50 border-none rounded-full text-xs focus:ring-2 focus:ring-blue-500 transition-all"
+                type="text"
+                placeholder="手动输入分类"
+                class="w-full px-4 bg-gray-50 border-none rounded-full text-xs focus:ring-2 focus:ring-blue-500 transition-all h-11"
               />
-              <button 
+              <button
                 @click="addCustomCategory"
                 class="px-3 py-1.5 bg-blue-500 text-white rounded-full text-xs font-medium hover:bg-blue-600 transition-colors"
               >
@@ -72,8 +82,8 @@
           <!-- 已选类别展示 -->
           <div v-if="form.categories.length > 0" class="flex flex-wrap gap-2 mt-2">
             <span class="text-xs text-gray-400">已选：</span>
-            <span 
-              v-for="(cat, index) in form.categories" 
+            <span
+              v-for="(cat, index) in form.categories"
               :key="index"
               class="px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full text-xs font-medium flex items-center gap-1"
             >
@@ -100,7 +110,7 @@
                 <X :size="12" />
               </button>
             </div>
-            <button 
+            <button
               @click="triggerUpload"
               class="aspect-square rounded-2xl border-2 border-dashed border-gray-100 hover:border-blue-200 hover:bg-blue-50 transition-all flex flex-col items-center justify-center text-gray-300 hover:text-blue-400 gap-1"
             >
@@ -115,12 +125,7 @@
           <label class="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
             <Type :size="14" /> 正文
           </label>
-          <textarea 
-            v-model="form.content"
-            rows="8"
-            placeholder="记下这一刻的想法..."
-            class="w-full p-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 transition-all text-sm resize-none"
-          ></textarea>
+          <RichEditor v-model="form.content" placeholder="记下这一刻的想法..." />
         </section>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-50">
@@ -130,10 +135,10 @@
               <MapPin :size="14" /> 地点
             </label>
             <div class="relative">
-              <input 
+              <input
                 v-model="form.location"
-                type="text" 
-                placeholder="输入地点..." 
+                type="text"
+                placeholder="输入地点..."
                 class="w-full pl-10 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 transition-all text-sm"
               />
               <MapPin class="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500" :size="16" />
@@ -146,15 +151,51 @@
               <LinkIcon :size="14" /> 来源网址
             </label>
             <div class="relative">
-              <input 
+              <input
                 v-model="form.url"
-                type="text" 
-                placeholder="https://..." 
+                type="text"
+                placeholder="https://..."
                 class="w-full pl-10 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 transition-all text-sm"
               />
               <LinkIcon class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" :size="16" />
             </div>
           </section>
+        </div>
+      </div>
+
+      <!-- 预览模式 -->
+      <div v-else class="bg-white rounded-2xl sm:rounded-[32px] p-4 sm:p-8 shadow-sm border border-gray-100">
+        <!-- 预览标题 -->
+        <h1 class="text-xl sm:text-3xl font-black text-gray-900 mb-4 sm:mb-6">{{ form.title || '无标题' }}</h1>
+        
+        <!-- 预览元信息 -->
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-4 sm:mb-6 text-xs sm:text-sm text-gray-500">
+          <span v-if="form.categories.length > 0" class="flex items-center gap-1">
+            <Tag :size="12" class="sm:w-3.5 sm:h-3.5" />
+            {{ form.categories.join(', ') }}
+          </span>
+          <span v-if="form.location" class="flex items-center gap-1">
+            <MapPin :size="12" class="sm:w-3.5 sm:h-3.5" />
+            {{ form.location }}
+          </span>
+        </div>
+
+        <!-- 预览图片 -->
+        <div v-if="form.images.length > 0" class="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
+          <div v-for="(img, index) in form.images" :key="index" class="aspect-square rounded-xl sm:rounded-2xl bg-gray-100 overflow-hidden">
+            <img :src="getImageUrl(img)" class="w-full h-full object-cover" />
+          </div>
+        </div>
+
+        <!-- 预览内容 -->
+        <div class="prose prose-sm sm:prose max-w-none text-gray-700" v-html="form.content || '<p class=\'text-gray-400 italic\'>暂无内容</p>'"></div>
+
+        <!-- 预览来源链接 -->
+        <div v-if="form.url" class="mt-6 sm:mt-8 pt-4 border-t border-gray-100">
+          <a :href="form.url" target="_blank" class="text-blue-600 hover:text-blue-700 text-xs sm:text-sm flex items-center gap-1 break-all">
+            <LinkIcon :size="12" class="sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+            {{ form.url }}
+          </a>
         </div>
       </div>
     </main>
@@ -166,12 +207,13 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
-import { 
-  ChevronLeft, Tag, Image as ImageIcon, X, Plus, Type, MapPin, Link as LinkIcon 
+import {
+  ChevronLeft, Tag, Image as ImageIcon, X, Plus, Type, MapPin, Link as LinkIcon, Eye, EyeOff
 } from 'lucide-vue-next';
 import { useRoute, useRouter } from 'vue-router';
 import request from '../utils/request';
 import { getImageUrl } from '../utils/image';
+import RichEditor from '../components/RichEditor.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -190,6 +232,7 @@ const form = reactive({
 });
 
 const customCategory = ref('');
+const showPreview = ref(false);
 
 // 切换类别选择
 const toggleCategory = (cat: string) => {
@@ -234,19 +277,19 @@ const triggerUpload = () => {
 const handleFileUpload = async (e: Event) => {
   const files = (e.target as HTMLInputElement).files;
   if (!files) return;
-  
+
   // 立即上传每个文件到服务器
   for (const file of Array.from(files)) {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const res = await request.post('/file/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
-      
+
       if (res.data.code === 200 && res.data.data.path) {
         // 保存服务器返回的相对路径
         form.images.push(res.data.data.path);
@@ -256,7 +299,7 @@ const handleFileUpload = async (e: Event) => {
       alert('图片上传失败');
     }
   }
-  
+
   // 清空文件输入框，允许重复选择同一文件
   if (fileInput.value) {
     fileInput.value.value = '';
@@ -297,7 +340,7 @@ const handleSubmit = async () => {
     alert('请填写标题、选择分类和地点');
     return;
   }
-  
+
   if (form.images.length === 0 && !form.content) {
     alert('图片和正文必须填写其中一个');
     return;
@@ -324,6 +367,11 @@ const handleSubmit = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+// 切换预览模式
+const togglePreview = () => {
+  showPreview.value = !showPreview.value;
 };
 
 // 获取分类导航数据
