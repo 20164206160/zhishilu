@@ -26,7 +26,7 @@ const router = createRouter({
       component: HomeView,
       meta: { 
         requiresAuth: false,
-        transition: 'fade'
+        transition: 'none'
       }
     },
     {

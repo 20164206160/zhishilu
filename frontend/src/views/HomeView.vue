@@ -192,7 +192,16 @@
     <main class="flex-grow max-w-7xl mx-auto w-full px-2 sm:px-4 py-4 sm:py-6">
       <!-- 移动端：2列，平板：3列，小桌面：4列，大桌面：5列，超大屏：6列 -->
       <div v-if="loading" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
-        <div v-for="i in 12" :key="i" class="aspect-square bg-white border border-gray-100 rounded-xl animate-pulse"></div>
+        <div v-for="i in 12" :key="i" class="bg-white border border-gray-100 rounded-xl overflow-hidden animate-pulse">
+          <!-- 图片占位 -->
+          <div class="aspect-square bg-gray-100"></div>
+          <!-- 文字占位 -->
+          <div class="p-2.5 space-y-1.5">
+            <div class="h-3 bg-gray-100 rounded-full w-4/5"></div>
+            <div class="h-3 bg-gray-100 rounded-full w-3/5"></div>
+            <div class="h-2.5 bg-gray-50 rounded-full w-2/5 mt-2"></div>
+          </div>
+        </div>
       </div>
 
       <div v-else-if="articles.length > 0" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
@@ -602,6 +611,12 @@ interface CategoryStatResp {
   count: number;
 }
 
+// 热门关键词响应接口
+interface HotKeywordResp {
+  keyword: string;
+  searchCount: number;
+}
+
 // 根据搜索字段获取占位符文本
 const getPlaceholder = () => {
   const placeholders: Record<string, string> = {
@@ -627,6 +642,21 @@ const fetchCategoryNavigation = async () => {
     }
   } catch (err) {
     console.error('获取类别导航失败:', err);
+  }
+};
+
+// 获取热门关键词
+const fetchHotKeywords = async () => {
+  try {
+    const res = await request.get('/article/hot-keywords', {
+      params: { limit: 15 }
+    });
+    if (res.data.code === 200 && res.data.data && res.data.data.length > 0) {
+      hotWords.value = res.data.data.map((item: HotKeywordResp) => item.keyword);
+      console.log('热门关键词:', hotWords.value);
+    }
+  } catch (err) {
+    console.error('获取热门关键词失败:', err);
   }
 };
 
@@ -905,6 +935,7 @@ const checkAndRefresh = (forceRefresh = false) => {
       currentSearchKeyword.value = '';
     }
     fetchCategoryNavigation();
+    fetchHotKeywords();
     fetchArticles();
   } else {
     console.log('无刷新标记，不调用接口');

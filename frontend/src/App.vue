@@ -10,8 +10,13 @@ const cachedViews = ref(['HomeView', 'ArticleDetailView'])
 const onPageEnter = (el: Element) => {
   isLoading.value = false
   
-  // 添加进入动画类
+  // 无过渡动画的页面（如首页）跳过 page-entering
   if (el instanceof HTMLElement) {
+    const transitionName = el.closest('[data-v-app]')?.getAttribute('data-transition') ||
+      router.currentRoute.value.meta?.transition as string
+    if (transitionName === 'none') {
+      return
+    }
     el.style.willChange = 'transform, opacity'
     requestAnimationFrame(() => {
       el.classList.add('page-entering')

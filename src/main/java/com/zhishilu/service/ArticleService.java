@@ -10,6 +10,7 @@ import com.zhishilu.req.DraftSaveReq;
 import com.zhishilu.resp.ArticleResp;
 import com.zhishilu.resp.CategoryStatResp;
 import com.zhishilu.resp.DraftResp;
+import com.zhishilu.resp.HotKeywordResp;
 import com.zhishilu.resp.SearchSuggestionResp;
 import com.zhishilu.entity.Article;
 import com.zhishilu.entity.CategorySuggestion;
@@ -955,5 +956,62 @@ public class ArticleService {
             return "location";
         }
         return "unknown";
+    }
+    
+    /**
+     * 获取热门搜索关键词（按搜索频率排序）
+     * 从所有 suggestion 索引中汇总 searchCount 最高的关键词
+     * @param limit 返回数量限制，默认15
+     * @return 热门关键词列表
+     */
+    public List<HotKeywordResp> getHotKeywords(int limit) {
+        List<HotKeywordResp> allKeywords = new ArrayList<>();
+        
+        // 从各个 suggestion 索引中查询有搜索记录的关键词
+        allKeywords.addAll(getKeywordsFromIndex(TitleSuggestion.class));
+        allKeywords.addAll(getKeywordsFromIndex(CategorySuggestion.class));
+        allKeywords.addAll(getKeywordsFromIndex(ContentSuggestion.class));
+        allKeywords.addAll(getKeywordsFromIndex(UsernameSuggestion.class));
+        allKeywords.addAll(getKeywordsFromIndex(LocationSuggestion.class));
+        
+        // 按搜索次数降序排序，取前 limit 个
+        return allKeywords.stream()
+                .sorted(Comparator.comparing(HotKeywordResp::getSearchCount).reversed())
+                .limit(limit)
+                .toList();
+    }
+    
+    /**
+     * 从指定 suggestion 索引中获取有搜索记录的关键词
+     */
+    private <T> List<HotKeywordResp> getKeywordsFromIndex(Class<T> suggestionClass) {
+        List<HotKeywordResp> keywords = new ArrayList<>();
+        
+        try {
+            // 构建查询：searchCount > 0
+            NativeSearchQuery query = new NativeSearchQueryBuilder()
+                    .withQuery(QueryBuilders.rangeQuery("searchCount").gt(0))
+                    .withPageable(PageRequest.of(0, 100, Sort.by(Sort.Direction.DESC, "searchCount")))
+                    .build();
+            
+            SearchHits<T> searchHits = elasticsearchOperations.search(query, suggestionClass);
+            
+            for (var hit : searchHits.getSearchHits()) {
+                T suggestion = hit.getContent();
+                try {
+                    String text = (String) suggestion.getClass().getMethod("getText").invoke(suggestion);
+                    Long count = (Long) suggestion.getClass().getMethod("getSearchCount").invoke(suggestion);
+                    if (StringUtils.isNotBlank(text) && count != null && count > 0) {
+                        keywords.add(new HotKeywordResp(text, count));
+                    }
+                } catch (Exception e) {
+                    log.error("获取 suggestion 字段失败", e);
+                }
+            }
+        } catch (Exception e) {
+            log.error("查询热门关键词失败: {}", suggestionClass.getSimpleName(), e);
+        }
+        
+        return keywords;
     }
 }

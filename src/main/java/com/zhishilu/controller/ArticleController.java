@@ -9,6 +9,7 @@ import com.zhishilu.req.DraftSaveReq;
 import com.zhishilu.resp.ArticleResp;
 import com.zhishilu.resp.CategoryStatResp;
 import com.zhishilu.resp.DraftResp;
+import com.zhishilu.resp.HotKeywordResp;
 import com.zhishilu.resp.SearchSuggestionResp;
 import com.zhishilu.dto.UserDTO;
 import com.zhishilu.service.ArticleService;
@@ -168,5 +169,18 @@ public class ArticleController {
             @RequestParam(defaultValue = "all") String field) {
         SearchSuggestionResp resp = articleService.getSearchSuggestions(keyword, field);
         return Result.success(resp);
+    }
+    
+    /**
+     * 获取热门搜索关键词
+     * 根据搜索频率统计返回最热门的关键词
+     * @param limit 返回数量，默认15
+     * @return 热门关键词列表
+     */
+    @GetMapping("/hot-keywords")
+    public Result<List<HotKeywordResp>> getHotKeywords(
+            @RequestParam(defaultValue = "15") int limit) {
+        List<HotKeywordResp> hotKeywords = articleService.getHotKeywords(limit);
+        return Result.success(hotKeywords);
     }
 }
