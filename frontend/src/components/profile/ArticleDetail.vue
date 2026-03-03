@@ -25,8 +25,8 @@
     <!-- Content -->
     <div class="flex-grow overflow-y-auto">
       <!-- Image Gallery -->
-      <div v-if="article.images?.length" class="relative bg-black">
-        <div class="flex h-48 sm:h-64 md:h-80 w-full transition-transform duration-300 ease-out" 
+      <div v-if="article.images?.length" class="relative bg-black" @wheel="handleWheel">
+        <div class="flex h-48 sm:h-64 md:h-80 w-full transition-transform duration-[450ms] ease-out" 
              :style="{ transform: `translateX(-${currentImgIndex * 100}%)` }">
           <img v-for="(img, i) in article.images" :key="i" 
                :src="getImageUrl(img)" 
@@ -40,11 +40,13 @@
         <!-- Navigation Arrows -->
         <template v-if="article.images.length > 1">
           <button @click="prevImage" 
-                  class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-all">
+                  :class="['absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-all', currentImgIndex === 0 ? 'opacity-30 cursor-not-allowed' : '']"
+                  :disabled="currentImgIndex === 0">
             <ChevronLeft :size="20" />
           </button>
           <button @click="nextImage" 
-                  class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-all">
+                  :class="['absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-all', currentImgIndex === article.images.length - 1 ? 'opacity-30 cursor-not-allowed' : '']"
+                  :disabled="currentImgIndex === article.images.length - 1">
             <ChevronRight :size="20" />
           </button>
         </template>
@@ -101,7 +103,7 @@
             <XIcon :size="22" />
           </button>
           <div class="relative w-screen h-screen overflow-hidden" @click.stop>
-            <div class="flex h-full transition-transform duration-300 ease-out" 
+            <div class="flex h-full transition-transform duration-[450ms] ease-out" 
                  :style="{ transform: `translateX(-${previewImgIndex * 100}vw)` }">
               <div v-for="(img, i) in article.images" :key="i" 
                    class="w-screen h-full flex-shrink-0 flex items-center justify-center p-4">
@@ -109,12 +111,14 @@
               </div>
             </div>
             <template v-if="article.images && article.images.length > 1">
-              <button @click.stop="previewImgIndex = (previewImgIndex - 1 + article.images.length) % article.images.length" 
-                      class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center">
+              <button @click.stop="previewImgIndex > 0 && previewImgIndex--" 
+                      :class="['absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center', previewImgIndex === 0 ? 'opacity-30 cursor-not-allowed' : '']"
+                      :disabled="previewImgIndex === 0">
                 <ChevronLeft :size="28" />
               </button>
-              <button @click.stop="previewImgIndex = (previewImgIndex + 1) % article.images.length" 
-                      class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center">
+              <button @click.stop="previewImgIndex < article.images.length - 1 && previewImgIndex++" 
+                      :class="['absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center', previewImgIndex === article.images.length - 1 ? 'opacity-30 cursor-not-allowed' : '']"
+                      :disabled="previewImgIndex === article.images.length - 1">
                 <ChevronRight :size="28" />
               </button>
             </template>
@@ -155,19 +159,61 @@ const currentImgIndex = ref(0);
 const showPreview = ref(false);
 const previewImgIndex = ref(0);
 
+// 滚轮切换节流控制（防止快速滚动切换多张）
+const isWheelSwitching = ref(false);
+const WHEEL_SWITCH_DURATION = 450; // 与动画时长一致
+
 const onBack = () => emit('back');
 const onEdit = () => emit('edit', props.article);
 const onDelete = () => emit('delete', props.article);
 
 const nextImage = () => {
-  if (props.article.images?.length) {
-    currentImgIndex.value = (currentImgIndex.value + 1) % props.article.images.length;
+  // 下一张（最后一张时停止，不循环）
+  if (props.article.images?.length && currentImgIndex.value < props.article.images.length - 1) {
+    currentImgIndex.value++;
   }
 };
 
 const prevImage = () => {
-  if (props.article.images?.length) {
-    currentImgIndex.value = (currentImgIndex.value - 1 + props.article.images.length) % props.article.images.length;
+  // 上一张（第一张时停止，不循环）
+  if (currentImgIndex.value > 0) {
+    currentImgIndex.value--;
+  }
+};
+
+// 鼠标滚轮切换图片（有边界限制，不循环，带节流）
+const handleWheel = (e: WheelEvent) => {
+  if (!props.article.images || props.article.images.length <= 1) return;
+  
+  // 节流控制：如果正在切换中，忽略此次滚轮事件
+  if (isWheelSwitching.value) return;
+  
+  // 阻止默认滚动行为
+  e.preventDefault();
+  
+  let shouldSwitch = false;
+  
+  // 根据滚动方向切换图片（有边界限制）
+  if (e.deltaY > 0) {
+    // 向下滚动 - 下一张（最后一张时停止）
+    if (currentImgIndex.value < props.article.images.length - 1) {
+      currentImgIndex.value++;
+      shouldSwitch = true;
+    }
+  } else if (e.deltaY < 0) {
+    // 向上滚动 - 上一张（第一张时停止）
+    if (currentImgIndex.value > 0) {
+      currentImgIndex.value--;
+      shouldSwitch = true;
+    }
+  }
+  
+  // 如果发生了切换，设置节流标志
+  if (shouldSwitch) {
+    isWheelSwitching.value = true;
+    setTimeout(() => {
+      isWheelSwitching.value = false;
+    }, WHEEL_SWITCH_DURATION);
   }
 };
 

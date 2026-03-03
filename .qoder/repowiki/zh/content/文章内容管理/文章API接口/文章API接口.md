@@ -4,19 +4,34 @@
 **本文档引用的文件**
 - [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java)
 - [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java)
-- [ArticleCreateDTO.java](file://src/main/java/com/zhishilu/dto/ArticleCreateDTO.java)
-- [ArticleUpdateDTO.java](file://src/main/java/com/zhishilu/dto/ArticleUpdateDTO.java)
-- [ArticleQueryDTO.java](file://src/main/java/com/zhishilu/dto/ArticleQueryDTO.java)
-- [Article.java](file://src/main/java/com/zhishilu/entity/Article.java)
+- [HotKeywordResp.java](file://src/main/java/com/zhishilu/resp/HotKeywordResp.java)
+- [SearchSuggestionResp.java](file://src/main/java/com/zhishilu/resp/SearchSuggestionResp.java)
+- [EsCompletionSuggestUtil.java](file://src/main/java/com/zhishilu/util/EsCompletionSuggestUtil.java)
+- [UsernameSuggestion.java](file://src/main/java/com/zhishilu/entity/UsernameSuggestion.java)
+- [CategorySuggestion.java](file://src/main/java/com/zhishilu/entity/CategorySuggestion.java)
+- [TitleSuggestion.java](file://src/main/java/com/zhishilu/entity/TitleSuggestion.java)
+- [ContentSuggestion.java](file://src/main/java/com/zhishilu/entity/ContentSuggestion.java)
+- [LocationSuggestion.java](file://src/main/java/com/zhishilu/entity/LocationSuggestion.java)
 - [Result.java](file://src/main/java/com/zhishilu/common/Result.java)
 - [PageResult.java](file://src/main/java/com/zhishilu/common/PageResult.java)
 - [UserContext.java](file://src/main/java/com/zhishilu/util/UserContext.java)
 - [JwtFilter.java](file://src/main/java/com/zhishilu/shiro/JwtFilter.java)
 - [BusinessException.java](file://src/main/java/com/zhishilu/exception/BusinessException.java)
 - [GlobalExceptionHandler.java](file://src/main/java/com/zhishilu/exception/GlobalExceptionHandler.java)
-- [ArticleRepository.java](file://src/main/java/com/zhishilu/repository/ArticleRepository.java)
+- [HomeView.vue](file://frontend/src/views/HomeView.vue)
+- [index.ts](file://frontend/src/router/index.ts)
+- [App.vue](file://frontend/src/App.vue)
 - [README.md](file://README.md)
 </cite>
+
+## 更新摘要
+**所做更改**
+- 新增热门关键词接口文档
+- 更新文章详情接口路径为/detail/{id}
+- 新增/get-article-api接口用于获取文章详情
+- 新增/get-search-suggestions接口用于搜索补全功能
+- 更新接口路径和参数规范
+- 新增页面过渡动画配置说明
 
 ## 目录
 1. [简介](#简介)
@@ -58,6 +73,8 @@ subgraph "实体层"
 AE[Article]
 UE[User]
 OE[OperationLog]
+SE[SearchSuggestion Entities]
+HE[HotKeywordResp]
 end
 subgraph "配置层"
 SC[ShiroConfig]
@@ -68,14 +85,16 @@ AC --> AS
 AS --> AR
 AR --> AE
 AS --> EO[ElasticsearchOperations]
+AS --> SE
 AC --> DTO[DTOs]
 DTO --> AE
+AC --> HE
 ```
 
 **图表来源**
-- [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L22-L87)
-- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L34-L200)
-- [ArticleRepository.java](file://src/main/java/com/zhishilu/repository/ArticleRepository.java#L12-L29)
+- [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L28-L31)
+- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L62-L69)
+- [HotKeywordResp.java](file://src/main/java/com/zhishilu/resp/HotKeywordResp.java#L8-L25)
 
 **章节来源**
 - [README.md](file://README.md#L99-L133)
@@ -116,20 +135,45 @@ Result --> PageResult : "可包含分页数据"
 - [Result.java](file://src/main/java/com/zhishilu/common/Result.java#L8-L71)
 - [PageResult.java](file://src/main/java/com/zhishilu/common/PageResult.java#L12-L52)
 
-### 数据传输对象(DTO)
+### 搜索补全响应对象
 
-系统使用DTO模式进行数据传输，确保接口的清晰性和安全性：
+系统提供完整的搜索补全功能，支持多字段自动完成：
 
-| DTO类型 | 用途 | 字段数量 |
-|---------|------|----------|
-| ArticleCreateDTO | 创建文章请求 | 6个字段 |
-| ArticleUpdateDTO | 更新文章请求 | 5个字段 |
-| ArticleQueryDTO | 查询文章请求 | 8个字段 |
+```mermaid
+classDiagram
+class SearchSuggestionResp {
++SuggestionItem[] usernames
++SuggestionItem[] locations
++SuggestionItem[] categories
++SuggestionItem[] titles
++SuggestionItem[] contents
+}
+class SuggestionItem {
++String text
++String field
++SuggestionItem(text, field)
+}
+SearchSuggestionResp --> SuggestionItem : "包含补全项"
+```
 
-**章节来源**
-- [ArticleCreateDTO.java](file://src/main/java/com/zhishilu/dto/ArticleCreateDTO.java#L12-L32)
-- [ArticleUpdateDTO.java](file://src/main/java/com/zhishilu/dto/ArticleUpdateDTO.java#L11-L24)
-- [ArticleQueryDTO.java](file://src/main/java/com/zhishilu/dto/ArticleQueryDTO.java#L8-L46)
+**图表来源**
+- [SearchSuggestionResp.java](file://src/main/java/com/zhishilu/resp/SearchSuggestionResp.java#L10-L58)
+
+### 热门关键词响应对象
+
+系统提供热门搜索关键词功能，基于搜索频率统计：
+
+```mermaid
+classDiagram
+class HotKeywordResp {
++String keyword
++Long searchCount
++HotKeywordResp(keyword, searchCount)
+}
+```
+
+**图表来源**
+- [HotKeywordResp.java](file://src/main/java/com/zhishilu/resp/HotKeywordResp.java#L8-L25)
 
 ## 架构概览
 
@@ -142,22 +186,22 @@ participant Filter as JwtFilter
 participant Realm as JwtRealm
 participant Controller as ArticleController
 participant Service as ArticleService
-participant Repo as ArticleRepository
+participant ES as Elasticsearch
 Client->>Filter : 请求带JWT Token
 Filter->>Filter : 解析Token
 Filter->>Realm : 验证Token
 Realm-->>Filter : 验证通过
 Filter->>Controller : 放行请求
 Controller->>Service : 调用业务逻辑
-Service->>Repo : 操作ES数据
-Repo-->>Service : 返回结果
+Service->>ES : 执行搜索补全查询
+ES-->>Service : 返回补全建议
 Service-->>Controller : 返回业务结果
 Controller-->>Client : 统一响应格式
 ```
 
 **图表来源**
 - [JwtFilter.java](file://src/main/java/com/zhishilu/shiro/JwtFilter.java#L29-L109)
-- [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L22-L87)
+- [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L28-L31)
 
 ## 详细接口规范
 
@@ -175,7 +219,7 @@ Controller-->>Client : 统一响应格式
 
 #### HTTP请求
 - **方法**: `POST`
-- **路径**: `/api/article`
+- **路径**: `/api/article/create`
 - **认证**: 必需
 
 #### 请求头
@@ -187,7 +231,7 @@ Controller-->>Client : 统一响应格式
 | 参数名 | 类型 | 必填 | 长度限制 | 描述 |
 |--------|------|------|----------|------|
 | title | string | 是 | 最大64字符 | 文章标题 |
-| category | string | 是 | 最大32字符 | 文章类别 |
+| categories | array[string] | 是 | 最多5个类别 | 文章类别数组 |
 | content | string | 否 | 无限制 | 文章内容 |
 | url | string | 否 | 最大64字符 | 来源链接 |
 | images | array[string] | 否 | 无限制 | 图片路径列表 |
@@ -204,12 +248,12 @@ Controller-->>Client : 统一响应格式
 
 #### curl示例
 ```bash
-curl -X POST "http://localhost:8080/api/article" \
+curl -X POST "http://localhost:8080/api/article/create" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "示例文章",
-    "category": "技术",
+    "categories": ["技术", "Java"],
     "content": "文章内容...",
     "url": "https://example.com",
     "images": ["image1.jpg", "image2.jpg"],
@@ -219,7 +263,7 @@ curl -X POST "http://localhost:8080/api/article" \
 
 #### JavaScript示例
 ```javascript
-fetch('http://localhost:8080/api/article', {
+fetch('http://localhost:8080/api/article/create', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer YOUR_JWT_TOKEN',
@@ -227,7 +271,7 @@ fetch('http://localhost:8080/api/article', {
   },
   body: JSON.stringify({
     title: '示例文章',
-    category: '技术',
+    categories: ['技术', 'Java'],
     content: '文章内容...',
     url: 'https://example.com',
     images: ['image1.jpg', 'image2.jpg'],
@@ -240,9 +284,8 @@ fetch('http://localhost:8080/api/article', {
 ```
 
 **章节来源**
-- [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L32-L37)
-- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L45-L59)
-- [ArticleCreateDTO.java](file://src/main/java/com/zhishilu/dto/ArticleCreateDTO.java#L13-L32)
+- [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L39-L44)
+- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L74-L99)
 
 ### 2. 更新文章
 
@@ -251,7 +294,7 @@ fetch('http://localhost:8080/api/article', {
 
 #### HTTP请求
 - **方法**: `PUT`
-- **路径**: `/api/article/{id}`
+- **路径**: `/api/article/update/{id}`
 - **认证**: 必需
 
 #### 路径参数
@@ -285,7 +328,7 @@ fetch('http://localhost:8080/api/article', {
 
 #### curl示例
 ```bash
-curl -X PUT "http://localhost:8080/api/article/ARTICLE_ID" \
+curl -X PUT "http://localhost:8080/api/article/update/ARTICLE_ID" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -295,9 +338,8 @@ curl -X PUT "http://localhost:8080/api/article/ARTICLE_ID" \
 ```
 
 **章节来源**
-- [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L42-L47)
-- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L64-L88)
-- [ArticleUpdateDTO.java](file://src/main/java/com/zhishilu/dto/ArticleUpdateDTO.java#L11-L24)
+- [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L49-L54)
+- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L198-L200)
 
 ### 3. 删除文章
 
@@ -306,7 +348,7 @@ curl -X PUT "http://localhost:8080/api/article/ARTICLE_ID" \
 
 #### HTTP请求
 - **方法**: `DELETE`
-- **路径**: `/api/article/{id}`
+- **路径**: `/api/article/delete/{id}`
 - **认证**: 必需
 
 #### 权限控制
@@ -324,13 +366,13 @@ curl -X PUT "http://localhost:8080/api/article/ARTICLE_ID" \
 
 #### curl示例
 ```bash
-curl -X DELETE "http://localhost:8080/api/article/ARTICLE_ID" \
+curl -X DELETE "http://localhost:8080/api/article/delete/ARTICLE_ID" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
 **章节来源**
-- [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L52-L57)
-- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L93-L103)
+- [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L59-L64)
+- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L178-L193)
 
 ### 4. 获取文章详情
 
@@ -339,7 +381,7 @@ curl -X DELETE "http://localhost:8080/api/article/ARTICLE_ID" \
 
 #### HTTP请求
 - **方法**: `GET`
-- **路径**: `/api/article/{id}`
+- **路径**: `/api/article/detail/{id}`
 - **认证**: 可选
 
 #### 成功响应
@@ -351,13 +393,13 @@ curl -X DELETE "http://localhost:8080/api/article/ARTICLE_ID" \
 
 #### curl示例
 ```bash
-curl -X GET "http://localhost:8080/api/article/ARTICLE_ID" \
+curl -X GET "http://localhost:8080/api/article/detail/ARTICLE_ID" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
 **章节来源**
-- [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L62-L66)
-- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L108-L111)
+- [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L69-L73)
+- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L619-L629)
 
 ### 5. 分页查询文章
 
@@ -374,7 +416,7 @@ curl -X GET "http://localhost:8080/api/article/ARTICLE_ID" \
 | 参数名 | 类型 | 必填 | 默认值 | 描述 |
 |--------|------|------|--------|------|
 | title | string | 否 | 无 | 标题模糊查询 |
-| category | string | 否 | 无 | 类别精确查询 |
+| categories | array[string] | 否 | 无 | 类别精确查询（可多个） |
 | content | string | 否 | 无 | 内容模糊查询 |
 | username | string | 否 | 无 | 创建者用户名精确查询 |
 | location | string | 否 | 无 | 地点精确查询 |
@@ -383,7 +425,7 @@ curl -X GET "http://localhost:8080/api/article/ARTICLE_ID" \
 
 #### 查询条件说明
 - **模糊查询**: title、content字段使用模糊匹配
-- **精确查询**: category、username、location字段使用精确匹配
+- **精确查询**: categories、username、location字段使用精确匹配
 - **组合查询**: 多个条件同时满足时使用AND逻辑
 
 #### 成功响应
@@ -392,14 +434,13 @@ curl -X GET "http://localhost:8080/api/article/ARTICLE_ID" \
 
 #### curl示例
 ```bash
-curl -X GET "http://localhost:8080/api/article/list?page=0&size=10&category=技术" \
+curl -X GET "http://localhost:8080/api/article/list?page=0&size=10&categories=技术" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
 **章节来源**
-- [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L71-L75)
-- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L116-L168)
-- [ArticleQueryDTO.java](file://src/main/java/com/zhishilu/dto/ArticleQueryDTO.java#L8-L46)
+- [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L78-L82)
+- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L430-L432)
 
 ### 6. 获取常用类别
 
@@ -432,8 +473,173 @@ curl -X GET "http://localhost:8080/api/article/categories/top?limit=10" \
 ```
 
 **章节来源**
-- [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L80-L86)
-- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L173-L198)
+- [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L87-L93)
+- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L588-L614)
+
+### 7. 搜索补全功能
+
+#### 接口描述
+提供多字段的搜索补全功能，支持用户名、地点、类别、标题、内容的自动完成。
+
+#### HTTP请求
+- **方法**: `GET`
+- **路径**: `/api/article/suggestions`
+- **认证**: 可选
+
+#### 查询参数
+
+| 参数名 | 类型 | 必填 | 默认值 | 描述 |
+|--------|------|------|--------|------|
+| keyword | string | 是 | 无 | 搜索关键词 |
+| field | string | 否 | all | 搜索字段类型 |
+
+字段类型支持：
+- `all`: 全部字段（默认）
+- `title`: 标题字段
+- `category`: 类别字段
+- `content`: 内容字段
+- `username`: 用户名字段
+- `location`: 地点字段
+
+#### 响应数据结构
+
+响应包含五个字段的补全建议列表：
+
+```json
+{
+  "usernames": [
+    {"text": "张三", "field": "username"},
+    {"text": "李四", "field": "username"}
+  ],
+  "locations": [
+    {"text": "北京市", "field": "location"},
+    {"text": "上海市", "field": "location"}
+  ],
+  "categories": [
+    {"text": "技术", "field": "category"},
+    {"text": "生活", "field": "category"}
+  ],
+  "titles": [
+    {"text": "Spring Boot教程", "field": "title"},
+    {"text": "Java开发指南", "field": "title"}
+  ],
+  "contents": [
+    {"text": "开发框架", "field": "content"},
+    {"text": "编程语言", "field": "content"}
+  ]
+}
+```
+
+#### 成功响应
+- **状态码**: 200
+- **响应体**: 统一响应格式，data为SearchSuggestionResp对象
+
+#### 错误响应
+- **500**: 搜索补全查询失败
+
+#### curl示例
+```bash
+curl -X GET "http://localhost:8080/api/article/suggestions?keyword=技术&field=all" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+#### JavaScript示例
+```javascript
+fetch('http://localhost:8080/api/article/suggestions?keyword=技术&field=all', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  }
+})
+.then(response => response.json())
+.then(data => console.log(data))
+.catch(error => console.error('Error:', error));
+```
+
+**章节来源**
+- [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L165-L171)
+- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L439-L500)
+- [SearchSuggestionResp.java](file://src/main/java/com/zhishilu/resp/SearchSuggestionResp.java#L10-L58)
+
+### 8. 获取热门搜索关键词
+
+#### 接口描述
+根据搜索频率统计返回最热门的关键词，支持从各个搜索字段汇总热门词。
+
+#### HTTP请求
+- **方法**: `GET`
+- **路径**: `/api/article/hot-keywords`
+- **认证**: 可选
+
+#### 查询参数
+
+| 参数名 | 类型 | 必填 | 默认值 | 描述 |
+|--------|------|------|--------|------|
+| limit | integer | 否 | 15 | 返回关键词数量限制 |
+
+#### 响应数据结构
+
+响应为HotKeywordResp对象数组，每个对象包含：
+- `keyword`: 关键词文本
+- `searchCount`: 搜索次数
+
+#### 成功响应
+- **状态码**: 200
+- **响应体**: 统一响应格式，data为热门关键词列表
+
+#### 错误响应
+- **500**: 热门关键词查询失败
+
+#### curl示例
+```bash
+curl -X GET "http://localhost:8080/api/article/hot-keywords?limit=15" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+#### JavaScript示例
+```javascript
+fetch('http://localhost:8080/api/article/hot-keywords?limit=15', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  }
+})
+.then(response => response.json())
+.then(data => console.log(data))
+.catch(error => console.error('Error:', error));
+```
+
+**章节来源**
+- [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L179-L185)
+- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L966-L981)
+- [HotKeywordResp.java](file://src/main/java/com/zhishilu/resp/HotKeywordResp.java#L8-L25)
+
+### 9. 获取地理位置
+
+#### 接口描述
+根据用户IP地址获取地理位置信息，用于自动填充文章发布时的位置信息。
+
+#### HTTP请求
+- **方法**: `GET`
+- **路径**: `/api/article/location`
+- **认证**: 可选
+
+#### 成功响应
+- **状态码**: 200
+- **响应体**: 统一响应格式，data为地理位置字符串
+
+#### 错误响应
+- **500**: 无法获取位置信息
+
+#### curl示例
+```bash
+curl -X GET "http://localhost:8080/api/article/location" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**章节来源**
+- [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L99-L107)
+- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L800-L822)
 
 ## 依赖关系分析
 
@@ -444,7 +650,7 @@ erDiagram
 ARTICLE {
 string id PK
 string title
-string category
+string categories
 string content
 string url
 array images
@@ -453,6 +659,7 @@ string creatorId
 string location
 datetime createdTime
 datetime updatedTime
+string status
 }
 USER {
 string id PK
@@ -461,22 +668,27 @@ string email UK
 string password
 boolean active
 }
-OPERATION_LOG {
+SEARCH_SUGGESTION {
 string id PK
-string userId
-string endpoint
-string params
-string username
-datetime timestamp
+string text
+long searchCount
+completion suggest
+}
+HOT_KEYWORD {
+string keyword PK
+long searchCount
 }
 USER ||--o{ ARTICLE : creates
-USER ||--o{ OPERATION_LOG : generates
-ARTICLE ||--o{ OPERATION_LOG : logs
+USER ||--o{ SEARCH_SUGGESTION : influences
+ARTICLE ||--o{ SEARCH_SUGGESTION : generates
+HOT_KEYWORD ||--|| SEARCH_SUGGESTION : derived_from
 ```
 
 **图表来源**
 - [Article.java](file://src/main/java/com/zhishilu/entity/Article.java#L16-L81)
-- [UserContext.java](file://src/main/java/com/zhishilu/util/UserContext.java#L8-L33)
+- [UsernameSuggestion.java](file://src/main/java/com/zhishilu/entity/UsernameSuggestion.java#L25-L48)
+- [CategorySuggestion.java](file://src/main/java/com/zhishilu/entity/CategorySuggestion.java#L25-L48)
+- [HotKeywordResp.java](file://src/main/java/com/zhishilu/resp/HotKeywordResp.java#L8-L25)
 
 ### 服务层依赖
 
@@ -485,9 +697,23 @@ graph TD
 AC[ArticleController] --> AS[ArticleService]
 AS --> AR[ArticleRepository]
 AS --> EO[ElasticsearchOperations]
+AS --> ES[EsCompletionSuggestUtil]
 AS --> BE[BusinessException]
 AC --> DTO[DTOs]
 DTO --> AE[Article Entity]
+AC --> HR[HotKeywordResp]
+subgraph "搜索补全实体"
+UE[UsernameSuggestion]
+CE[CategorySuggestion]
+TE[TitleSuggestion]
+CEnt[ContentSuggestion]
+LE[LocationSuggestion]
+end
+AS --> UE
+AS --> CE
+AS --> TE
+AS --> CEnt
+AS --> LE
 subgraph "异常处理"
 GE[GlobalExceptionHandler]
 BE
@@ -498,9 +724,9 @@ AS --> GE
 ```
 
 **图表来源**
-- [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L22-L87)
-- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L34-L200)
-- [GlobalExceptionHandler.java](file://src/main/java/com/zhishilu/exception/GlobalExceptionHandler.java#L20-L87)
+- [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L28-L31)
+- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L62-L69)
+- [EsCompletionSuggestUtil.java](file://src/main/java/com/zhishilu/util/EsCompletionSuggestUtil.java#L22-L28)
 
 **章节来源**
 - [ArticleRepository.java](file://src/main/java/com/zhishilu/repository/ArticleRepository.java#L12-L29)
@@ -512,17 +738,23 @@ AS --> GE
 1. **索引配置**: 使用IK分词器进行中文分词
 2. **字段映射**: 关键字段使用合适的字段类型
 3. **查询优化**: 支持模糊查询和精确查询的组合使用
+4. **补全索引**: 为搜索补全建立专用的completion suggest索引
+5. **热门关键词聚合**: 通过范围查询和排序优化热门词获取性能
 
 ### 缓存策略
 
 - **用户上下文**: 使用ThreadLocal缓存当前用户信息
 - **分页查询**: Elasticsearch原生分页支持
 - **聚合查询**: 使用ES聚合功能进行类别统计
+- **搜索频率**: 实时更新搜索补全的频率统计
+- **热门关键词缓存**: 前端缓存热门关键词列表
 
 ### 并发控制
 
 - **线程安全**: UserContext使用ThreadLocal保证线程安全
 - **事务处理**: 文章操作在单线程环境下执行
+- **异步处理**: 搜索补全的频率更新采用异步方式
+- **页面过渡动画**: 前端使用requestAnimationFrame优化动画性能
 
 ## 故障排除指南
 
@@ -534,6 +766,8 @@ AS --> GE
 | 未授权访问 | 401 | JWT Token缺失或无效 | 确认Authorization头格式正确 |
 | 权限不足 | 403 | 非文章创建者尝试修改 | 确认当前用户身份 |
 | 资源不存在 | 500 | 文章ID不存在 | 检查文章ID是否正确 |
+| 搜索补全失败 | 500 | Elasticsearch查询异常 | 检查ES连接和索引状态 |
+| 热门关键词查询失败 | 500 | suggestion索引查询异常 | 检查各suggestion索引状态 |
 
 ### 异常处理流程
 
@@ -560,14 +794,52 @@ GlobalHandler --> ErrorResp[返回错误响应]
 - [BusinessException.java](file://src/main/java/com/zhishilu/exception/BusinessException.java#L8-L23)
 - [GlobalExceptionHandler.java](file://src/main/java/com/zhishilu/exception/GlobalExceptionHandler.java#L20-L87)
 
+## 前端页面过渡配置
+
+### 页面过渡动画设置
+
+系统实现了基于路由元信息的页面过渡动画配置：
+
+```mermaid
+graph TD
+Route[路由配置] --> Meta[meta.transition]
+Meta --> None[transition: 'none']
+Meta --> Scale[transition: 'scale']
+Meta --> Slide[transition: 'slide']
+None --> Home[首页 - 无过渡]
+Scale --> Auth[登录/注册 - 缩放过渡]
+Slide --> Other[其他页面 - 滑动过渡]
+```
+
+**图表来源**
+- [index.ts](file://frontend/src/router/index.ts#L27-L29)
+- [index.ts](file://frontend/src/router/index.ts#L38-L39)
+- [index.ts](file://frontend/src/router/index.ts#L56-L57)
+
+### 动画处理机制
+
+前端通过App.vue实现页面过渡动画的统一处理：
+
+- **无过渡页面**: 首页使用`transition: 'none'`避免不必要的动画
+- **缩放过渡**: 登录和注册页面使用`transition: 'scale'`提供平滑的缩放效果
+- **滑动过渡**: 其他页面使用`transition: 'slide'`提供流畅的页面切换体验
+- **性能优化**: 使用`will-change`属性和`requestAnimationFrame`优化动画性能
+
+**章节来源**
+- [App.vue](file://frontend/src/App.vue#L9-L25)
+- [index.ts](file://frontend/src/router/index.ts#L20-L98)
+
 ## 结论
 
 本文档详细介绍了知拾录系统的文章API接口规范，包括：
 
-1. **完整的接口设计**: 覆盖文章的增删改查和查询推荐功能
-2. **严格的参数验证**: 基于DTO的参数验证和长度限制
-3. **统一的响应格式**: 标准化的JSON响应结构
-4. **完善的权限控制**: 基于JWT和Shiro的认证授权机制
-5. **健壮的错误处理**: 全局异常处理和详细的错误信息
+1. **完整的接口设计**: 覆盖文章的增删改查、查询推荐和搜索补全功能
+2. **新增热门关键词功能**: 基于搜索频率统计的热门词获取接口
+3. **严格的参数验证**: 基于DTO的参数验证和长度限制
+4. **统一的响应格式**: 标准化的JSON响应结构
+5. **完善的权限控制**: 基于JWT和Shiro的认证授权机制
+6. **健壮的错误处理**: 全局异常处理和详细的错误信息
+7. **智能搜索补全**: 基于Elasticsearch completion suggest的多字段自动完成功能
+8. **优化的前端体验**: 基于路由元信息的页面过渡动画配置
 
-系统采用现代化的技术栈，结合Elasticsearch实现高效的全文检索，为用户提供良好的内容管理体验。接口设计遵循RESTful原则，具有良好的扩展性和维护性。
+系统采用现代化的技术栈，结合Elasticsearch实现高效的全文检索和智能搜索补全，为用户提供良好的内容管理体验。接口设计遵循RESTful原则，具有良好的扩展性和维护性。新增的热门关键词接口进一步增强了系统的智能化水平，为用户提供了更好的搜索体验。

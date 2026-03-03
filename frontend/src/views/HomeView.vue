@@ -288,13 +288,14 @@
                 @touchstart="handleTouchStart"
                 @touchmove="handleTouchMove"
                 @touchend="handleTouchEnd"
+                @wheel="handleWheel"
               >
                 <!-- Image Counter -->
                 <div v-if="modalArticle.images.length > 1" class="absolute top-4 left-1/2 -translate-x-1/2 z-10 px-3 py-1 bg-black/40 rounded-full text-white text-xs font-medium backdrop-blur-sm">
                   {{ currentImgIndex + 1 }} / {{ modalArticle.images.length }}
                 </div>
 
-                <div class="flex h-full w-full transition-transform duration-300 ease-out" :style="{ transform: `translateX(-${currentImgIndex * 100}%)` }">
+                <div class="flex h-full w-full transition-transform duration-[450ms] ease-out" :style="{ transform: `translateX(-${currentImgIndex * 100}%)` }">
                   <img v-for="(img, i) in modalArticle.images" :key="i" :src="getImageUrl(img)" @click="openImagePreview(i)" class="w-full h-full object-contain flex-shrink-0 cursor-zoom-in" />
                 </div>
                 
@@ -312,14 +313,16 @@
                 <!-- Navigation Arrows -->
                 <template v-if="modalArticle.images.length > 1">
                   <button 
-                    @click="currentImgIndex = (currentImgIndex - 1 + modalArticle.images.length) % modalArticle.images.length" 
-                    class="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm"
+                    @click="currentImgIndex > 0 && currentImgIndex--" 
+                    :class="['absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all backdrop-blur-sm', currentImgIndex === 0 ? 'opacity-0 cursor-not-allowed' : 'opacity-0 group-hover:opacity-100']"
+                    :disabled="currentImgIndex === 0"
                   >
                     <ChevronLeft :size="24" />
                   </button>
                   <button 
-                    @click="currentImgIndex = (currentImgIndex + 1) % modalArticle.images.length" 
-                    class="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm"
+                    @click="currentImgIndex < modalArticle.images.length - 1 && currentImgIndex++" 
+                    :class="['absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all backdrop-blur-sm', currentImgIndex === modalArticle.images.length - 1 ? 'opacity-0 cursor-not-allowed' : 'opacity-0 group-hover:opacity-100']"
+                    :disabled="currentImgIndex === modalArticle.images.length - 1"
                   >
                     <ChevronRight :size="24" />
                   </button>
@@ -508,7 +511,7 @@ defineOptions({
   name: 'HomeView'
 });
 
-import { ref, onMounted, watch, onActivated, computed } from 'vue';
+import { ref, onMounted, watch, onActivated, computed, onUnmounted, onDeactivated } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { 
   Search as SearchIcon, 
@@ -565,6 +568,10 @@ const previewImgIndex = ref(0);
 const touchStartX = ref(0);
 const touchEndX = ref(0);
 const minSwipeDistance = 50;
+
+// 滚轮切换节流控制（防止快速滚动切换多张）
+const isWheelSwitching = ref(false);
+const WHEEL_SWITCH_DURATION = 450; // 与动画时长一致
 
 // 搜索补全相关
 const suggestions = ref({
@@ -805,6 +812,9 @@ const resetFilters = () => {
 const openArticleModal = async (articleId: string) => {
   showModal.value = true;
   currentImgIndex.value = 0;
+  // 更新URL但不跳转
+  const newUrl = `/article/${articleId}`;
+  window.history.pushState({ modal: true, articleId }, '', newUrl);
   try {
     const res = await request.get(`/article/detail/${articleId}`);
     if (res.data.code === 200) {
@@ -813,6 +823,8 @@ const openArticleModal = async (articleId: string) => {
   } catch (err) {
     console.error('Load article error:', err);
     showModal.value = false;
+    // 恢复URL
+    window.history.back();
   }
 };
 
@@ -821,6 +833,20 @@ const closeModal = () => {
   showModal.value = false;
   modalArticle.value = null;
   currentImgIndex.value = 0;
+  // 恢复URL到首页
+  if (window.history.state?.modal) {
+    window.history.back();
+  }
+};
+
+// 处理浏览器后退按钮
+const handlePopState = (event: PopStateEvent) => {
+  if (showModal.value) {
+    // 如果在弹窗状态，关闭弹窗
+    showModal.value = false;
+    modalArticle.value = null;
+    currentImgIndex.value = 0;
+  }
 };
 
 // 打开图片预览
@@ -849,13 +875,55 @@ const handleTouchEnd = () => {
   const swipeDistance = touchEndX.value - touchStartX.value;
   
   if (swipeDistance < -minSwipeDistance) {
-    currentImgIndex.value = (currentImgIndex.value + 1) % modalArticle.value.images.length;
+    // 向右滑动 - 下一张（有边界限制）
+    if (currentImgIndex.value < modalArticle.value.images.length - 1) {
+      currentImgIndex.value++;
+    }
   } else if (swipeDistance > minSwipeDistance) {
-    currentImgIndex.value = (currentImgIndex.value - 1 + modalArticle.value.images.length) % modalArticle.value.images.length;
+    // 向左滑动 - 上一张（有边界限制）
+    if (currentImgIndex.value > 0) {
+      currentImgIndex.value--;
+    }
   }
   
   touchStartX.value = 0;
   touchEndX.value = 0;
+};
+
+// 鼠标滚轮切换图片（有边界限制，不循环，带节流）
+const handleWheel = (e: WheelEvent) => {
+  if (!modalArticle.value || modalArticle.value.images.length <= 1) return;
+  
+  // 节流控制：如果正在切换中，忽略此次滚轮事件
+  if (isWheelSwitching.value) return;
+  
+  // 阻止默认滚动行为
+  e.preventDefault();
+  
+  let shouldSwitch = false;
+  
+  // 根据滚动方向切换图片（有边界限制）
+  if (e.deltaY > 0) {
+    // 向下滚动 - 下一张（最后一张时停止）
+    if (currentImgIndex.value < modalArticle.value.images.length - 1) {
+      currentImgIndex.value++;
+      shouldSwitch = true;
+    }
+  } else if (e.deltaY < 0) {
+    // 向上滚动 - 上一张（第一张时停止）
+    if (currentImgIndex.value > 0) {
+      currentImgIndex.value--;
+      shouldSwitch = true;
+    }
+  }
+  
+  // 如果发生了切换，设置节流标志
+  if (shouldSwitch) {
+    isWheelSwitching.value = true;
+    setTimeout(() => {
+      isWheelSwitching.value = false;
+    }, WHEEL_SWITCH_DURATION);
+  }
 };
 
 // 格式化日期（弹窗使用）
@@ -960,6 +1028,12 @@ onMounted(() => {
   // 首次加载强制刷新
   checkAndRefresh(true);
   loadCurrentUser();
+  // 监听浏览器后退按钮
+  window.addEventListener('popstate', handlePopState);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('popstate', handlePopState);
 });
 
 // 从 keep-alive 缓存中激活时检查是否需要刷新
@@ -969,6 +1043,12 @@ onActivated(() => {
   document.title = '知拾录';
   // 只有在有标记时才刷新，否则保持现状
   checkAndRefresh(false);
+  // 重新添加事件监听
+  window.addEventListener('popstate', handlePopState);
+});
+
+onDeactivated(() => {
+  window.removeEventListener('popstate', handlePopState);
 });
 </script>
 

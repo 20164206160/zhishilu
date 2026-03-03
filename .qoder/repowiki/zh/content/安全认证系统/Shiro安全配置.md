@@ -13,7 +13,18 @@
 - [pom.xml](file://pom.xml)
 - [Result.java](file://src/main/java/com/zhishilu/common/Result.java)
 - [ZhishiluApplication.java](file://src/main/java/com/zhishilu/ZhishiluApplication.java)
+- [RedisTokenService.java](file://src/main/java/com/zhishilu/service/RedisTokenService.java)
+- [UserContext.java](file://src/main/java/com/zhishilu/util/UserContext.java)
 </cite>
+
+## 更新摘要
+**变更内容**
+- 完全重构Shiro安全配置，实现无状态认证架构
+- 禁用Shiro内置Session管理，改为Redis令牌管理
+- 手动配置JWT过滤器，确保@Value注解生效
+- 明确区分公开和受保护端点的URL映射规则
+- 新增RedisTokenService令牌验证和刷新机制
+- 优化过滤器链配置，支持精确的URL匹配
 
 ## 目录
 1. [引言](#引言)
@@ -29,9 +40,9 @@
 
 ## 引言
 
-本项目基于Spring Boot 3.2.1和Apache Shiro 1.13.0构建，采用JWT（JSON Web Token）进行无状态认证。系统实现了完整的用户认证和授权机制，支持RESTful API的安全访问控制。
+本项目基于Spring Boot 2.7.18和Apache Shiro 2.0.4构建，采用JWT（JSON Web Token）进行无状态认证。系统实现了完整的用户认证和授权机制，支持RESTful API的安全访问控制。
 
-该项目的核心目标是提供一个安全、可扩展的知识管理系统，通过Shiro框架实现统一的安全控制，结合JWT实现无状态认证，避免传统Session带来的扩展性问题。
+该项目的核心目标是提供一个安全、可扩展的知识管理系统，通过重构的Shiro框架实现统一的安全控制，结合JWT实现无状态认证，避免传统Session带来的扩展性问题。新的架构通过Redis实现令牌管理，提供更好的性能和可扩展性。
 
 ## 项目结构
 
@@ -79,25 +90,29 @@ POM --> ShiroCfg
 
 **图表来源**
 - [ZhishiluApplication.java](file://src/main/java/com/zhishilu/ZhishiluApplication.java#L1-L16)
-- [ShiroConfig.java](file://src/main/java/com/zhishilu/config/ShiroConfig.java#L1-L72)
-- [application.yml](file://src/main/resources/application.yml#L1-L47)
+- [ShiroConfig.java](file://src/main/java/com/zhishilu/config/ShiroConfig.java#L1-L106)
+- [application.yml](file://src/main/resources/application.yml#L1-L53)
 
 **章节来源**
-- [pom.xml](file://pom.xml#L1-L129)
-- [application.yml](file://src/main/resources/application.yml#L1-L47)
+- [pom.xml](file://pom.xml#L1-L157)
+- [application.yml](file://src/main/resources/application.yml#L1-L53)
 
 ## 核心组件
 
 ### ShiroConfig配置类
 
+**更新** ShiroConfig经过完全重构，现在专注于无状态认证配置：
+
 ShiroConfig是整个安全框架的核心配置类，负责：
 
 1. **安全管理器配置**：创建DefaultWebSecurityManager实例，设置JwtRealm作为认证提供者
 2. **会话管理配置**：禁用Shiro自带的Session，实现完全的无状态认证
-3. **过滤器链配置**：定义URL级别的访问控制规则
-4. **自定义过滤器注册**：将JwtFilter注册为自定义过滤器
+3. **手动过滤器注册**：通过@Bean方法手动注册JwtFilter，确保@Value注解生效
+4. **过滤器链配置**：定义明确的URL级别的访问控制规则，区分公开和受保护端点
 
 ### JwtFilter过滤器
+
+**更新** JwtFilter现在采用手动配置模式：
 
 JwtFilter继承自AuthenticatingFilter，实现了JWT令牌的提取、验证和用户上下文设置：
 
@@ -105,30 +120,37 @@ JwtFilter继承自AuthenticatingFilter，实现了JWT令牌的提取、验证和
 - **认证流程**：验证JWT令牌有效性，执行Shiro认证
 - **异常处理**：统一处理认证失败的情况
 - **用户上下文**：认证成功后将用户信息存入ThreadLocal
+- **OPTIONS请求处理**：自动放行CORS预检请求
 
 ### JwtRealm领域
+
+**更新** JwtRealm现在集成了Redis令牌验证：
 
 JwtRealm继承自AuthorizingRealm，负责JWT令牌的认证逻辑：
 
 - **令牌支持检测**：识别JwtToken类型的认证请求
+- **Redis令牌验证**：从Redis验证令牌有效性并刷新过期时间
 - **用户信息获取**：从JWT中解析用户ID，查询用户完整信息
 - **状态验证**：检查用户账户状态是否正常
 - **认证信息返回**：构建SimpleAuthenticationInfo供Shiro使用
 
 **章节来源**
-- [ShiroConfig.java](file://src/main/java/com/zhishilu/config/ShiroConfig.java#L17-L72)
-- [JwtFilter.java](file://src/main/java/com/zhishilu/shiro/JwtFilter.java#L24-L109)
-- [JwtRealm.java](file://src/main/java/com/zhishilu/shiro/JwtRealm.java#L15-L71)
+- [ShiroConfig.java](file://src/main/java/com/zhishilu/config/ShiroConfig.java#L23-L106)
+- [JwtFilter.java](file://src/main/java/com/zhishilu/shiro/JwtFilter.java#L26-L107)
+- [JwtRealm.java](file://src/main/java/com/zhishilu/shiro/JwtRealm.java#L20-L78)
 
 ## 架构概览
 
-系统采用分层架构设计，安全控制贯穿整个应用：
+**更新** 新架构采用无状态认证模式：
+
+系统采用分层架构设计，安全控制贯穿整个应用，现在实现完全的无状态认证：
 
 ```mermaid
 sequenceDiagram
 participant Client as 客户端
 participant Filter as Shiro过滤器链
 participant JwtFilter as JWT过滤器
+participant Redis as Redis令牌存储
 participant Realm as JwtRealm
 participant Service as 业务服务
 participant Controller as 控制器
@@ -136,7 +158,8 @@ Client->>Filter : HTTP请求
 Filter->>JwtFilter : 匹配JWT过滤器
 JwtFilter->>JwtFilter : 提取JWT令牌
 JwtFilter->>Realm : 执行认证
-Realm->>Realm : 验证令牌有效性
+Realm->>Redis : 验证并刷新令牌
+Redis-->>Realm : 返回用户ID
 Realm->>Realm : 查询用户信息
 Realm-->>JwtFilter : 认证结果
 JwtFilter->>JwtFilter : 设置用户上下文
@@ -148,13 +171,15 @@ Controller-->>Client : HTTP响应
 ```
 
 **图表来源**
-- [ShiroConfig.java](file://src/main/java/com/zhishilu/config/ShiroConfig.java#L44-L70)
-- [JwtFilter.java](file://src/main/java/com/zhishilu/shiro/JwtFilter.java#L39-L85)
-- [JwtRealm.java](file://src/main/java/com/zhishilu/shiro/JwtRealm.java#L43-L69)
+- [ShiroConfig.java](file://src/main/java/com/zhishilu/config/ShiroConfig.java#L65-L104)
+- [JwtFilter.java](file://src/main/java/com/zhishilu/shiro/JwtFilter.java#L37-L83)
+- [JwtRealm.java](file://src/main/java/com/zhishilu/shiro/JwtRealm.java#L46-L76)
 
 ## 详细组件分析
 
 ### ShiroConfig配置详解
+
+**更新** 完全重构的配置架构：
 
 #### 安全管理器配置
 
@@ -181,17 +206,36 @@ DefaultWebSecurityManager --> JwtRealm : 管理
 ```
 
 **图表来源**
-- [ShiroConfig.java](file://src/main/java/com/zhishilu/config/ShiroConfig.java#L26-L39)
-- [JwtRealm.java](file://src/main/java/com/zhishilu/shiro/JwtRealm.java#L21-L29)
+- [ShiroConfig.java](file://src/main/java/com/zhishilu/config/ShiroConfig.java#L27-L40)
+- [JwtRealm.java](file://src/main/java/com/zhishilu/shiro/JwtRealm.java#L29-L32)
 
 配置要点：
 - **禁用Session**：通过DefaultSessionStorageEvaluator禁用Shiro自带Session
 - **Realm注入**：将JwtRealm注入到安全管理器中
 - **SubjectDAO配置**：自定义SubjectDAO以支持无状态认证
 
+#### 手动过滤器注册
+
+**新增** 手动配置JWT过滤器的关键改进：
+
+```mermaid
+flowchart TD
+Manual[手动注册JwtFilter] --> BeanDef[Bean定义]
+BeanDef --> Registration[FilterRegistrationBean]
+Registration --> Disable[禁用自动注册]
+Disable --> Factory[ShiroFilterFactoryBean]
+Factory --> CustomFilter[自定义过滤器映射]
+CustomFilter --> FilterChain[过滤器链配置]
+```
+
+**图表来源**
+- [ShiroConfig.java](file://src/main/java/com/zhishilu/config/ShiroConfig.java#L45-L59)
+
 #### 过滤器链配置
 
-过滤器链采用LinkedHashMap保证有序性，定义了清晰的访问控制规则：
+**更新** 明确区分公开和受保护端点：
+
+过滤器链采用LinkedHashMap保证有序性，现在定义了清晰的访问控制规则：
 
 ```mermaid
 flowchart TD
@@ -212,15 +256,17 @@ Unauthorized --> End
 ```
 
 **图表来源**
-- [ShiroConfig.java](file://src/main/java/com/zhishilu/config/ShiroConfig.java#L55-L67)
-- [JwtFilter.java](file://src/main/java/com/zhishilu/shiro/JwtFilter.java#L48-L55)
+- [ShiroConfig.java](file://src/main/java/com/zhishilu/config/ShiroConfig.java#L75-L100)
+- [JwtFilter.java](file://src/main/java/com/zhishilu/shiro/JwtFilter.java#L46-L65)
 
 **章节来源**
-- [ShiroConfig.java](file://src/main/java/com/zhishilu/config/ShiroConfig.java#L23-L70)
+- [ShiroConfig.java](file://src/main/java/com/zhishilu/config/ShiroConfig.java#L23-L106)
 
 ### JwtFilter组件深入分析
 
 #### 令牌提取机制
+
+**更新** 改进了令牌提取策略：
 
 JwtFilter实现了灵活的令牌提取策略：
 
@@ -239,11 +285,13 @@ BlankToken --> ReturnToken
 ```
 
 **图表来源**
-- [JwtFilter.java](file://src/main/java/com/zhishilu/shiro/JwtFilter.java#L87-L97)
+- [JwtFilter.java](file://src/main/java/com/zhishilu/shiro/JwtFilter.java#L88-L95)
 
 #### 认证流程处理
 
-认证流程遵循Shiro的标准回调机制：
+**更新** 优化了认证回调机制：
+
+认证流程遵循Shiro的标准回调机制，现在包含更完善的错误处理：
 
 ```mermaid
 sequenceDiagram
@@ -271,37 +319,43 @@ end
 ```
 
 **图表来源**
-- [JwtFilter.java](file://src/main/java/com/zhishilu/shiro/JwtFilter.java#L57-L85)
-- [JwtRealm.java](file://src/main/java/com/zhishilu/shiro/JwtRealm.java#L43-L69)
+- [JwtFilter.java](file://src/main/java/com/zhishilu/shiro/JwtFilter.java#L55-L83)
+- [JwtRealm.java](file://src/main/java/com/zhishilu/shiro/JwtRealm.java#L46-L76)
 
 **章节来源**
-- [JwtFilter.java](file://src/main/java/com/zhishilu/shiro/JwtFilter.java#L24-L109)
+- [JwtFilter.java](file://src/main/java/com/zhishilu/shiro/JwtFilter.java#L26-L107)
 
 ### JwtRealm认证逻辑
 
-#### 用户状态验证
+**更新** 集成了Redis令牌验证：
 
-JwtRealm实现了严格的用户状态检查：
+#### Redis令牌验证流程
+
+JwtRealm现在集成了Redis令牌验证机制：
 
 ```mermaid
 flowchart TD
 Start([开始认证]) --> ValidateToken{验证JWT令牌}
 ValidateToken --> |失败| ThrowAuth[抛出认证异常]
-ValidateToken --> |成功| GetUserId[获取用户ID]
+ValidateToken --> |成功| ValidateRedis[Redis令牌验证]
+ValidateRedis --> |无效| ThrowInvalid[抛出令牌无效]
+ValidateRedis --> |有效| RefreshExpire[刷新过期时间]
+RefreshExpire --> GetUserId[获取用户ID]
 GetUserId --> QueryUser[查询用户信息]
 QueryUser --> CheckStatus{检查用户状态}
 CheckStatus --> |非激活| ThrowDisabled[抛出禁用异常]
 CheckStatus --> |正常| CreateAuthInfo[创建认证信息]
 ThrowAuth --> End([结束])
+ThrowInvalid --> End
 ThrowDisabled --> End
 CreateAuthInfo --> End
 ```
 
 **图表来源**
-- [JwtRealm.java](file://src/main/java/com/zhishilu/shiro/JwtRealm.java#L43-L69)
+- [JwtRealm.java](file://src/main/java/com/zhishilu/shiro/JwtRealm.java#L46-L76)
 
 **章节来源**
-- [JwtRealm.java](file://src/main/java/com/zhishilu/shiro/JwtRealm.java#L15-L71)
+- [JwtRealm.java](file://src/main/java/com/zhishilu/shiro/JwtRealm.java#L20-L78)
 
 ### JwtUtil工具类
 
@@ -312,17 +366,19 @@ JwtUtil提供了完整的JWT操作能力：
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
 | jwt.secret | zhishilu-secret-key-must-be-at-least-256-bits-long-for-hs256 | JWT签名密钥 |
-| jwt.expiration | 86400000 | 令牌过期时间（毫秒） |
+| jwt.expiration | 604800000 | 令牌过期时间（毫秒，7天） |
 | jwt.header | Authorization | HTTP头部名称 |
 | jwt.prefix | Bearer | 令牌前缀 |
 
 **章节来源**
-- [JwtUtil.java](file://src/main/java/com/zhishilu/util/JwtUtil.java#L15-L99)
-- [application.yml](file://src/main/resources/application.yml#L26-L32)
+- [JwtUtil.java](file://src/main/java/com/zhishilu/util/JwtUtil.java#L20-L99)
+- [application.yml](file://src/main/resources/application.yml#L37-L43)
 
 ## 依赖关系分析
 
 ### Maven依赖配置
+
+**更新** 升级了Shiro版本：
 
 项目使用Maven管理依赖，核心安全相关依赖如下：
 
@@ -334,12 +390,12 @@ SBValidation[spring-boot-starter-validation]
 SBTest[spring-boot-starter-test]
 end
 subgraph "Apache Shiro"
-ShiroWeb[shiro-spring-boot-web-starter]
+ShiroWeb[shiro-spring-boot-starter 2.0.4]
 end
 subgraph "JWT"
-JJWTA[io.jsonwebtoken:jjwt-api]
-JJWTI[io.jsonwebtoken:jjwt-impl]
-JJWTJ[io.jsonwebtoken:jjwt-jackson]
+JJWTA[io.jsonwebtoken:jjwt-api 0.12.3]
+JJWTI[io.jsonwebtoken:jjwt-impl 0.12.3]
+JJWTJ[io.jsonwebtoken:jjwt-jackson 0.12.3]
 end
 subgraph "工具类"
 Lombok[lombok]
@@ -355,9 +411,11 @@ JJWTA --> JJWTJ
 ```
 
 **图表来源**
-- [pom.xml](file://pom.xml#L27-L110)
+- [pom.xml](file://pom.xml#L68-L92)
 
 ### Spring Boot集成点
+
+**更新** 优化了集成配置：
 
 系统通过以下方式与Spring Boot深度集成：
 
@@ -365,18 +423,37 @@ JJWTA --> JJWTJ
 2. **Bean管理**：所有安全组件通过Spring容器管理
 3. **配置绑定**：application.yml中的配置自动绑定到组件属性
 4. **异常处理**：统一的异常处理机制
+5. **手动过滤器注册**：确保@Value注解正确注入
 
 **章节来源**
-- [pom.xml](file://pom.xml#L1-L129)
-- [application.yml](file://src/main/resources/application.yml#L1-L47)
+- [pom.xml](file://pom.xml#L1-L157)
+- [application.yml](file://src/main/resources/application.yml#L1-L53)
 
 ## 性能考虑
 
 ### 无状态认证的优势
 
+**更新** 新架构的性能优势：
+
 1. **水平扩展**：无需共享Session存储，支持多实例部署
 2. **内存优化**：避免Session内存占用
 3. **负载均衡**：支持无状态的负载均衡策略
+4. **Redis缓存**：利用Redis的高性能特性
+
+### Redis令牌管理
+
+**新增** Redis令牌管理策略：
+
+```mermaid
+flowchart TD
+TokenRequest[令牌请求] --> RedisCheck{Redis中存在?}
+RedisCheck --> |否| Invalid[令牌无效]
+RedisCheck --> |是| RefreshExpire[刷新过期时间]
+RefreshExpire --> Valid[令牌有效]
+Valid --> Process[处理业务逻辑]
+Invalid --> End([结束])
+Process --> End
+```
 
 ### 缓存策略建议
 
@@ -412,11 +489,13 @@ Hex --> Store[存储加密结果]
 ```
 
 **章节来源**
-- [UserService.java](file://src/main/java/com/zhishilu/service/UserService.java#L108-L110)
+- [UserService.java](file://src/main/java/com/zhishilu/service/UserService.java#L137-L139)
 
 ## 故障排除指南
 
 ### 常见配置问题
+
+**更新** 新架构的常见问题：
 
 #### 1. CORS跨域问题
 
@@ -430,6 +509,7 @@ Hex --> Store[存储加密结果]
 1. 检查Authorization头格式是否正确
 2. 验证JWT签名密钥配置
 3. 确认令牌未过期
+4. 检查Redis中令牌是否存在
 
 #### 3. 用户状态异常
 
@@ -437,10 +517,33 @@ Hex --> Store[存储加密结果]
 **排查步骤**：
 1. 检查用户表status字段
 2. 验证JwtRealm中的状态检查逻辑
+3. 检查Redis中令牌是否被正确刷新
+
+#### 4. 过滤器链配置问题
+
+**问题描述**：某些接口无法正确访问
+**排查步骤**：
+1. 检查ShiroConfig中的过滤器链配置
+2. 验证URL路径是否正确匹配
+3. 确认公开接口和受保护接口的分类
 
 ### 性能优化建议
 
-#### 1. 缓存优化
+#### 1. Redis连接池优化
+
+```yaml
+# application.yml中的Redis配置示例
+spring:
+  redis:
+    lettuce:
+      pool:
+        max-active: 20
+        max-idle: 10
+        min-idle: 5
+        max-wait: 2000ms
+```
+
+#### 2. 缓存优化
 
 ```yaml
 # application.yml中的缓存配置示例
@@ -451,7 +554,7 @@ cache:
   timeout: 2000
 ```
 
-#### 2. 连接池配置
+#### 3. 连接池配置
 
 ```yaml
 # 数据库连接池配置
@@ -463,7 +566,7 @@ spring:
       connection-timeout: 30000
 ```
 
-#### 3. 日志级别调整
+#### 4. 日志级别调整
 
 ```yaml
 # 生产环境日志配置
@@ -475,27 +578,37 @@ logging:
 ```
 
 **章节来源**
-- [JwtFilter.java](file://src/main/java/com/zhishilu/shiro/JwtFilter.java#L48-L55)
-- [JwtRealm.java](file://src/main/java/com/zhishilu/shiro/JwtRealm.java#L63-L66)
+- [JwtFilter.java](file://src/main/java/com/zhishilu/shiro/JwtFilter.java#L46-L65)
+- [JwtRealm.java](file://src/main/java/com/zhishilu/shiro/JwtRealm.java#L69-L72)
 
 ## 结论
 
-本项目成功实现了基于Apache Shiro和JWT的无状态安全认证系统。通过精心设计的配置架构，系统具备了以下特点：
+**更新** 本项目成功实现了基于Apache Shiro 2.0.4和JWT的完全无状态安全认证系统。通过精心设计的重构配置架构，系统具备了以下特点：
 
 1. **安全性**：采用JWT无状态认证，避免Session安全风险
 2. **可扩展性**：支持水平扩展和微服务部署
 3. **易维护性**：模块化设计，职责分离清晰
-4. **性能**：无Session开销，适合高并发场景
+4. **性能**：无Session开销，结合Redis提供高性能令牌管理
+5. **精确控制**：明确区分公开和受保护端点的访问控制
+
+新架构相比原有版本有显著改进：
+- 完全禁用Session，实现真正的无状态认证
+- 手动配置JWT过滤器，确保配置正确生效
+- 集成Redis令牌验证，提供更好的性能和可靠性
+- 明确的URL映射规则，便于维护和扩展
 
 建议在生产环境中进一步完善：
-- 添加Redis缓存支持
+- 添加Redis集群支持
 - 实现更细粒度的权限控制
 - 增加审计日志功能
 - 配置HTTPS和安全头
+- 实现令牌撤销机制
 
 ## 附录
 
 ### 配置参数参考
+
+**更新** 新架构的配置参数：
 
 #### 应用配置参数
 
@@ -512,31 +625,53 @@ logging:
 | 参数名 | 默认值 | 说明 |
 |--------|--------|------|
 | jwt.secret | zhishilu-secret-key-must-be-at-least-256-bits-long-for-hs256 | JWT签名密钥 |
-| jwt.expiration | 86400000 | 令牌过期时间（毫秒） |
+| jwt.expiration | 604800000 | 令牌过期时间（毫秒，7天） |
 | jwt.header | Authorization | HTTP头部名称 |
 | jwt.prefix | Bearer | 令牌前缀 |
 
+#### Redis配置参数
+
+| 参数名 | 默认值 | 说明 |
+|--------|--------|------|
+| spring.redis.host | localhost | Redis服务器地址 |
+| spring.redis.port | 6379 | Redis服务器端口 |
+| spring.redis.database | 0 | Redis数据库索引 |
+| spring.redis.password | 空 | Redis连接密码 |
+
 ### API接口参考
 
-#### 认证接口
+**更新** 明确区分公开和受保护接口：
 
-| 方法 | 路径 | 功能 | 需要认证 |
-|------|------|------|----------|
-| POST | /api/auth/register | 用户注册 | 否 |
-| POST | /api/auth/login | 用户登录 | 否 |
-| GET | /api/auth/unauthorized | 未授权提示 | 否 |
+#### 公开接口（无需认证）
 
-#### 内容管理接口
+| 方法 | 路径 | 功能 |
+|------|------|------|
+| POST | /api/auth/register | 用户注册 |
+| POST | /api/auth/login | 用户登录 |
+| GET | /api/auth/unauthorized | 未授权提示 |
+| GET | /api/article/list | 首页文章列表 |
+| GET | /api/article/detail/{id} | 文章详情 |
+| GET | /api/category/navigation | 首页导航栏 |
+| GET | /api/article/search | 文章搜索 |
+| GET | /api/article/suggestions | 搜索补全 |
+| GET | /api/file/img/** | 图片访问 |
+| GET | /api/file/avatar/** | 头像访问 |
+| GET | /api/file/download/** | 文件下载 |
+| GET | /api/swagger-ui/** | Swagger界面 |
+| GET | /api/v3/api-docs/** | API文档 |
 
-| 方法 | 路径 | 功能 | 需要认证 |
-|------|------|------|----------|
-| POST | /api/article | 创建文章 | 是 |
-| PUT | /api/article/{id} | 更新文章 | 是 |
-| DELETE | /api/article/{id} | 删除文章 | 是 |
-| GET | /api/article/{id} | 获取文章详情 | 是 |
-| GET | /api/article/list | 分页查询文章 | 是 |
-| GET | /api/article/categories/top | 获取常用类别 | 是 |
+#### 受保护接口（需要认证）
+
+| 方法 | 路径 | 功能 |
+|------|------|------|
+| POST | /api/article/create | 创建文章 |
+| PUT | /api/article/update/{id} | 更新文章 |
+| DELETE | /api/article/delete/{id} | 删除文章 |
+| GET | /api/profile/** | 个人中心 |
+| GET | /api/user/** | 用户相关操作 |
+| PUT | /api/user/** | 用户信息修改 |
 
 **章节来源**
-- [application.yml](file://src/main/resources/application.yml#L1-L47)
-- [AuthController.java](file://src/main/java/com/zhishilu/controller/AuthController.java#L14-L50)
+- [application.yml](file://src/main/resources/application.yml#L1-L53)
+- [AuthController.java](file://src/main/java/com/zhishilu/controller/AuthController.java#L16-L49)
+- [ShiroConfig.java](file://src/main/java/com/zhishilu/config/ShiroConfig.java#L75-L100)
