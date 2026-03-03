@@ -227,4 +227,19 @@ public class UserService {
         userRepository.delete(user);
         log.info("用户 {} 已被删除", user.getUsername());
     }
+    
+    /**
+     * 管理员重置用户密码
+     */
+    public void resetUserPassword(String userId, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("用户不存在"));
+        // 加密新密码
+        String encryptedPassword = encryptPassword(newPassword);
+        user.setPassword(encryptedPassword);
+        userRepository.save(user);
+        // 删除用户的Token，强制重新登录
+        redisTokenService.removeTokenByUserId(userId);
+        log.info("用户 {} 的密码已被管理员重置", user.getUsername());
+    }
 }

@@ -219,4 +219,39 @@ public class UserController {
         userService.deleteUser(userId);
         return Result.success("删除用户成功，用户已被强制登出", null);
     }
+    
+    /**
+     * 管理员重置用户密码
+     */
+    @PostMapping("/{userId}/reset-password")
+    public Result<Void> resetUserPassword(@PathVariable String userId, @RequestBody Map<String, String> request) {
+        UserDTO currentUser = UserContext.getCurrentUser();
+        if (currentUser == null) {
+            return Result.unauthorized();
+        }
+        // 只有管理员可以重置用户密码
+        if (!adminConfig.isAdmin(currentUser.getUsername())) {
+            return Result.error(403, "没有权限重置用户密码");
+        }
+        // 不能重置自己的密码（管理员应使用个人中心修改密码功能）
+        if (currentUser.getId().equals(userId)) {
+            return Result.error(403, "请使用个人中心的修改密码功能");
+        }
+        // 不能重置其他管理员的密码
+        UserDTO targetUser = userService.getById(userId);
+        if (targetUser.getAdmin() != null && targetUser.getAdmin()) {
+            return Result.error(403, "不能重置管理员用户的密码");
+        }
+        
+        String newPassword = request.get("newPassword");
+        if (newPassword == null || newPassword.trim().isEmpty()) {
+            return Result.error(400, "新密码不能为空");
+        }
+        if (newPassword.length() < 6) {
+            return Result.error(400, "密码长度不能少于6位");
+        }
+        
+        userService.resetUserPassword(userId, newPassword);
+        return Result.success("密码重置成功，用户需要重新登录", null);
+    }
 }

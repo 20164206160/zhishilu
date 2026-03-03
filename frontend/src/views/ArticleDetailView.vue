@@ -250,7 +250,10 @@
                     <span class="text-[13px] font-medium">3933</span>
                   </button>
                 </div>
-                <button class="text-[#333] hover:text-[#666] transition-colors">
+                <button 
+                  @click="showShareModal = true"
+                  class="text-[#333] hover:text-[#666] transition-colors"
+                >
                   <Share2 :size="22" />
                 </button>
               </div>
@@ -378,12 +381,21 @@ import {
 } from 'lucide-vue-next';
 import request from '../utils/request';
 import { getImageUrl, getAvatarUrl } from '../utils/image';
+import ShareModal from '../components/ShareModal.vue';
 
 const route = useRoute();
 const router = useRouter();
 const article = ref<any>(null);
 const scrolled = ref(false);
 const currentImgIndex = ref(0);
+
+// 分享弹窗
+const showShareModal = ref(false);
+
+// 分享链接
+const shareUrl = computed(() => {
+  return window.location.href;
+});
 
 // 滚轮切换节流控制（防止快速滚动切换多张）
 const isWheelSwitching = ref(false);
@@ -710,6 +722,16 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown);
 });
 </script>
+
+<!-- 分享弹窗 -->
+<ShareModal
+  :visible="showShareModal"
+  :title="article?.title"
+  :description="article?.content?.replace(/<[^>]*>/g, '').substring(0, 100)"
+  :url="shareUrl"
+  :image="article?.images?.[0] ? getImageUrl(article.images[0]) : ''"
+  @close="showShareModal = false"
+/>
 
 <style scoped>
 /* 图片预览淡入淡出 - 优化版 */

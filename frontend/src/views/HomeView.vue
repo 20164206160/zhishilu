@@ -431,7 +431,10 @@
                         <span class="text-[13px] font-medium">3933</span>
                       </button>
                     </div>
-                    <button class="text-[#333] hover:text-[#666] transition-colors">
+                    <button 
+                      @click="showShareModal = true"
+                      class="text-[#333] hover:text-[#666] transition-colors"
+                    >
                       <Share2 :size="22" />
                     </button>
                   </div>
@@ -503,6 +506,16 @@
         </div>
       </transition>
     </teleport>
+
+    <!-- 分享弹窗 -->
+    <ShareModal
+      :visible="showShareModal"
+      :title="modalArticle?.title"
+      :description="modalArticle?.content?.replace(/<[^>]*>/g, '').substring(0, 100)"
+      :url="shareUrl"
+      :image="modalArticle?.images?.[0] ? getImageUrl(modalArticle.images[0]) : ''"
+      @close="showShareModal = false"
+    />
   </div>
 </template>
 
@@ -536,6 +549,7 @@ import {
 import request from '../utils/request';
 import ArticleCard from '../components/ArticleCard.vue';
 import { getAvatarUrl, getImageUrl } from '../utils/image';
+import ShareModal from '../components/ShareModal.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -572,6 +586,17 @@ const minSwipeDistance = 50;
 // 滚轮切换节流控制（防止快速滚动切换多张）
 const isWheelSwitching = ref(false);
 const WHEEL_SWITCH_DURATION = 450; // 与动画时长一致
+
+// 分享弹窗
+const showShareModal = ref(false);
+
+// 分享链接
+const shareUrl = computed(() => {
+  if (modalArticle.value) {
+    return `${window.location.origin}/article/${modalArticle.value.id}`;
+  }
+  return window.location.href;
+});
 
 // 搜索补全相关
 const suggestions = ref({

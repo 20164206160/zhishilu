@@ -4,8 +4,10 @@
 **本文档引用的文件**
 - [HomeView.vue](file://frontend/src/views/HomeView.vue)
 - [ArticleCard.vue](file://frontend/src/components/ArticleCard.vue)
+- [ArticleEditView.vue](file://frontend/src/views/ArticleEditView.vue)
 - [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java)
 - [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java)
+- [AdminUtil.java](file://src/main/java/com/zhishilu/util/AdminUtil.java)
 - [HotKeywordResp.java](file://src/main/java/com/zhishilu/resp/HotKeywordResp.java)
 - [request.ts](file://frontend/src/utils/request.ts)
 - [image.ts](file://frontend/src/utils/image.ts)
@@ -17,13 +19,10 @@
 
 ## 更新摘要
 **变更内容**
-- 新增智能搜索补全功能，支持用户名、地点、类别、标题、内容的实时补全建议
-- 增强热门关键词功能，集成热门搜索关键词推荐系统
-- 优化桌面端详情弹窗功能，支持图片轮播、触摸滑动和滚轮切换
-- 改进响应式网格布局，支持2-6列自适应布局
-- 增强ArticleCard组件布局，新增flex-grow占位符确保底部信息始终位于卡片底部
-- 完善图片预览功能，支持全屏图片浏览和导航
-- 优化页面过渡动画系统，提供桌面端和移动端差异化动画效果
+- 新增管理员编辑权限检查机制，允许管理员直接从主页编辑任意文章
+- 增强文章编辑权限控制，支持管理员和作者双重权限验证
+- 优化编辑按钮显示逻辑，根据用户权限动态控制编辑功能
+- 完善权限检查流程，确保安全的编辑访问控制
 
 ## 目录
 1. [简介](#简介)
@@ -38,14 +37,15 @@
 10. [图片轮播和触摸滑动支持](#图片轮滑和触摸滑动支持)
 11. [页面过渡动画系统](#页面过渡动画系统)
 12. [增强的布局功能](#增强的布局功能)
-13. [依赖关系分析](#依赖关系分析)
-14. [性能考虑](#性能考虑)
-15. [故障排除指南](#故障排除指南)
-16. [结论](#结论)
+13. [管理员编辑权限控制](#管理员编辑权限控制)
+14. [依赖关系分析](#依赖关系分析)
+15. [性能考虑](#性能考虑)
+16. [故障排除指南](#故障排除指南)
+17. [结论](#结论)
 
 ## 简介
 
-主页视图（Home View）是知识路项目的核心主页组件，提供了一个现代化的知识管理平台界面。该组件实现了完整的文章浏览、智能搜索、分类筛选、详情展示和热门关键词推荐功能，采用响应式设计支持多设备访问。经过重大更新后，系统集成了智能搜索补全、桌面端详情弹窗、图片轮播和触摸滑动支持等先进功能，为用户提供了更加丰富和流畅的交互体验。
+主页视图（Home View）是知识路项目的核心主页组件，提供了一个现代化的知识管理平台界面。该组件实现了完整的文章浏览、智能搜索、分类筛选、详情展示和热门关键词推荐功能，采用响应式设计支持多设备访问。经过重大更新后，系统集成了智能搜索补全、桌面端详情弹窗、图片轮播和触摸滑动支持等先进功能，并新增了管理员编辑权限检查机制，为用户提供了更加丰富和安全的交互体验。
 
 ## 项目结构
 
@@ -97,6 +97,7 @@ end
 - **分页加载功能**：支持大数据量的分页浏览
 - **页面过渡动画**：桌面端和移动端差异化动画效果
 - **增强的布局系统**：优化的网格布局和响应式设计
+- **管理员编辑权限控制**：支持管理员直接编辑任意文章的安全机制
 
 ### 技术栈
 - **前端框架**：Vue 3 + TypeScript
@@ -106,6 +107,7 @@ end
 - **HTTP客户端**：Axios
 - **动画系统**：CSS3 动画 + Vue Transition
 - **搜索技术**：Elasticsearch Completion Suggester
+- **权限控制**：本地存储用户信息 + 后端权限验证
 
 **章节来源**
 - [HomeView.vue](file://frontend/src/views/HomeView.vue#L494-L520)
@@ -132,30 +134,37 @@ J --> L[路由动画配置]
 A --> M[图片轮播功能]
 M --> N[触摸滑动处理]
 M --> O[滚轮事件处理]
+A --> P[管理员权限检查]
+P --> Q[localStorage用户信息]
+P --> R[编辑按钮控制]
 end
 subgraph "后端层"
-P[ArticleController] --> Q[ArticleService]
-Q --> R[Elasticsearch]
-Q --> S[ArticleRepository]
-Q --> T[HotKeywordResp]
-Q --> U[SearchSuggestionResp]
+S[ArticleController] --> T[ArticleService]
+T --> U[Elasticsearch]
+T --> V[ArticleRepository]
+T --> W[AdminUtil管理员工具]
+W --> X[AdminConfig配置]
+T --> Y[HotKeywordResp]
+T --> Z[SearchSuggestionResp]
 end
 subgraph "数据库层"
-V[(Elasticsearch)]
-W[(MySQL)]
+AA[(Elasticsearch)]
+AB[(MySQL)]
 end
 subgraph "外部服务"
-X[IP定位服务]
-Y[文件存储服务]
+AC[IP定位服务]
+AD[文件存储服务]
 end
-A --> |REST API| P
-P --> |业务逻辑| Q
-Q --> |数据查询| R
-Q --> |持久化| W
-Q --> |热门关键词| T
-Q --> |搜索建议| U
-Q --> |IP解析| X
-Q --> |文件访问| Y
+A --> |REST API| S
+S --> |业务逻辑| T
+T --> |数据查询| U
+T --> |持久化| AB
+T --> |热门关键词| Y
+T --> |搜索建议| Z
+T --> |管理员验证| W
+W --> |配置检查| X
+T --> |IP解析| AC
+T --> |文件访问| AD
 ```
 
 **图表来源**
@@ -328,43 +337,49 @@ G[热门关键词按钮] --> H[点击事件]
 I[补全建议点击] --> J[应用补全]
 K[图片轮播] --> L[触摸滑动]
 M[滚轮事件] --> N[图片切换]
+O[编辑按钮] --> P[权限检查]
 end
 subgraph "状态管理层"
-B --> O[searchQuery状态]
-D --> P[selectedCategory状态]
-F --> Q[page状态]
-H --> R[quickSearch函数]
-J --> S[applySuggestion函数]
-L --> T[handleTouchEnd函数]
-N --> U[handleWheel函数]
-O --> V[watch监听器]
-P --> V
-Q --> V
-R --> V
-S --> V
-T --> V
-U --> V
+B --> Q[searchQuery状态]
+D --> R[selectedCategory状态]
+F --> S[page状态]
+H --> T[quickSearch函数]
+J --> U[applySuggestion函数]
+L --> V[handleTouchEnd函数]
+N --> W[handleWheel函数]
+P --> X[isCurrentUserArticle计算]
+Q --> Y[watch监听器]
+R --> Y
+S --> Y
+T --> Y
+U --> Y
+V --> Y
+W --> Y
+X --> Z[编辑按钮显示控制]
 end
 subgraph "数据获取层"
-V --> W[fetchArticles函数]
-W --> X[HTTP请求]
-X --> Y[ArticleController]
-Y --> Z[ArticleService]
-Z --> AA[Elasticsearch]
-Z --> BB[fetchHotKeywords函数]
-BB --> X
+Y --> AA[fetchArticles函数]
+AA --> AB[HTTP请求]
+AB --> AC[ArticleController]
+AC --> AD[ArticleService]
+AD --> AE[Elasticsearch]
+AD --> AF[fetchHotKeywords函数]
+AF --> AB
 end
 subgraph "视图更新层"
-AA --> CC[文章列表]
-BB --> DD[热门关键词]
-CC --> EE[ArticleCard组件]
-DD --> FF[热门关键词按钮]
-EE --> GG[高亮显示]
-FF --> HH[快速搜索]
-EE --> II[弹窗触发]
-II --> JJ[图片轮播]
-JJ --> KK[触摸滑动]
-KK --> LL[滚轮切换]
+AE --> AG[文章列表]
+AF --> AH[热门关键词]
+AG --> AI[ArticleCard组件]
+AH --> AJ[热门关键词按钮]
+AI --> AK[高亮显示]
+AJ --> AL[快速搜索]
+AI --> AM[弹窗触发]
+AM --> AN[图片轮播]
+AN --> AO[触摸滑动]
+AO --> AP[滚轮切换]
+X --> AQ[编辑按钮显示]
+AQ --> AR[权限验证]
+AR --> AS[管理员编辑功能]
 ```
 
 **图表来源**
@@ -1073,6 +1088,168 @@ H --> I[显示图片]
 - [ArticleCard.vue](file://frontend/src/components/ArticleCard.vue#L41-L85)
 - [style.css](file://frontend/src/style.css#L1014-L1080)
 
+## 管理员编辑权限控制
+
+### 功能概述
+
+管理员编辑权限控制是本次更新的重要功能，允许管理员用户直接从主页编辑任意文章，而无需通过个人中心。该系统通过本地存储的用户信息和计算属性实现智能的权限判断和编辑按钮显示控制。
+
+### 技术实现
+
+#### 权限检查机制
+
+```mermaid
+flowchart TD
+A[用户访问主页] --> B[加载用户信息]
+B --> C{检查用户类型}
+C --> |管理员| D[显示编辑按钮]
+C --> |普通用户| E{检查文章作者}
+E --> |本人文章| F[显示编辑按钮]
+E --> |他人文章| G[隐藏编辑按钮]
+D --> H[管理员编辑功能]
+F --> I[作者编辑功能]
+G --> J[仅查看详情]
+```
+
+**图表来源**
+- [HomeView.vue](file://frontend/src/views/HomeView.vue#L621-L629)
+
+#### 编辑按钮显示逻辑
+
+```mermaid
+flowchart TD
+A[isCurrentUserArticle计算属性] --> B{检查文章作者}
+B --> |作者相同| C[返回true]
+B --> |作者不同| D{检查管理员权限}
+D --> |管理员| E[返回true]
+D --> |非管理员| F[返回false]
+C --> G[显示编辑按钮]
+E --> G
+F --> H[隐藏编辑按钮]
+```
+
+**图表来源**
+- [HomeView.vue](file://frontend/src/views/HomeView.vue#L621-L629)
+
+#### 管理员权限验证
+
+管理员权限验证通过以下逻辑实现：
+
+1. **本地存储检查**：从localStorage获取当前用户信息
+2. **管理员标识验证**：检查用户对象中的admin属性
+3. **作者身份验证**：比较文章创建者ID与当前用户ID
+4. **双重权限控制**：管理员和作者均可编辑文章
+
+#### 编辑跳转流程
+
+```mermaid
+sequenceDiagram
+participant U as 用户
+participant HV as HomeView
+participant RV as Router
+U->>HV : 点击编辑按钮
+HV->>HV : isCurrentUserArticle检查
+HV->>HV : goToEdit函数
+HV->>HV : 关闭弹窗
+HV->>HV : 恢复URL状态
+HV->>RV : 跳转到编辑页面
+RV->>U : 显示编辑页面
+```
+
+**图表来源**
+- [HomeView.vue](file://frontend/src/views/HomeView.vue#L631-L648)
+
+### 后端权限验证
+
+虽然前端实现了权限检查，但后端同样具备完整的权限验证机制：
+
+#### 后端权限控制
+
+```mermaid
+flowchart TD
+A[编辑请求] --> B{验证用户身份}
+B --> |未登录| C[返回401未授权]
+B --> |已登录| D{检查文章权限}
+D --> |作者| E[允许编辑]
+D --> |非作者| F{检查管理员权限}
+F --> |管理员| G[允许编辑]
+F --> |非管理员| H[返回403权限不足]
+E --> I[更新文章]
+G --> I
+C --> J[错误处理]
+H --> J
+I --> K[返回成功]
+J --> L[错误处理]
+```
+
+**图表来源**
+- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L239-L246)
+
+#### 管理员工具类
+
+后端通过AdminUtil工具类实现管理员权限验证：
+
+```mermaid
+classDiagram
+class AdminUtil {
++isAdmin(username) boolean
++isAdmin(userDTO) boolean
++isCurrentUserAdmin() boolean
+}
+class AdminConfig {
++isAdmin(username) boolean
+}
+class ArticleService {
++update(id, req, currentUser) ArticleResp
++delete(id, currentUser) void
+}
+AdminUtil --> AdminConfig : "依赖"
+ArticleService --> AdminUtil : "使用"
+```
+
+**图表来源**
+- [AdminUtil.java](file://src/main/java/com/zhishilu/util/AdminUtil.java#L32-L58)
+- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L243-L246)
+
+### 模板集成
+
+管理员编辑权限控制在模板中通过以下结构实现：
+
+```html
+<!-- 用户信息区域 -->
+<div class="px-5 py-4 border-b border-[#f0f0f0] flex items-center justify-between bg-white shrink-0">
+  <div class="flex items-center gap-3">
+    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-blue-400 flex items-center justify-center text-white font-bold text-base shadow-sm overflow-hidden">
+      <img v-if="modalArticle.creatorAvatar" :src="getAvatarUrl(modalArticle.creatorAvatar)" class="w-full h-full object-cover" alt="avatar" />
+      <template v-else>{{ modalArticle.createdBy?.charAt(0) || 'U' }}</template>
+    </div>
+    <div>
+      <p class="text-[15px] font-semibold text-[#333] leading-tight">{{ modalArticle.createdBy }}</p>
+      <p class="text-[12px] text-[#999] mt-0.5">{{ formatModalDate(modalArticle.createdTime) }}</p>
+    </div>
+  </div>
+  <!-- 编辑按钮（根据权限显示） -->
+  <button
+    v-if="isCurrentUserArticle"
+    @click="goToEdit"
+    class="px-5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-full transition-colors"
+  >
+    编辑
+  </button>
+  <button
+    v-else
+    class="px-5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-full transition-colors"
+  >
+    关注
+  </button>
+</div>
+```
+
+**章节来源**
+- [HomeView.vue](file://frontend/src/views/HomeView.vue#L334-L359)
+- [HomeView.vue](file://frontend/src/views/HomeView.vue#L621-L629)
+- [HomeView.vue](file://frontend/src/views/HomeView.vue#L631-L648)
+
 ## 依赖关系分析
 
 ### 前端依赖关系
@@ -1093,21 +1270,23 @@ A --> K[HotKeywordResp接口]
 K --> L[HotKeywordResp.java]
 A --> M[SearchSuggestionResp接口]
 M --> N[SearchSuggestionResp.java]
+A --> O[localStorage用户信息]
+O --> P[用户权限验证]
 end
 subgraph "全局配置"
-O[main.ts] --> P[createPinia]
-O --> Q[createRouter]
-R[App.vue] --> S[keep-alive缓存]
-S --> T[HomeView缓存]
+Q[main.ts] --> R[createPinia]
+Q --> S[createRouter]
+T[App.vue] --> U[keep-alive缓存]
+U --> V[HomeView缓存]
 end
 subgraph "路由配置"
-U[index.ts] --> V[HomeView路由]
-U --> W[其他页面路由]
-U --> X[路由守卫]
-U --> Y[动画配置]
+W[index.ts] --> X[HomeView路由]
+W --> Y[其他页面路由]
+W --> Z[路由守卫]
+W --> AA[动画配置]
 end
-A --> O
-A --> U
+A --> Q
+A --> W
 B --> C
 C --> F
 ```
@@ -1143,6 +1322,8 @@ class ArticleService {
 +search(req)
 +getSearchSuggestions(keyword, field)
 +getHotKeywords(limit)
++update(id, req, currentUser)
++delete(id, currentUser)
 }
 class ArticleRepository {
 +save(article)
@@ -1152,6 +1333,14 @@ class ArticleRepository {
 class ElasticsearchOperations {
 +search(query, clazz)
 +save(entity)
+}
+class AdminUtil {
++isAdmin(username) boolean
++isAdmin(userDTO) boolean
++isCurrentUserAdmin() boolean
+}
+class AdminConfig {
++isAdmin(username) boolean
 }
 class HotKeywordResp {
 +keyword : string
@@ -1169,6 +1358,8 @@ ArticleService --> ArticleRepository : "依赖"
 ArticleService --> ElasticsearchOperations : "依赖"
 ArticleService --> CategoryStatsService : "依赖"
 ArticleService --> UserService : "依赖"
+ArticleService --> AdminUtil : "使用"
+AdminUtil --> AdminConfig : "依赖"
 ArticleService --> HotKeywordResp : "返回"
 ArticleService --> SearchSuggestionResp : "返回"
 ```
@@ -1190,12 +1381,14 @@ ArticleService --> SearchSuggestionResp : "返回"
    - 图片懒加载，提升首屏加载速度
    - 热门关键词数据缓存，避免重复请求
    - 搜索补全防抖处理，减少API调用频率
+   - **管理员权限检查优化**：使用计算属性缓存权限结果，避免重复计算
 
 2. **状态缓存策略**
    - 使用 keep-alive 缓存 HomeView 组件
    - sessionStorage 标记数据刷新需求
    - 热门关键词状态持久化
    - 搜索建议状态缓存
+   - **权限状态缓存**：计算属性自动缓存权限检查结果
 
 3. **搜索防抖机制**
    - 输入事件防抖处理，减少不必要的API调用
@@ -1208,18 +1401,26 @@ ArticleService --> SearchSuggestionResp : "返回"
    - 移动端动画时长缩短至0.25秒
    - transform 和 opacity 属性避免重排
    - 弹窗动画使用GPU加速
+   - **权限检查动画优化**：编辑按钮显示使用CSS过渡，避免JavaScript动画阻塞
 
 5. **布局性能优化**
    - **flex-grow占位符优化**：减少布局重计算，提升渲染性能
    - **弹性布局替代绝对定位**：提高响应式兼容性
    - **CSS Grid与Flexbox结合**：优化复杂布局场景
    - **图片轮播使用transform**：避免重排重绘
+   - **权限按钮优化**：使用v-if条件渲染，避免不必要的DOM节点
 
 6. **图片处理优化**
    - 图片轮播使用transform translate，避免重排
    - 图片预览使用CSS动画，提升流畅度
    - 触摸滑动使用requestAnimationFrame，确保60fps
    - 滚轮切换使用节流，防止频繁切换
+
+7. **权限检查性能优化**
+   - **计算属性缓存**：isCurrentUserArticle使用计算属性，自动缓存结果
+   - **本地存储检查**：权限验证仅使用localStorage，避免额外API调用
+   - **条件渲染优化**：编辑按钮使用v-if，避免不必要的DOM节点
+   - **权限检查去重**：同一文章的多次权限检查共享同一个计算结果
 
 ### 后端性能优化
 
@@ -1228,12 +1429,18 @@ ArticleService --> SearchSuggestionResp : "返回"
    - 分页查询限制，避免大数据量扫描
    - 热门关键词查询使用范围查询优化
    - 搜索建议使用Completion Suggester，提升查询性能
+   - **管理员权限检查优化**：AdminUtil使用静态方法，避免Spring容器查找
 
 2. **异步处理**
    - 搜索频率统计异步更新
    - 补全建议同步处理
    - 热门关键词聚合查询优化
    - 图片预览使用CDN加速
+
+3. **权限验证优化**
+   - **静态权限检查**：AdminUtil.isAdmin使用静态方法，避免Spring容器查找
+   - **配置缓存**：AdminConfig缓存管理员用户名集合
+   - **权限验证去重**：同一用户权限检查结果缓存
 
 **章节来源**
 - [HomeView.vue](file://frontend/src/views/HomeView.vue#L676-L690)
@@ -1338,6 +1545,36 @@ ArticleService --> SearchSuggestionResp : "返回"
    - 确认底部信息区域的z-index层级
    - 检查响应式断点下的布局表现
 
+#### 管理员权限检查异常
+1. **问题症状**：管理员无法编辑文章或编辑按钮不显示
+2. **可能原因**：
+   - localStorage用户信息缺失
+   - 管理员标识未正确设置
+   - 权限检查逻辑错误
+   - 计算属性缓存问题
+
+3. **解决步骤**：
+   - 检查localStorage中用户信息格式
+   - 验证admin属性是否为true
+   - 确认isCurrentUserArticle计算属性逻辑
+   - 检查计算属性缓存是否正确更新
+   - 验证文章作者ID匹配逻辑
+
+#### 编辑功能异常
+1. **问题症状**：点击编辑按钮无响应或跳转错误
+2. **可能原因**：
+   - 编辑按钮事件绑定错误
+   - 路由跳转参数缺失
+   - 弹窗关闭动画冲突
+   - URL状态管理异常
+
+3. **解决步骤**：
+   - 检查goToEdit函数实现
+   - 验证articleId参数传递
+   - 确认弹窗关闭动画时序
+   - 检查URL状态恢复逻辑
+   - 验证路由跳转目标
+
 **章节来源**
 - [request.ts](file://frontend/src/utils/request.ts#L34-L62)
 - [image.ts](file://frontend/src/utils/image.ts#L6-L15)
@@ -1356,17 +1593,18 @@ ArticleService --> SearchSuggestionResp : "返回"
 - **可维护性强**：清晰的代码结构和模块划分
 - **智能化推荐**：热门关键词功能提升内容发现效率
 - **布局优化**：ArticleCard组件的flex-grow占位符确保内容分布合理
-- **搜索体验**：智能搜索补全提供更好的搜索体验
+- **权限安全**：管理员编辑权限控制确保系统安全性
+- **权限验证完善**：前后端双重权限验证机制
 
-### 改进建议
-- 可以考虑添加更多的搜索过滤选项
-- 增加用户个性化推荐功能
-- 优化移动端触摸交互体验
-- 添加离线缓存机制
-- 进一步优化动画性能
-- 增强热门关键词的动态更新机制
-- **考虑添加卡片悬停效果**：利用现有的hover:shadow-xl类实现更丰富的交互反馈
-- **优化图片加载策略**：添加图片懒加载和预加载机制
+### 改进亮点
+
+**更新** 本次更新显著提升了主页视图的功能性和安全性：
+
+1. **管理员编辑权限检查**：新增管理员直接编辑任意文章的能力
+2. **增强的权限控制机制**：支持管理员和作者双重权限验证
+3. **智能编辑按钮显示**：根据用户权限动态控制编辑功能
+4. **安全的权限验证**：前后端双重权限检查确保系统安全
+5. **优化的用户体验**：管理员无需跳转即可直接编辑文章
 
 ### 功能增强成果
 
@@ -1378,6 +1616,8 @@ ArticleService --> SearchSuggestionResp : "返回"
 4. **响应式网格布局**：2-6列自适应布局，适配各种设备
 5. **增强ArticleCard布局**：flex-grow占位符确保底部信息始终可见
 6. **优化动画系统**：桌面端和移动端差异化动画效果
-7. **性能优化**：防抖、节流、缓存等多重优化策略
+7. **管理员编辑权限控制**：支持管理员直接编辑任意文章的安全机制
+8. **性能优化**：防抖、节流、缓存等多重优化策略
+9. **权限验证完善**：前后端双重权限检查机制
 
-该组件为整个知识路项目奠定了坚实的技术基础，为后续功能扩展提供了良好的架构支撑。智能搜索补全、桌面端详情弹窗、图片轮播和触摸滑动支持等功能的集成，显著提升了平台的智能化水平和用户体验。ArticleCard组件的布局优化和整体动画系统的完善，为项目的视觉质量和交互体验提供了重要保障。
+该组件为整个知识路项目奠定了坚实的技术基础，为后续功能扩展提供了良好的架构支撑。智能搜索补全、桌面端详情弹窗、图片轮播和触摸滑动支持等功能的集成，显著提升了平台的智能化水平和用户体验。管理员编辑权限控制的引入，进一步完善了系统的安全性和可用性，为知识路项目提供了更加健壮和安全的知识管理解决方案。

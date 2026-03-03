@@ -350,6 +350,13 @@
                       </div>
                     </div>
                     <div class="flex items-center gap-2">
+                      <!-- 重置密码按钮（仅对非管理员用户显示） -->
+                      <button v-if="!u.admin" 
+                              @click="openResetPwdModal(u)"
+                              class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="重置密码">
+                        <Key :size="18" />
+                      </button>
                       <!-- 授权按钮（仅对未授权非管理员用户显示） -->
                       <button v-if="!u.admin && u.authorized !== 1" 
                               @click="confirmAuthorize(u)"
@@ -416,6 +423,57 @@
       @confirm="confirmAction"
       @cancel="confirmConfig.show = false"
     />
+
+    <!-- Reset Password Modal -->
+    <div v-if="showResetPwdModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+            <Key :size="20" class="text-blue-600" />
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-gray-900">重置用户密码</h3>
+            <p class="text-sm text-gray-500">{{ resetPwdTargetUser?.username }}</p>
+          </div>
+        </div>
+        
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">新密码</label>
+            <input 
+              v-model="resetPwdForm.newPassword" 
+              type="password" 
+              placeholder="请输入新密码（至少6位）"
+              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">确认密码</label>
+            <input 
+              v-model="resetPwdForm.confirmPassword" 
+              type="password" 
+              placeholder="请再次输入新密码"
+              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        </div>
+        
+        <div class="flex gap-3 mt-6">
+          <button 
+            @click="closeResetPwdModal"
+            class="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
+          >
+            取消
+          </button>
+          <button 
+            @click="submitResetPassword"
+            class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
+          >
+            确认重置
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -424,7 +482,7 @@ import { ref, reactive, onMounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { 
   ChevronLeft, User as UserIcon, BookOpen, LogOut, 
-  Camera, Edit2, Trash2, Image as ImageIcon, FileText, Plus, Eye, Users, UserCheck, UserX, Shield
+  Camera, Edit2, Trash2, Image as ImageIcon, FileText, Plus, Eye, Users, UserCheck, UserX, Shield, Key
 } from 'lucide-vue-next';
 import request from '../utils/request';
 import ConfirmationModal from '@/components/ConfirmationModal.vue';
@@ -455,6 +513,14 @@ const isAdmin = ref(false);
 const users = ref<any[]>([]);
 const usersLoading = ref(false);
 const userFilter = ref<'all' | 'authorized' | 'unauthorized'>('all');
+
+// Reset password modal
+const showResetPwdModal = ref(false);
+const resetPwdTargetUser = ref<any>(null);
+const resetPwdForm = reactive({
+  newPassword: '',
+  confirmPassword: ''
+});
 
 // Filtered users based on selected filter
 const filteredUsers = computed(() => {
@@ -769,6 +835,49 @@ const confirmDeleteUser = (targetUser: any) => {
       alert(err.response?.data?.message || '删除用户失败');
     }
   };
+};
+
+// ==================== Reset Password Methods ====================
+
+const openResetPwdModal = (targetUser: any) => {
+  resetPwdTargetUser.value = targetUser;
+  resetPwdForm.newPassword = '';
+  resetPwdForm.confirmPassword = '';
+  showResetPwdModal.value = true;
+};
+
+const closeResetPwdModal = () => {
+  showResetPwdModal.value = false;
+  resetPwdTargetUser.value = null;
+  resetPwdForm.newPassword = '';
+  resetPwdForm.confirmPassword = '';
+};
+
+const submitResetPassword = async () => {
+  if (!resetPwdForm.newPassword) {
+    alert('请输入新密码');
+    return;
+  }
+  if (resetPwdForm.newPassword.length < 6) {
+    alert('密码长度不能少于6位');
+    return;
+  }
+  if (resetPwdForm.newPassword !== resetPwdForm.confirmPassword) {
+    alert('两次输入的密码不一致');
+    return;
+  }
+  
+  try {
+    const res = await request.post(`/user/${resetPwdTargetUser.value.id}/reset-password`, {
+      newPassword: resetPwdForm.newPassword
+    });
+    if (res.data.code === 200) {
+      alert(`用户 "${resetPwdTargetUser.value.username}" 的密码已重置成功，用户需要重新登录`);
+      closeResetPwdModal();
+    }
+  } catch (err: any) {
+    alert(err.response?.data?.message || '密码重置失败');
+  }
 };
 
 onMounted(() => {
