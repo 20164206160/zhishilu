@@ -3,6 +3,7 @@ package com.zhishilu.config;
 import com.zhishilu.entity.Article;
 import com.zhishilu.entity.CategoryStats;
 import com.zhishilu.entity.CategorySuggestion;
+import com.zhishilu.entity.Comment;
 import com.zhishilu.entity.ContentSuggestion;
 import com.zhishilu.entity.LocationSuggestion;
 import com.zhishilu.entity.OperationLog;
@@ -39,6 +40,7 @@ public class ElasticsearchIndexInitializer implements CommandLineRunner {
         createIndexWithCustomMapping(User.class, "user-mapping.json");
         createIndexWithCustomMapping(OperationLog.class, "operation-log-mapping.json");
         createIndexWithCustomMapping(CategoryStats.class, "category-stats-mapping.json");
+        createIndexWithCustomMapping(Comment.class, "comment-mapping.json");
         
         // 创建5个独立的搜索补全索引
         createIndexWithCustomMapping(TitleSuggestion.class, "title-suggestion-mapping.json");

@@ -1,0 +1,41 @@
+{
+  "properties": {
+    "id": {
+      "type": "keyword"
+    },
+    "articleId": {
+      "type": "keyword"
+    },
+    "content": {
+      "type": "text",
+      "analyzer": "ik_max_word",
+      "search_analyzer": "ik_smart"
+    },
+    "createdBy": {
+      "type": "keyword"
+    },
+    "creatorId": {
+      "type": "keyword"
+    },
+    "creatorAvatar": {
+      "type": "keyword",
+      "index": false
+    },
+    "parentId": {
+      "type": "keyword"
+    },
+    "replyToId": {
+      "type": "keyword"
+    },
+    "replyToUser": {
+      "type": "keyword"
+    },
+    "createdTime": {
+      "type": "date",
+      "format": "yyyy-MM-dd'T'HH:mm:ss.SSS"
+    },
+    "likeCount": {
+      "type": "long"
+    }
+  }
+}

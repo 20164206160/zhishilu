@@ -79,6 +79,9 @@ public class ShiroConfig {
         filterRuleMap.put("/auth/**", "anon");              // 登录注册
         filterRuleMap.put("/article/list", "anon");         // 首页列表
         filterRuleMap.put("/article/detail/**", "anon");    // 文章详情
+        filterRuleMap.put("/comment/list", "anon");          // 评论列表
+        filterRuleMap.put("/comment/replies", "anon");       // 回复列表
+        filterRuleMap.put("/comment/count", "anon");         // 评论数量
         filterRuleMap.put("/category/navigation", "anon");  // 首页导航栏
         filterRuleMap.put("/article/search", "anon");       // 搜索
 		filterRuleMap.put("/article/suggestions", "anon");  // 搜索补全

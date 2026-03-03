@@ -190,43 +190,103 @@
           <!-- Comments Section -->
           <div class="border-t border-[#f0f0f0]">
             <div class="px-5 py-3 flex items-center justify-between">
-              <span class="text-[14px] font-medium text-[#333]">共 {{ mockComments.length }} 条评论</span>
-              <div class="flex items-center gap-3 text-[13px] text-[#666]">
-                <button class="hover:text-blue-600 transition-colors font-medium">最热</button>
-                <span class="text-[#e0e0e0]">|</span>
-                <button class="hover:text-blue-600 transition-colors">最新</button>
-              </div>
+              <span class="text-[14px] font-medium text-[#333]">共 {{ commentTotal }} 条评论</span>
             </div>
 
             <!-- Comment List -->
             <div class="px-5 pb-4 space-y-4">
-              <div v-for="(comment, idx) in mockComments" :key="idx" class="flex gap-3">
+              <!-- 评论加载中 -->
+              <div v-if="commentLoading && comments.length === 0" class="py-6 text-center text-[13px] text-[#999]">
+                <div class="inline-flex items-center gap-2">
+                  <div class="animate-spin rounded-full h-4 w-4 border-2 border-blue-400 border-t-transparent"></div>
+                  加载中...
+                </div>
+              </div>
+
+              <!-- 评论为空 -->
+              <div v-else-if="!commentLoading && comments.length === 0" class="py-6 text-center text-[13px] text-[#bbb]">
+                暂无评论，来发表第一条吧~
+              </div>
+
+              <!-- 评论列表 -->
+              <div v-for="comment in comments" :key="comment.id" class="flex gap-3">
                 <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-400 to-gray-300 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
-                  {{ comment.user.charAt(0) }}
+                  <img v-if="comment.creatorAvatar" :src="getAvatarUrl(comment.creatorAvatar)" class="w-full h-full object-cover" alt="avatar" />
+                  <template v-else>{{ comment.createdBy?.charAt(0) || 'U' }}</template>
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2">
-                    <span class="text-[13px] text-[#576b95] font-medium">{{ comment.user }}</span>
-                    <span v-if="comment.isAuthor" class="px-1.5 py-0.5 bg-blue-600 text-white text-[10px] rounded">作者</span>
+                    <span class="text-[13px] text-[#576b95] font-medium">{{ comment.createdBy }}</span>
+                    <span v-if="article && comment.createdBy === article.createdBy" class="px-1.5 py-0.5 bg-blue-600 text-white text-[10px] rounded">作者</span>
                   </div>
-                  <p class="text-[14px] text-[#333] mt-1 leading-relaxed">{{ comment.content }}</p>
+                  <p class="text-[14px] text-[#333] mt-1 leading-relaxed break-words">{{ comment.content }}</p>
                   <div class="flex items-center gap-4 mt-2 text-[12px] text-[#999]">
-                    <span>{{ comment.time }}</span>
-                    <button class="hover:text-[#666] transition-colors">回复</button>
+                    <span>{{ formatDate(comment.createdTime) }}</span>
+                    <button @click="handleReply(comment)" class="hover:text-[#576b95] transition-colors">回复</button>
+                    <button v-if="canDeleteComment(comment)" @click="handleDeleteComment(comment.id)" class="hover:text-red-500 transition-colors">删除</button>
                   </div>
-                  <!-- Replies -->
-                  <div v-if="comment.replies?.length" class="mt-3 bg-[#f8f8f8] rounded-lg p-3 space-y-2">
-                    <div v-for="(reply, rIdx) in comment.replies" :key="rIdx" class="text-[13px]">
-                      <span class="text-[#576b95] font-medium">{{ reply.user }}</span>
-                      <span v-if="reply.to" class="text-[#999]"> 回复 </span>
-                      <span v-if="reply.to" class="text-[#576b95] font-medium">{{ reply.to }}</span>
-                      <span class="text-[#333]">：{{ reply.content }}</span>
+
+                  <!-- 回复列表 -->
+                  <div v-if="getDisplayReplies(comment).length" class="mt-3 bg-[#f8f8f8] rounded-lg p-3 space-y-3">
+                    <div v-for="reply in getDisplayReplies(comment)" :key="reply.id" class="text-[13px]">
+                      <div class="flex items-start gap-2">
+                        <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-200 to-blue-100 flex items-center justify-center text-blue-600 text-[10px] font-bold flex-shrink-0 overflow-hidden mt-0.5">
+                          <img v-if="reply.creatorAvatar" :src="getAvatarUrl(reply.creatorAvatar)" class="w-full h-full object-cover" alt="avatar" />
+                          <template v-else>{{ reply.createdBy?.charAt(0) || 'U' }}</template>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <div class="flex flex-wrap items-baseline gap-1">
+                            <span class="text-[#576b95] font-medium">{{ reply.createdBy }}</span>
+                            <template v-if="reply.replyToUser">
+                              <span class="text-[#bbb]">回复</span>
+                              <span class="text-[#576b95] font-medium">{{ reply.replyToUser }}</span>
+                            </template>
+                            <span class="text-[#aaa] text-[11px]">{{ formatDate(reply.createdTime) }}</span>
+                          </div>
+                          <p class="text-[#333] mt-0.5 break-words">{{ reply.content }}</p>
+                          <div class="flex items-center gap-3 mt-1 text-[11px] text-[#bbb]">
+                            <button @click="handleReply(comment, reply)" class="hover:text-[#576b95] transition-colors">回复</button>
+                            <button v-if="canDeleteComment(reply)" @click="handleDeleteComment(reply.id)" class="hover:text-red-500 transition-colors">删除</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- 查看全部回复 / 收起 -->
+                    <div v-if="comment.totalReplyCount > 3" class="mt-1">
+                      <button
+                        v-if="!expandedReplies.has(comment.id)"
+                        @click="expandReplies(comment.id)"
+                        class="text-[12px] text-[#576b95] hover:underline"
+                      >
+                        查看全部 {{ comment.totalReplyCount }} 条回复
+                      </button>
+                      <button
+                        v-else
+                        @click="collapseReplies(comment.id)"
+                        class="text-[12px] text-[#999] hover:underline"
+                      >
+                        收起回复
+                      </button>
                     </div>
                   </div>
                 </div>
-                <button class="flex flex-col items-center gap-1 text-[#999] hover:text-blue-600 transition-colors flex-shrink-0">
+
+                <!-- 点赞按钮 -->
+                <button @click="handleLikeComment(comment)" class="flex flex-col items-center gap-1 text-[#999] hover:text-blue-600 transition-colors flex-shrink-0">
                   <Heart :size="16" />
-                  <span class="text-[11px]">{{ comment.likes }}</span>
+                  <span class="text-[11px]">{{ comment.likeCount || 0 }}</span>
+                </button>
+              </div>
+
+              <!-- 加载更多 -->
+              <div v-if="hasMoreComments" class="pt-2 text-center">
+                <button
+                  @click="loadMoreComments"
+                  :disabled="commentLoading"
+                  class="text-[13px] text-[#576b95] hover:underline disabled:opacity-50"
+                >
+                  {{ commentLoading ? '加载中...' : '查看更多评论' }}
                 </button>
               </div>
             </div>
@@ -258,16 +318,64 @@
                 </button>
               </div>
               
-              <!-- Comment Input -->
-              <div class="relative flex items-center">
-                <input
-                  type="text"
-                  placeholder="说点什么..."
-                  class="w-full bg-[#f5f5f5] border-none rounded-full py-1.5 px-4 pr-14 text-[14px] text-[#333] placeholder:text-[#999] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all h-9 leading-5 box-border"
-                />
-                <button class="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-blue-600 text-[13px] font-medium hover:bg-blue-50 rounded-full transition-colors">
-                  发送
-                </button>
+            <!-- Comment Input -->
+              <div class="relative">
+                <!-- 回复标识 -->
+                <div v-if="replyTarget" class="mb-1.5 flex items-center gap-2 text-[12px] text-[#576b95] bg-blue-50 rounded-lg px-3 py-1.5">
+                  <span>回复 @{{ replyTarget.username }}</span>
+                  <button @click="cancelReply" class="ml-auto text-[#999] hover:text-[#666]">
+                    <XIcon :size="12" />
+                  </button>
+                </div>
+
+                <div class="relative flex items-center">
+                  <!-- 表情包按钮 -->
+                  <button
+                    @click.stop="showEmojiPanel = !showEmojiPanel"
+                    class="absolute left-2 top-1/2 -translate-y-1/2 text-[#999] hover:text-[#666] transition-colors z-10"
+                  >
+                    <span class="text-[18px] leading-none">&#128522;</span>
+                  </button>
+
+                  <input
+                    ref="commentInputRef"
+                    v-model="commentInput"
+                    @keyup.enter="sendComment"
+                    @keyup.esc="cancelReply"
+                    type="text"
+                    :placeholder="replyTarget ? `回复 @${replyTarget.username}...` : '说点什么...'"
+                    class="w-full bg-[#f5f5f5] border-none rounded-full py-1.5 pl-9 pr-14 text-[14px] text-[#333] placeholder:text-[#999] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all h-9 leading-5 box-border"
+                  />
+                  <button
+                    @click="sendComment"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-blue-600 text-[13px] font-medium hover:bg-blue-50 rounded-full transition-colors"
+                  >
+                    发送
+                  </button>
+                </div>
+
+                <!-- 表情包面板 -->
+                <teleport to="body">
+                  <div
+                    v-if="showEmojiPanel"
+                    @click.stop
+                    class="fixed z-[200] bg-white border border-gray-200 rounded-2xl shadow-xl p-3"
+                    :style="emojiPanelStyle"
+                    ref="emojiPanelRef"
+                  >
+                    <div class="grid grid-cols-10 gap-1">
+                      <button
+                        v-for="emoji in EMOJI_LIST"
+                        :key="emoji"
+                        @click="insertEmoji(emoji)"
+                        class="w-8 h-8 flex items-center justify-center text-[18px] hover:bg-gray-100 rounded-lg transition-colors"
+                      >{{ emoji }}</button>
+                    </div>
+                  </div>
+                </teleport>
+
+                <!-- 表情面板辮照 -->
+                <div v-if="showEmojiPanel" @click="showEmojiPanel = false" class="fixed inset-0 z-[199]"></div>
               </div>
             </div>
           </aside>
@@ -371,10 +479,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed, reactive } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { 
-  ChevronLeft, ChevronRight, Share2, Tag, MapPin, 
+  ChevronLeft, ChevronRight, ChevronDown, Share2, Tag, MapPin, 
   Link as LinkIcon, Heart, Star, MessageCircle, Edit3, Trash2, X as XIcon,
   Search as SearchIcon, Plus as PlusIcon, User as UserIcon,
   Github as GithubIcon, Mail as MailIcon, Twitter as TwitterIcon
@@ -598,44 +706,231 @@ const handleKeydown = (e: KeyboardEvent) => {
   }
 };
 
-// 模拟评论数据
-const mockComments = ref([
-  {
-    user: '小明同学',
-    content: '写得真好，学到了很多！收藏了~',
-    time: '2小时前',
-    likes: 128,
-    isAuthor: false,
-    replies: [
-      { user: '作者', to: '小明同学', content: '谢谢支持！会继续分享更多内容' }
-    ]
-  },
-  {
-    user: '技术达人',
-    content: '这个思路很清晰，我之前也遇到过类似的问题，用这种方法确实能解决。',
-    time: '5小时前',
-    likes: 86,
-    isAuthor: false
-  },
-  {
-    user: '产品经理',
-    content: '从产品的角度来看，这个设计方案很合理，用户体验会很好。',
-    time: '昨天',
-    likes: 45,
-    isAuthor: false
-  },
-  {
-    user: '前端小白',
-    content: '请问这个是怎么实现的？能详细讲讲吗？',
-    time: '昨天',
-    likes: 12,
-    isAuthor: false,
-    replies: [
-      { user: '作者', to: '前端小白', content: '可以的，我后面会出一篇详细教程' },
-      { user: '热心网友', to: '前端小白', content: '可以看官方文档，里面有详细说明' }
-    ]
+// ======================== 评论功能 ========================
+
+// 评论列表
+const comments = ref<any[]>([]);
+const commentTotal = ref(0);
+const commentPage = ref(0);
+const commentPageSize = 10;
+const commentLoading = ref(false);
+const hasMoreComments = ref(false);
+
+// 评论输入
+const commentInput = ref('');
+const commentInputRef = ref<HTMLInputElement | null>(null);
+const emojiPanelRef = ref<HTMLElement | null>(null);
+
+// 回复状态
+const replyTarget = ref<{ id: string; parentId: string; username: string } | null>(null);
+
+// 表情包面板
+const showEmojiPanel = ref(false);
+const EMOJI_LIST = [
+  '😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊',
+  '😋','😎','😍','😘','🥰','😗','😙','😚','🙂','🤗',
+  '🤩','🤔','🤨','😐','😑','😶','🙄','😏','😣','😥',
+  '😮','🤐','😯','😪','😫','🥱','😴','😌','😛','😜',
+  '😝','🤤','😒','😓','😔','😕','🙃','🤑','😲','☹️',
+  '🙁','😖','😞','😟','😤','😢','😭','😦','😧','😨',
+  '😩','🤯','😬','🥵','🥶','😱','😳','🤪','😵','😡',
+  '😠','🤬','😷','🤒','🤕','🤢','🤮','🤧','😇','🥳',
+  '🥴','🥺','👍','👎','👏','🙌','🤝','🙏','💪','❤️',
+  '🔥','✨','🎉','🎊','💯','💕','💞','💓','💗','💖',
+];
+
+// 展开回复的根评论ID集合
+const expandedReplies = reactive<Set<string>>(new Set());
+const fullRepliesMap = ref<Record<string, any[]>>({});
+
+// 表情面板定位样式
+const emojiPanelStyle = computed(() => {
+  const inputEl = commentInputRef.value;
+  if (!inputEl) return {};
+  const rect = inputEl.getBoundingClientRect();
+  const panelW = 360;
+  const panelH = 240;
+  let left = rect.left;
+  let top = rect.top - panelH - 8;
+  // 防止超出屏幕右边
+  if (left + panelW > window.innerWidth) {
+    left = window.innerWidth - panelW - 8;
   }
-]);
+  if (left < 8) left = 8;
+  // 如果上方空间不足，就展示在下方
+  if (top < 8) {
+    top = rect.bottom + 8;
+  }
+  return { left: `${left}px`, top: `${top}px`, width: `${panelW}px` };
+});
+
+// 加载评论列表
+const loadComments = async (reset = false) => {
+  if (!article.value) return;
+  if (commentLoading.value) return;
+  commentLoading.value = true;
+  try {
+    const page = reset ? 0 : commentPage.value;
+    const res = await request.get('/comment/list', {
+      params: { articleId: article.value.id, page, size: commentPageSize }
+    });
+    if (res.data.code === 200) {
+      const result = res.data.data;
+      if (reset) {
+        comments.value = result.list || [];
+        commentPage.value = 0;
+      } else {
+        comments.value.push(...(result.list || []));
+      }
+      commentTotal.value = result.total || 0;
+      hasMoreComments.value = (commentPage.value + 1) * commentPageSize < (result.total || 0);
+    }
+  } catch (e) {
+    console.error('加载评论失败', e);
+  } finally {
+    commentLoading.value = false;
+  }
+};
+
+// 加载更多评论
+const loadMoreComments = async () => {
+  commentPage.value++;
+  await loadComments(false);
+};
+
+// 展开全部回复
+const expandReplies = async (commentId: string) => {
+  expandedReplies.add(commentId);
+  try {
+    const res = await request.get('/comment/replies', {
+      params: { parentId: commentId, page: 0, size: 100 }
+    });
+    if (res.data.code === 200) {
+      fullRepliesMap.value[commentId] = res.data.data.list || [];
+    }
+  } catch (e) {
+    console.error('加载回复失败', e);
+  }
+};
+
+// 折叠回复
+const collapseReplies = (commentId: string) => {
+  expandedReplies.delete(commentId);
+};
+
+// 获取当前显示的回复列表
+const getDisplayReplies = (comment: any) => {
+  if (expandedReplies.has(comment.id)) {
+    return fullRepliesMap.value[comment.id] || comment.replies || [];
+  }
+  return comment.replies || [];
+};
+
+// 点击回复按钮
+const handleReply = (comment: any, reply?: any) => {
+  // 如果点击的是回复中的回复，被回复人是reply.createdBy，但parentId仍是根评论comment.id
+  if (reply) {
+    replyTarget.value = { id: reply.id, parentId: comment.id, username: reply.createdBy };
+  } else {
+    replyTarget.value = { id: comment.id, parentId: comment.id, username: comment.createdBy };
+  }
+  commentInput.value = '';
+  // 聚焦输入框
+  setTimeout(() => {
+    commentInputRef.value?.focus();
+  }, 50);
+};
+
+// 取消回复
+const cancelReply = () => {
+  replyTarget.value = null;
+  commentInput.value = '';
+};
+
+// 插入 emoji
+const insertEmoji = (emoji: string) => {
+  const input = commentInputRef.value;
+  if (!input) {
+    commentInput.value += emoji;
+    return;
+  }
+  const start = input.selectionStart ?? commentInput.value.length;
+  const end = input.selectionEnd ?? commentInput.value.length;
+  commentInput.value = commentInput.value.slice(0, start) + emoji + commentInput.value.slice(end);
+  // 恢复光标位置
+  setTimeout(() => {
+    input.focus();
+    input.setSelectionRange(start + emoji.length, start + emoji.length);
+  }, 0);
+  showEmojiPanel.value = false;
+};
+
+// 发送评论
+const sendComment = async () => {
+  const content = commentInput.value.trim();
+  if (!content) return;
+  if (!currentUser.value) {
+    alert('请先登录后再评论');
+    router.push('/login');
+    return;
+  }
+  try {
+    const payload: any = {
+      articleId: article.value.id,
+      content,
+    };
+    if (replyTarget.value) {
+      payload.parentId = replyTarget.value.parentId;
+      payload.replyToId = replyTarget.value.id;
+      payload.replyToUser = replyTarget.value.username;
+    }
+    const res = await request.post('/comment/create', payload);
+    if (res.data.code === 200) {
+      commentInput.value = '';
+      replyTarget.value = null;
+      showEmojiPanel.value = false;
+      // 刷新评论列表
+      await loadComments(true);
+    }
+  } catch (e: any) {
+    alert(e.response?.data?.message || '评论失败');
+  }
+};
+
+// 删除评论
+const handleDeleteComment = async (commentId: string) => {
+  if (!confirm('确定要删除这条评论吗？')) return;
+  try {
+    const res = await request.delete(`/comment/delete/${commentId}`);
+    if (res.data.code === 200) {
+      await loadComments(true);
+    }
+  } catch (e: any) {
+    alert(e.response?.data?.message || '删除失败');
+  }
+};
+
+// 点赞评论
+const handleLikeComment = async (comment: any) => {
+  if (!currentUser.value) {
+    alert('请先登录');
+    return;
+  }
+  try {
+    const res = await request.post(`/comment/like/${comment.id}`);
+    if (res.data.code === 200) {
+      comment.likeCount = res.data.data.likeCount;
+    }
+  } catch (e) {
+    console.error('点赞失败', e);
+  }
+};
+
+// 判断是否可以删除评论（本人或管理员）
+const canDeleteComment = (comment: any) => {
+  if (!currentUser.value) return false;
+  return currentUser.value.username === comment.createdBy || currentUser.value.admin === true;
+};
 
 const loadDetail = async () => {
   try {
@@ -644,6 +939,8 @@ const loadDetail = async () => {
       article.value = res.data.data;
       // 设置页面标题为文章标题
       document.title = article.value.title || '文章详情';
+      // 文章加载完成后加载评论
+      await loadComments(true);
     }
   } catch (err) {
     console.error('Load detail error:', err);

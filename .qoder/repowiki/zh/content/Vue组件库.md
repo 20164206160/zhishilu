@@ -11,6 +11,7 @@
 - [views/ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue)
 - [components/ArticleCard.vue](file://frontend/src/components/ArticleCard.vue)
 - [components/profile/ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue)
+- [components/ShareModal.vue](file://frontend/src/components/ShareModal.vue)
 - [utils/request.ts](file://frontend/src/utils/request.ts)
 - [utils/image.ts](file://frontend/src/utils/image.ts)
 - [components/ArticleCard.vue](file://frontend/src/components/ArticleCard.vue)
@@ -24,11 +25,11 @@
 
 ## 更新摘要
 **所做更改**
-- 新增文章详情组件（ArticleDetailView）的详细分析
-- 更新主页组件（HomeView）的图片轮播功能说明
-- 增强文章卡片组件（ArticleCard）的交互模式描述
+- 新增ShareModal社交分享组件的详细分析和文档
+- 更新ArticleDetailView组件，说明其集成了ShareModal组件
+- 增强文章详情组件的交互模式描述，包含社交分享功能
 - 更新组件间的依赖关系和交互流程
-- 新增图片轮播功能的技术实现细节
+- 新增社交分享功能的技术实现细节
 
 ## 目录
 1. [简介](#简介)
@@ -45,7 +46,7 @@
 
 这是一个基于Vue 3构建的个人知识管理组件库，名为"知拾录"。该项目采用现代化的前端技术栈，包括Vue 3、TypeScript、Pinia状态管理、Vue Router路由管理和TailwindCSS样式框架。系统提供了完整的知识库管理功能，包括文章浏览、搜索、编辑和个人资料管理等核心功能。
 
-**更新** 新增了富文本编辑器、高级模态框等组件，增强了用户体验和功能完整性。**ArticleCard组件UI布局优化**：添加flex-grow元素提升视觉层次和内容排列的一致性。**文章详情组件增强**：新增ArticleDetailView组件，提供完整的文章展示和交互功能。**主页组件图片轮播优化**：HomeView组件的图片轮播功能得到显著增强，支持触摸滑动、鼠标滚轮等多种交互方式。
+**更新** 新增了富文本编辑器、高级模态框、社交分享组件等组件，增强了用户体验和功能完整性。**ArticleCard组件UI布局优化**：添加flex-grow元素提升视觉层次和内容排列的一致性。**文章详情组件增强**：新增ArticleDetailView组件，提供完整的文章展示和交互功能，集成了ShareModal社交分享功能。**主页组件图片轮播优化**：HomeView组件的图片轮播功能得到显著增强，支持触摸滑动、鼠标滚轮等多种交互方式。
 
 ## 项目结构
 
@@ -140,11 +141,97 @@ Note over U,FE : 用户认证流程
 
 ## 详细组件分析
 
+### 社交分享组件 (ShareModal)
+
+**更新** 新增了完整的社交分享组件，提供微信、QQ、复制链接和原生移动分享支持。
+
+ShareModal是一个功能完整的社交分享组件，提供了现代化的分享体验，支持多种社交平台和分享方式：
+
+#### 核心功能特性
+
+1. **多平台分享支持**：微信、QQ、复制链接、原生移动分享
+2. **响应式设计**：适配不同屏幕尺寸的分享界面
+3. **智能平台检测**：自动识别微信内置浏览器环境
+4. **二维码生成**：微信分享时显示二维码供扫描
+5. **原生分享API**：移动端支持Web Share API
+6. **降级方案**：不支持原生分享时提供替代方案
+7. **剪贴板API**：使用现代剪贴板API进行链接复制
+
+#### 组件结构设计
+
+```mermaid
+flowchart TD
+A[ShareModal组件] --> B{分享选项网格}
+B --> C[微信分享]
+B --> D[QQ分享]
+B --> E[复制链接]
+B --> F[更多分享]
+C --> G{微信环境检测}
+G --> |微信内置浏览器| H[显示提示]
+G --> |外部浏览器| I[显示二维码]
+D --> J[QQ好友分享]
+D --> K[QQ空间分享]
+E --> L[剪贴板API]
+F --> M{原生分享支持}
+M --> |支持| N[Web Share API]
+M --> |不支持| O[微博/邮件分享]
+```
+
+**图表来源**
+- [ShareModal.vue](file://frontend/src/components/ShareModal.vue#L26-L74)
+
+#### 分享功能实现
+
+```mermaid
+sequenceDiagram
+participant U as 用户
+participant SM as ShareModal
+participant WB as 微信浏览器
+participant QQ as QQ应用
+participant CL as 剪贴板
+U->>SM : 点击分享按钮
+SM->>SM : 检测分享类型
+alt 微信分享
+SM->>SM : 检测微信环境
+SM->>WB : 微信内置浏览器
+WB-->>U : 显示分享提示
+else QQ分享
+SM->>QQ : 打开QQ分享页面
+QQ-->>U : 显示分享界面
+else 复制链接
+SM->>CL : 使用Clipboard API
+CL-->>U : 复制成功提示
+else 原生分享
+SM->>SM : 检测Web Share API
+SM-->>U : 显示原生分享界面
+end
+```
+
+**图表来源**
+- [ShareModal.vue](file://frontend/src/components/ShareModal.vue#L147-L230)
+
+#### 组件属性和事件
+
+| 属性名 | 类型 | 默认值 | 描述 |
+|--------|------|--------|------|
+| visible | boolean | false | 控制模态框显示/隐藏 |
+| title | string | '' | 分享标题，默认使用文档标题 |
+| description | string | '' | 分享描述，默认提示语 |
+| url | string | '' | 分享链接，默认使用当前页面URL |
+| image | string | '' | 分享图片URL |
+
+| 事件名 | 参数 | 描述 |
+|--------|------|------|
+| close | - | 模态框关闭事件 |
+
+**章节来源**
+- [ShareModal.vue](file://frontend/src/components/ShareModal.vue#L1-L244)
+
 ### 文章详情组件 (ArticleDetailView)
 
-**更新** 新增了完整的文章详情展示组件，提供丰富的交互功能和优化的用户体验。
+**更新** ArticleDetailView组件已集成了ShareModal社交分享功能，提供完整的文章展示和交互体验。
 
-文章详情组件是展示单篇文章完整内容的组件，支持多图片文章的轮播浏览和丰富的交互功能：
+文章详情组件是展示单篇文章完整内容的组件，支持多图片文章的轮播浏览、丰富的交互功能和社交分享：
 
 #### 核心功能特性
 
@@ -153,7 +240,30 @@ Note over U,FE : 用户认证流程
 3. **图片预览功能**：支持点击图片进入全屏预览模式
 4. **作者信息展示**：显示文章作者信息、发布时间、地点等元数据
 5. **评论系统集成**：内置模拟评论系统的展示和交互
-6. **交互式内容区域**：支持点赞、收藏、评论等社交功能
+6. **社交分享功能**：集成ShareModal组件提供完整的分享体验
+7. **交互式内容区域**：支持点赞、收藏、评论等社交功能
+
+#### 分享功能集成
+
+```mermaid
+flowchart TD
+A[ArticleDetailView分享] --> B{分享按钮点击}
+B --> C[showShareModal = true]
+C --> D[ShareModal组件显示]
+D --> E{用户选择分享方式}
+E --> |微信| F[shareToWeChat]
+E --> |QQ| G[shareToQQ]
+E --> |复制链接| H[copyLink]
+E --> |更多| I[shareNative]
+F --> J[微信环境检测]
+G --> K[QQ分享页面]
+H --> L[剪贴板复制]
+I --> M[原生分享API]
+```
+
+**图表来源**
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L313-L319)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L1023-L1031)
 
 #### 图片轮播功能实现
 
@@ -200,7 +310,7 @@ IMG->>IMG : 瞬间定位
 - [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L510-L561)
 
 **章节来源**
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L1-L759)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L1-L1078)
 
 ### 主页组件 (HomeView)
 
@@ -658,6 +768,7 @@ subgraph "运行时依赖"
 Axios[Axios] --> Request[HTTP请求]
 Lucide[Lucide Icons] --> UI[图标系统]
 wangEditor[wangEditor] --> RichEditor[富文本编辑器]
+ShareModal[ShareModal] --> Social[社交分享]
 end
 subgraph "后端服务"
 SpringBoot[Spring Boot] --> API[RESTful API]
@@ -689,6 +800,7 @@ Components --> ArticleCard[ArticleCard.vue]
 Components --> ConfirmationModal[ConfirmationModal.vue]
 Components --> AdvancedModal[AdvancedModal.vue]
 Components --> RichEditor[RichEditor.vue]
+Components --> ShareModal[ShareModal.vue]
 ArticleDetailView --> Components
 Components --> ProfileArticleDetail[profile/ArticleDetail.vue]
 ArticleCreateView --> RichEditor
@@ -704,6 +816,7 @@ Utils --> Image[image.ts]
 HomeView --> Stores[stores目录]
 Stores --> Counter[counter.ts]
 App --> Main[main.ts]
+ArticleDetailView --> ShareModal
 ```
 
 **图表来源**
@@ -727,6 +840,8 @@ App --> Main[main.ts]
 8. **布局优化**：ArticleCard组件的flex-grow布局提升渲染效率
 9. **图片轮播优化**：使用Transform3D硬件加速和节流控制
 10. **内存管理**：组件卸载时清理事件监听器和定时器
+11. **社交分享优化**：ShareModal组件使用Teleport避免DOM树过深
+12. **剪贴板API优化**：使用现代剪贴板API提升复制性能
 
 ### 内存管理
 
@@ -735,6 +850,7 @@ App --> Main[main.ts]
 3. **定时器清理**：确保定时器在组件卸载时被清理
 4. **编辑器销毁**：在组件卸载时销毁富文本编辑器实例
 5. **图片资源释放**：及时释放图片预览占用的内存
+6. **分享状态管理**：合理管理ShareModal的显示状态和二维码显示
 
 ## 故障排除指南
 
@@ -770,6 +886,14 @@ App --> Main[main.ts]
 2. **动画卡顿**：确认CSS动画优化设置
 3. **键盘事件冲突**：检查事件监听器的正确绑定
 
+#### ShareModal组件问题
+
+1. **微信分享异常**：检查微信环境检测逻辑
+2. **QQ分享失败**：确认QQ分享URL参数正确
+3. **复制链接失败**：检查剪贴板API兼容性
+4. **原生分享不可用**：确认Web Share API支持情况
+5. **二维码显示问题**：检查showQRCode状态管理
+
 #### ArticleCard布局问题
 
 1. **flex-grow失效**：检查容器的flex布局设置
@@ -788,6 +912,7 @@ App --> Main[main.ts]
 1. **弹窗显示异常**：检查URL状态管理和历史记录处理
 2. **图片预览功能失效**：确认Teleport组件的正确使用
 3. **评论系统问题**：验证模拟数据的正确性和交互逻辑
+4. **分享功能异常**：检查ShareModal组件的集成和配置
 
 **章节来源**
 - [request.ts](file://frontend/src/utils/request.ts#L34-L62)
@@ -796,12 +921,13 @@ App --> Main[main.ts]
 - [AdvancedModal.vue](file://frontend/src/components/AdvancedModal.vue#L280-L291)
 - [ArticleCard.vue](file://frontend/src/components/ArticleCard.vue#L42-L57)
 - [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L510-L561)
+- [ShareModal.vue](file://frontend/src/components/ShareModal.vue#L147-L230)
 
 ## 结论
 
 这个Vue组件库项目展现了现代前端开发的最佳实践，采用了完整的开发工具链和技术栈。项目结构清晰，组件职责明确，具有良好的可维护性和扩展性。
 
-**更新** 新增的富文本编辑器、高级模态框等组件显著提升了用户体验和功能完整性。**ArticleCard组件的UI布局优化**通过添加flex-grow元素，有效提升了视觉层次和内容排列的一致性。**文章详情组件的增强**提供了完整的文章展示和交互功能，支持多图片轮播、图片预览等丰富特性。**主页组件图片轮播功能的优化**实现了流畅的动画效果和多样化的交互方式，包括触摸滑动、鼠标滚轮、键盘导航等。
+**更新** 新增的富文本编辑器、高级模态框、社交分享组件等组件显著提升了用户体验和功能完整性。**ShareModal组件的引入**为应用提供了完整的社交分享功能，支持微信、QQ、复制链接和原生移动分享等多种方式。**ArticleCard组件的UI布局优化**通过添加flex-grow元素，有效提升了视觉层次和内容排列的一致性。**文章详情组件的增强**提供了完整的文章展示和交互功能，集成了ShareModal组件，支持多图片轮播、图片预览、社交分享等丰富特性。**主页组件图片轮播功能的优化**实现了流畅的动画效果和多样化的交互方式，包括触摸滑动、鼠标滚轮、键盘导航等。
 
 ### 主要优势
 
@@ -815,6 +941,8 @@ App --> Main[main.ts]
 8. **交互体验丰富**：多样化的用户交互方式
 9. **图片处理专业**：专业的图片轮播和预览功能
 10. **组件复用性强**：良好的组件设计和复用机制
+11. **社交功能完善**：完整的社交分享生态系统
+12. **兼容性考虑周全**：现代API与降级方案并存
 
 ### 改进建议
 
@@ -828,3 +956,5 @@ App --> Main[main.ts]
 8. **离线支持**：实现PWA离线缓存功能
 9. **无障碍访问**：增强无障碍访问支持
 10. **移动端优化**：进一步优化移动端用户体验
+11. **分享统计**：添加社交分享的统计和分析功能
+12. **分享回调**：提供分享完成的回调机制
