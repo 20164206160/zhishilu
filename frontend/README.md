@@ -29,6 +29,10 @@ See [Vite Configuration Reference](https://vite.dev/config/).
 npm install
 ```
 
+```sh
+npm install @vitejs/plugin-vue@5.2.3 @vitejs/plugin-vue-jsx@4.1.2 vite-plugin-vue-devtools@7.7.2 --save-dev
+```
+
 ### Compile and Hot-Reload for Development
 
 ```sh
