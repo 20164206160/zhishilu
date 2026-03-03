@@ -1,12 +1,16 @@
-# 主页视图
+# 首页视图
 
 <cite>
 **本文档引用的文件**
 - [HomeView.vue](file://frontend/src/views/HomeView.vue)
 - [ArticleCard.vue](file://frontend/src/components/ArticleCard.vue)
 - [ArticleEditView.vue](file://frontend/src/views/ArticleEditView.vue)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue)
 - [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java)
 - [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java)
+- [CommentController.java](file://src/main/java/com/zhishilu/controller/CommentController.java)
+- [CommentService.java](file://src/main/java/com/zhishilu/service/CommentService.java)
+- [Comment.java](file://src/main/java/com/zhishilu/entity/Comment.java)
 - [AdminUtil.java](file://src/main/java/com/zhishilu/util/AdminUtil.java)
 - [HotKeywordResp.java](file://src/main/java/com/zhishilu/resp/HotKeywordResp.java)
 - [request.ts](file://frontend/src/utils/request.ts)
@@ -19,10 +23,11 @@
 
 ## 更新摘要
 **变更内容**
-- 新增管理员编辑权限检查机制，允许管理员直接从主页编辑任意文章
-- 增强文章编辑权限控制，支持管理员和作者双重权限验证
-- 优化编辑按钮显示逻辑，根据用户权限动态控制编辑功能
-- 完善权限检查流程，确保安全的编辑访问控制
+- 新增首页视图中的评论预览功能，支持在文章详情弹窗中显示评论列表
+- 集成评论系统的完整功能，包括评论发布、回复、删除、点赞等
+- 实现评论列表的分页加载和回复预览功能
+- 优化评论权限控制，支持管理员和作者删除评论
+- 完善评论表情包支持和键盘快捷键操作
 
 ## 目录
 1. [简介](#简介)
@@ -34,18 +39,19 @@
 7. [热门关键词推荐功能](#热门关键词推荐功能)
 8. [桌面端详情弹窗系统](#桌面端详情弹窗系统)
 9. [响应式网格布局优化](#响应式网格布局优化)
-10. [图片轮播和触摸滑动支持](#图片轮滑和触摸滑动支持)
+10. [图片轮播和触摸滑动支持](#图片轮播和触摸滑动支持)
 11. [页面过渡动画系统](#页面过渡动画系统)
 12. [增强的布局功能](#增强的布局功能)
 13. [管理员编辑权限控制](#管理员编辑权限控制)
-14. [依赖关系分析](#依赖关系分析)
-15. [性能考虑](#性能考虑)
-16. [故障排除指南](#故障排除指南)
-17. [结论](#结论)
+14. [评论系统集成](#评论系统集成)
+15. [依赖关系分析](#依赖关系分析)
+16. [性能考虑](#性能考虑)
+17. [故障排除指南](#故障排除指南)
+18. [结论](#结论)
 
 ## 简介
 
-主页视图（Home View）是知识路项目的核心主页组件，提供了一个现代化的知识管理平台界面。该组件实现了完整的文章浏览、智能搜索、分类筛选、详情展示和热门关键词推荐功能，采用响应式设计支持多设备访问。经过重大更新后，系统集成了智能搜索补全、桌面端详情弹窗、图片轮播和触摸滑动支持等先进功能，并新增了管理员编辑权限检查机制，为用户提供了更加丰富和安全的交互体验。
+主页视图（Home View）是知识路项目的核心主页组件，提供了一个现代化的知识管理平台界面。该组件实现了完整的文章浏览、智能搜索、分类筛选、详情展示和热门关键词推荐功能，采用响应式设计支持多设备访问。经过重大更新后，系统集成了智能搜索补全、桌面端详情弹窗、图片轮播和触摸滑动支持等先进功能，并新增了管理员编辑权限检查机制和评论预览功能，为用户提供了更加丰富和安全的交互体验。
 
 ## 项目结构
 
@@ -98,6 +104,8 @@ end
 - **页面过渡动画**：桌面端和移动端差异化动画效果
 - **增强的布局系统**：优化的网格布局和响应式设计
 - **管理员编辑权限控制**：支持管理员直接编辑任意文章的安全机制
+- **评论预览功能**：在文章详情弹窗中显示评论列表和回复预览
+- **评论系统集成**：完整的评论发布、回复、删除、点赞功能
 
 ### 技术栈
 - **前端框架**：Vue 3 + TypeScript
@@ -108,6 +116,7 @@ end
 - **动画系统**：CSS3 动画 + Vue Transition
 - **搜索技术**：Elasticsearch Completion Suggester
 - **权限控制**：本地存储用户信息 + 后端权限验证
+- **评论系统**：基于RESTful API的完整评论功能
 
 **章节来源**
 - [HomeView.vue](file://frontend/src/views/HomeView.vue#L494-L520)
@@ -137,40 +146,53 @@ M --> O[滚轮事件处理]
 A --> P[管理员权限检查]
 P --> Q[localStorage用户信息]
 P --> R[编辑按钮控制]
+A --> S[评论系统集成]
+S --> T[CommentController]
+T --> U[CommentService]
+S --> V[Comment API]
 end
 subgraph "后端层"
-S[ArticleController] --> T[ArticleService]
-T --> U[Elasticsearch]
-T --> V[ArticleRepository]
-T --> W[AdminUtil管理员工具]
-W --> X[AdminConfig配置]
-T --> Y[HotKeywordResp]
-T --> Z[SearchSuggestionResp]
+W[ArticleController] --> X[ArticleService]
+W --> Y[CommentController]
+Y --> Z[CommentService]
+Z --> AA[Comment实体]
+Z --> AB[CommentRepository]
+X --> AC[Elasticsearch]
+X --> AD[ArticleRepository]
+X --> AE[AdminUtil管理员工具]
+AE --> AF[AdminConfig配置]
+X --> AG[HotKeywordResp]
+X --> AH[SearchSuggestionResp]
+Z --> AI[评论权限验证]
 end
 subgraph "数据库层"
-AA[(Elasticsearch)]
-AB[(MySQL)]
+AJ[(Elasticsearch)]
+AK[(MySQL)]
 end
 subgraph "外部服务"
-AC[IP定位服务]
-AD[文件存储服务]
+AL[IP定位服务]
+AM[文件存储服务]
 end
-A --> |REST API| S
-S --> |业务逻辑| T
-T --> |数据查询| U
-T --> |持久化| AB
-T --> |热门关键词| Y
-T --> |搜索建议| Z
-T --> |管理员验证| W
-W --> |配置检查| X
-T --> |IP解析| AC
-T --> |文件访问| AD
+A --> |REST API| W
+W --> |业务逻辑| X
+X --> |数据查询| AC
+X --> |持久化| AK
+X --> |热门关键词| AG
+X --> |搜索建议| AH
+X --> |管理员验证| AE
+Y --> |评论操作| Z
+Z --> |评论数据| AA
+Z --> |权限验证| AI
+AE --> |配置检查| AF
+X --> |IP解析| AL
+X --> |文件访问| AM
 ```
 
 **图表来源**
 - [HomeView.vue](file://frontend/src/views/HomeView.vue#L521-L523)
 - [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L28-L35)
 - [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L62-L70)
+- [CommentController.java](file://src/main/java/com/zhishilu/controller/CommentController.java#L1-L88)
 
 ## 详细组件分析
 
@@ -303,6 +325,17 @@ class HomeView {
 +handleInput()
 +fetchSuggestions()
 +applySuggestion(text, field)
++comments : any[]
++commentTotal : number
++commentPage : number
++commentPageSize : number
++commentLoading : boolean
++hasMoreComments : boolean
++loadComments(articleId, reset)
++sendComment()
++handleDeleteComment(commentId)
++handleLikeComment(comment)
++canDeleteComment(comment)
 }
 class ArticleService {
 +search(req)
@@ -310,14 +343,24 @@ class ArticleService {
 +getHotKeywords(limit)
 +convertToResp(article)
 }
+class CommentService {
++getCommentsByArticleId(articleId, page, size)
++getRepliesByParentId(parentId, page, size)
++createComment(req, currentUser)
++deleteComment(id, currentUser)
++likeComment(id, currentUser)
++countByArticleId(articleId)
+}
 ArticleCard --> HomeView : "触发弹窗"
 HomeView --> ArticleService : "调用API"
+HomeView --> CommentService : "调用评论API"
 ArticleCard --> HomeView : "路由导航"
 ```
 
 **图表来源**
 - [ArticleCard.vue](file://frontend/src/components/ArticleCard.vue#L86-L100)
 - [HomeView.vue](file://frontend/src/views/HomeView.vue#L751-L764)
+- [CommentService.java](file://src/main/java/com/zhishilu/service/CommentService.java#L68-L94)
 
 **章节来源**
 - [HomeView.vue](file://frontend/src/views/HomeView.vue#L1-L200)
@@ -338,48 +381,70 @@ I[补全建议点击] --> J[应用补全]
 K[图片轮播] --> L[触摸滑动]
 M[滚轮事件] --> N[图片切换]
 O[编辑按钮] --> P[权限检查]
+Q[评论输入] --> R[发送评论]
+S[回复按钮] --> T[展开回复]
+U[删除按钮] --> V[权限验证]
+W[点赞按钮] --> X[点赞请求]
 end
 subgraph "状态管理层"
-B --> Q[searchQuery状态]
-D --> R[selectedCategory状态]
-F --> S[page状态]
-H --> T[quickSearch函数]
-J --> U[applySuggestion函数]
-L --> V[handleTouchEnd函数]
-N --> W[handleWheel函数]
-P --> X[isCurrentUserArticle计算]
-Q --> Y[watch监听器]
-R --> Y
-S --> Y
-T --> Y
-U --> Y
-V --> Y
-W --> Y
-X --> Z[编辑按钮显示控制]
+B --> Y[searchQuery状态]
+D --> Z[selectedCategory状态]
+F --> AA[page状态]
+H --> BB[quickSearch函数]
+J --> CC[applySuggestion函数]
+L --> DD[handleTouchEnd函数]
+N --> EE[handleWheel函数]
+P --> FF[isCurrentUserArticle计算]
+R --> GG[sendComment函数]
+T --> HH[expandReplies函数]
+V --> II[canDeleteComment函数]
+X --> JJ[handleLikeComment函数]
+Y --> KK[watch监听器]
+Z --> KK
+AA --> KK
+BB --> KK
+CC --> KK
+DD --> KK
+EE --> KK
+FF --> KK
+GG --> KK
+HH --> KK
+II --> KK
+JJ --> KK
 end
 subgraph "数据获取层"
-Y --> AA[fetchArticles函数]
-AA --> AB[HTTP请求]
-AB --> AC[ArticleController]
-AC --> AD[ArticleService]
-AD --> AE[Elasticsearch]
-AD --> AF[fetchHotKeywords函数]
-AF --> AB
+KK --> LL[fetchArticles函数]
+LL --> MM[HTTP请求]
+MM --> NN[ArticleController]
+NN --> OO[ArticleService]
+OO --> PP[Elasticsearch]
+OO --> QQ[fetchHotKeywords函数]
+QQ --> MM
+KK --> RR[loadComments函数]
+RR --> SS[CommentController]
+SS --> TT[CommentService]
+TT --> UU[Comment实体]
 end
 subgraph "视图更新层"
-AE --> AG[文章列表]
-AF --> AH[热门关键词]
-AG --> AI[ArticleCard组件]
-AH --> AJ[热门关键词按钮]
-AI --> AK[高亮显示]
-AJ --> AL[快速搜索]
-AI --> AM[弹窗触发]
-AM --> AN[图片轮播]
-AN --> AO[触摸滑动]
-AO --> AP[滚轮切换]
-X --> AQ[编辑按钮显示]
-AQ --> AR[权限验证]
-AR --> AS[管理员编辑功能]
+PP --> VV[文章列表]
+QQ --> WW[热门关键词]
+VV --> XX[ArticleCard组件]
+WW --> YY[热门关键词按钮]
+XX --> ZZ[高亮显示]
+YY --> AAA[快速搜索]
+XX --> BBB[弹窗触发]
+BBB --> CCC[图片轮播]
+CCC --> DDD[触摸滑动]
+DDD --> EEE[滚轮切换]
+FF --> FFF[编辑按钮显示]
+FFF --> GGG[权限验证]
+GGG --> HHH[管理员编辑功能]
+RR --> III[评论列表]
+III --> JJJ[评论预览]
+JJJ --> KKK[回复预览]
+KKK --> LLL[权限控制]
+LLL --> MMM[删除功能]
+MMM --> NNN[点赞功能]
 ```
 
 **图表来源**
@@ -1250,6 +1315,252 @@ ArticleService --> AdminUtil : "使用"
 - [HomeView.vue](file://frontend/src/views/HomeView.vue#L621-L629)
 - [HomeView.vue](file://frontend/src/views/HomeView.vue#L631-L648)
 
+## 评论系统集成
+
+### 功能概述
+
+评论系统是本次更新的重要组成部分，为用户提供了完整的评论和回复功能。系统支持在文章详情弹窗中显示评论列表，包括根评论和回复的预览，以及完整的评论管理功能。
+
+### 技术实现
+
+#### 评论数据模型
+
+```mermaid
+classDiagram
+class Comment {
++id : String
++articleId : String
++content : String
++createdBy : String
++creatorId : String
++creatorAvatar : String
++parentId : String
++replyToId : String
++replyToUser : String
++createdTime : LocalDateTime
++likeCount : Long
+}
+class CommentResp {
++id : String
++articleId : String
++content : String
++createdBy : String
++creatorId : String
++creatorAvatar : String
++parentId : String
++replyToId : String
++replyToUser : String
++createdTime : LocalDateTime
++likeCount : Long
++totalReplyCount : Long
++replies : CommentResp[]
+}
+class CommentCreateReq {
++articleId : String
++content : String
++parentId : String
++replyToId : String
++replyToUser : String
+}
+```
+
+**图表来源**
+- [Comment.java](file://src/main/java/com/zhishilu/entity/Comment.java#L1-L81)
+- [CommentService.java](file://src/main/java/com/zhishilu/service/CommentService.java#L159-L163)
+
+#### 评论列表加载
+
+```mermaid
+sequenceDiagram
+participant U as 用户
+participant HV as HomeView
+participant CC as CommentController
+participant CS as CommentService
+U->>HV : 打开文章详情弹窗
+HV->>HV : loadComments(articleId, reset)
+HV->>CC : GET /comment/list?page&size
+CC->>CS : getCommentsByArticleId(articleId, page, size)
+CS->>CS : 查询根评论parentId为null
+CS->>CS : 为每条根评论查询回复
+CS->>CS : 限制回复预览数量默认3条
+CS-->>CC : PageResult<CommentResp>
+CC-->>HV : 评论列表数据
+HV-->>U : 显示评论列表
+```
+
+**图表来源**
+- [HomeView.vue](file://frontend/src/views/HomeView.vue#L1148-L1173)
+- [CommentService.java](file://src/main/java/com/zhishilu/service/CommentService.java#L68-L94)
+
+#### 评论权限控制
+
+```mermaid
+flowchart TD
+A[用户操作评论] --> B{检查用户登录状态}
+B --> |未登录| C[阻止操作]
+B --> |已登录| D{检查评论权限}
+D --> |评论| E[允许评论]
+D --> |删除评论| F{检查作者身份}
+F --> |本人| G[允许删除]
+F --> |非本人| H{检查管理员权限}
+H --> |管理员| I[允许删除]
+H --> |非管理员| J[阻止删除]
+E --> K[执行操作]
+G --> K
+I --> K
+C --> L[错误提示]
+J --> L
+```
+
+**图表来源**
+- [HomeView.vue](file://frontend/src/views/HomeView.vue#L1281-L1286)
+- [CommentService.java](file://src/main/java/com/zhishilu/service/CommentService.java#L113-L132)
+
+#### 评论回复功能
+
+```mermaid
+sequenceDiagram
+participant U as 用户
+participant HV as HomeView
+participant CC as CommentController
+participant CS as CommentService
+U->>HV : 点击回复按钮
+HV->>HV : handleReply(comment, reply?)
+HV->>HV : 设置replyTarget
+U->>HV : 输入回复内容
+U->>HV : 点击发送
+HV->>CC : POST /comment/create
+CC->>CS : createComment(req, currentUser)
+CS->>CS : 保存评论
+CS->>CS : 获取用户头像
+CS-->>CC : CommentResp
+CC-->>HV : 评论数据
+HV->>HV : loadComments(articleId, true)
+HV-->>U : 更新评论列表
+```
+
+**图表来源**
+- [HomeView.vue](file://frontend/src/views/HomeView.vue#L1206-L1256)
+- [CommentService.java](file://src/main/java/com/zhishilu/service/CommentService.java#L37-L63)
+
+### 模板集成
+
+评论系统在模板中通过以下结构实现：
+
+```html
+<!-- 评论区域 -->
+<div class="border-t border-[#f0f0f0]">
+  <div class="px-5 py-3 flex items-center justify-between">
+    <span class="text-[14px] font-medium text-[#333]">共 {{ commentTotal }} 条评论</span>
+  </div>
+
+  <!-- 评论加载中 -->
+  <div v-if="commentLoading && comments.length === 0" class="py-6 text-center text-[13px] text-[#999]">
+    <div class="inline-flex items-center gap-2">
+      <div class="animate-spin rounded-full h-4 w-4 border-2 border-blue-400 border-t-transparent"></div>
+      加载中...
+    </div>
+  </div>
+
+  <!-- 评论为空 -->
+  <div v-else-if="!commentLoading && comments.length === 0" class="py-6 text-center text-[13px] text-[#bbb]">
+    暂无评论，来发表第一条吧~
+  </div>
+
+  <!-- 评论列表 -->
+  <div v-for="comment in comments" :key="comment.id" class="px-5 pb-4 space-y-4">
+    <div class="flex gap-3">
+      <!-- 用户头像 -->
+      <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-400 to-gray-300 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
+        <img v-if="comment.creatorAvatar" :src="getAvatarUrl(comment.creatorAvatar)" class="w-full h-full object-cover" alt="avatar" />
+        <template v-else>{{ comment.createdBy?.charAt(0) || 'U' }}</template>
+      </div>
+      
+      <!-- 评论内容 -->
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2">
+          <span class="text-[13px] text-[#576b95] font-medium">{{ comment.createdBy }}</span>
+          <span v-if="modalArticle && comment.createdBy === modalArticle.createdBy" class="px-1.5 py-0.5 bg-blue-600 text-white text-[10px] rounded">作者</span>
+        </div>
+        <p class="text-[14px] text-[#333] mt-1 leading-relaxed break-words">{{ comment.content }}</p>
+        <div class="flex items-center gap-4 mt-2 text-[12px] text-[#999]">
+          <span>{{ formatModalDate(comment.createdTime) }}</span>
+          <button @click="handleReply(comment)" class="hover:text-[#576b95] transition-colors">回复</button>
+          <button v-if="canDeleteComment(comment)" @click="handleDeleteComment(comment.id)" class="hover:text-red-500 transition-colors">删除</button>
+        </div>
+
+        <!-- 回复列表 -->
+        <div v-if="getDisplayReplies(comment).length" class="mt-3 bg-[#f8f8f8] rounded-lg p-3 space-y-3">
+          <div v-for="reply in getDisplayReplies(comment)" :key="reply.id" class="text-[13px]">
+            <div class="flex items-start gap-2">
+              <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-200 to-blue-100 flex items-center justify-center text-blue-600 text-[10px] font-bold flex-shrink-0 overflow-hidden mt-0.5">
+                <img v-if="reply.creatorAvatar" :src="getAvatarUrl(reply.creatorAvatar)" class="w-full h-full object-cover" alt="avatar" />
+                <template v-else>{{ reply.createdBy?.charAt(0) || 'U' }}</template>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex flex-wrap items-baseline gap-1">
+                  <span class="text-[#576b95] font-medium">{{ reply.createdBy }}</span>
+                  <template v-if="reply.replyToUser">
+                    <span class="text-[#bbb]">回复</span>
+                    <span class="text-[#576b95] font-medium">{{ reply.replyToUser }}</span>
+                  </template>
+                  <span class="text-[#aaa] text-[11px]">{{ formatDate(reply.createdTime) }}</span>
+                </div>
+                <p class="text-[#333] mt-0.5 break-words">{{ reply.content }}</p>
+                <div class="flex items-center gap-3 mt-1 text-[11px] text-[#bbb]">
+                  <button @click="handleReply(comment, reply)" class="hover:text-[#576b95] transition-colors">回复</button>
+                  <button v-if="canDeleteComment(reply)" @click="handleDeleteComment(reply.id)" class="hover:text-red-500 transition-colors">删除</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 查看全部回复 / 收起 -->
+          <div v-if="comment.totalReplyCount > 3" class="mt-1">
+            <button
+              v-if="!expandedReplies.has(comment.id)"
+              @click="expandReplies(comment.id)"
+              class="text-[12px] text-[#576b95] hover:underline"
+            >
+              查看全部 {{ comment.totalReplyCount }} 条回复
+            </button>
+            <button
+              v-else
+              @click="collapseReplies(comment.id)"
+              class="text-[12px] text-[#999] hover:underline"
+            >
+              收起回复
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 点赞按钮 -->
+      <button @click="handleLikeComment(comment)" class="flex flex-col items-center gap-1 text-[#999] hover:text-blue-600 transition-colors flex-shrink-0">
+        <Heart :size="16" />
+        <span class="text-[11px]">{{ comment.likeCount || 0 }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 加载更多 -->
+  <div v-if="hasMoreComments" class="pt-2 pb-4 text-center">
+    <button
+      @click="loadMoreComments"
+      :disabled="commentLoading"
+      class="text-[13px] text-[#576b95] hover:underline disabled:opacity-50"
+    >
+      {{ commentLoading ? '加载中...' : '查看更多评论' }}
+    </button>
+  </div>
+</div>
+```
+
+**章节来源**
+- [HomeView.vue](file://frontend/src/views/HomeView.vue#L392-L468)
+- [HomeView.vue](file://frontend/src/views/HomeView.vue#L1104-L1286)
+- [CommentController.java](file://src/main/java/com/zhishilu/controller/CommentController.java#L28-L86)
+
 ## 依赖关系分析
 
 ### 前端依赖关系
@@ -1272,21 +1583,24 @@ A --> M[SearchSuggestionResp接口]
 M --> N[SearchSuggestionResp.java]
 A --> O[localStorage用户信息]
 O --> P[用户权限验证]
+A --> Q[CommentController]
+Q --> R[CommentService]
+R --> S[Comment实体]
 end
 subgraph "全局配置"
-Q[main.ts] --> R[createPinia]
-Q --> S[createRouter]
-T[App.vue] --> U[keep-alive缓存]
-U --> V[HomeView缓存]
+T[main.ts] --> U[createPinia]
+T --> V[createRouter]
+W[App.vue] --> X[keep-alive缓存]
+X --> Y[HomeView缓存]
 end
 subgraph "路由配置"
-W[index.ts] --> X[HomeView路由]
-W --> Y[其他页面路由]
-W --> Z[路由守卫]
-W --> AA[动画配置]
+Z[index.ts] --> AA[HomeView路由]
+Z --> BB[其他页面路由]
+Z --> CC[路由守卫]
+Z --> DD[动画配置]
 end
-A --> Q
-A --> W
+A --> T
+A --> Z
 B --> C
 C --> F
 ```
@@ -1311,6 +1625,15 @@ class ArticleController {
 +getSearchSuggestions(keyword, field)
 +getHotKeywords(limit)
 }
+class CommentController {
+-CommentService commentService
++create(req)
++list(articleId, page, size)
++replies(parentId, page, size)
++delete(id)
++like(id)
++count(articleId)
+}
 class ArticleService {
 -ArticleRepository articleRepository
 -ElasticsearchOperations elasticsearchOperations
@@ -1325,14 +1648,34 @@ class ArticleService {
 +update(id, req, currentUser)
 +delete(id, currentUser)
 }
-class ArticleRepository {
-+save(article)
-+findById(id)
-+findByCreatorIdAndStatus(userId, status)
+class CommentService {
+-CommentRepository commentRepository
+-UserService userService
++createComment(req, currentUser)
++getCommentsByArticleId(articleId, page, size)
++getRepliesByParentId(parentId, page, size)
++deleteComment(id, currentUser)
++likeComment(id, currentUser)
++countByArticleId(articleId)
 }
-class ElasticsearchOperations {
-+search(query, clazz)
-+save(entity)
+class CommentRepository {
++save(comment)
++findByArticleIdAndParentIdIsNull(articleId, pageable)
++findByParentId(parentId, pageable)
++countByArticleId(articleId)
+}
+class Comment {
++id : String
++articleId : String
++content : String
++createdBy : String
++creatorId : String
++creatorAvatar : String
++parentId : String
++replyToId : String
++replyToUser : String
++createdTime : LocalDateTime
++likeCount : Long
 }
 class AdminUtil {
 +isAdmin(username) boolean
@@ -1354,11 +1697,15 @@ class SearchSuggestionResp {
 +contents : SuggestionItem[]
 }
 ArticleController --> ArticleService : "依赖"
+CommentController --> CommentService : "依赖"
 ArticleService --> ArticleRepository : "依赖"
 ArticleService --> ElasticsearchOperations : "依赖"
 ArticleService --> CategoryStatsService : "依赖"
 ArticleService --> UserService : "依赖"
 ArticleService --> AdminUtil : "使用"
+CommentService --> CommentRepository : "依赖"
+CommentService --> UserService : "依赖"
+CommentService --> AdminUtil : "使用"
 AdminUtil --> AdminConfig : "依赖"
 ArticleService --> HotKeywordResp : "返回"
 ArticleService --> SearchSuggestionResp : "返回"
@@ -1366,11 +1713,14 @@ ArticleService --> SearchSuggestionResp : "返回"
 
 **图表来源**
 - [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L32-L35)
+- [CommentController.java](file://src/main/java/com/zhishilu/controller/CommentController.java#L23-L24)
 - [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L62-L70)
+- [CommentService.java](file://src/main/java/com/zhishilu/service/CommentService.java#L31-L32)
 
 **章节来源**
 - [HomeView.vue](file://frontend/src/views/HomeView.vue#L521-L523)
 - [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L32-L35)
+- [CommentController.java](file://src/main/java/com/zhishilu/controller/CommentController.java#L23-L24)
 
 ## 性能考虑
 
@@ -1382,6 +1732,7 @@ ArticleService --> SearchSuggestionResp : "返回"
    - 热门关键词数据缓存，避免重复请求
    - 搜索补全防抖处理，减少API调用频率
    - **管理员权限检查优化**：使用计算属性缓存权限结果，避免重复计算
+   - **评论列表优化**：根评论默认只加载3条回复预览，减少初始数据量
 
 2. **状态缓存策略**
    - 使用 keep-alive 缓存 HomeView 组件
@@ -1389,6 +1740,7 @@ ArticleService --> SearchSuggestionResp : "返回"
    - 热门关键词状态持久化
    - 搜索建议状态缓存
    - **权限状态缓存**：计算属性自动缓存权限检查结果
+   - **评论状态缓存**：回复展开状态使用Set和Map缓存
 
 3. **搜索防抖机制**
    - 输入事件防抖处理，减少不必要的API调用
@@ -1402,6 +1754,7 @@ ArticleService --> SearchSuggestionResp : "返回"
    - transform 和 opacity 属性避免重排
    - 弹窗动画使用GPU加速
    - **权限检查动画优化**：编辑按钮显示使用CSS过渡，避免JavaScript动画阻塞
+   - **评论动画优化**：使用CSS过渡而非JavaScript动画
 
 5. **布局性能优化**
    - **flex-grow占位符优化**：减少布局重计算，提升渲染性能
@@ -1409,6 +1762,7 @@ ArticleService --> SearchSuggestionResp : "返回"
    - **CSS Grid与Flexbox结合**：优化复杂布局场景
    - **图片轮播使用transform**：避免重排重绘
    - **权限按钮优化**：使用v-if条件渲染，避免不必要的DOM节点
+   - **评论列表优化**：使用虚拟滚动和分页加载
 
 6. **图片处理优化**
    - 图片轮播使用transform translate，避免重排
@@ -1420,7 +1774,14 @@ ArticleService --> SearchSuggestionResp : "返回"
    - **计算属性缓存**：isCurrentUserArticle使用计算属性，自动缓存结果
    - **本地存储检查**：权限验证仅使用localStorage，避免额外API调用
    - **条件渲染优化**：编辑按钮使用v-if，避免不必要的DOM节点
-   - **权限检查去重**：同一文章的多次权限检查共享同一个计算结果
+   - **权限检查去重**：同一用户权限检查结果缓存
+
+8. **评论系统性能优化**
+   - **分页加载**：评论列表默认每页10条，支持无限滚动
+   - **回复预览**：根评论默认只显示3条回复预览
+   - **懒加载回复**：点击"查看全部回复"时再加载完整回复列表
+   - **状态缓存**：展开的回复使用fullRepliesMap缓存
+   - **权限验证优化**：canDeleteComment使用本地存储用户信息
 
 ### 后端性能优化
 
@@ -1430,21 +1791,30 @@ ArticleService --> SearchSuggestionResp : "返回"
    - 热门关键词查询使用范围查询优化
    - 搜索建议使用Completion Suggester，提升查询性能
    - **管理员权限检查优化**：AdminUtil使用静态方法，避免Spring容器查找
+   - **评论查询优化**：根评论和回复查询使用合适的索引
 
 2. **异步处理**
    - 搜索频率统计异步更新
    - 补全建议同步处理
    - 热门关键词聚合查询优化
    - 图片预览使用CDN加速
+   - **评论异步处理**：评论创建、删除、点赞使用异步处理
 
 3. **权限验证优化**
    - **静态权限检查**：AdminUtil.isAdmin使用静态方法，避免Spring容器查找
    - **配置缓存**：AdminConfig缓存管理员用户名集合
    - **权限验证去重**：同一用户权限检查结果缓存
+   - **评论权限缓存**：用户权限信息缓存
+
+4. **数据库优化**
+   - **评论索引优化**：为articleId、parentId、createdTime建立复合索引
+   - **分页查询优化**：使用游标分页减少offset查询
+   - **批量操作优化**：删除根评论时批量删除其回复
 
 **章节来源**
 - [HomeView.vue](file://frontend/src/views/HomeView.vue#L676-L690)
 - [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L326-L327)
+- [CommentService.java](file://src/main/java/com/zhishilu/service/CommentService.java#L68-L94)
 - [style.css](file://frontend/src/style.css#L177-L192)
 
 ## 故障排除指南
@@ -1575,6 +1945,34 @@ ArticleService --> SearchSuggestionResp : "返回"
    - 检查URL状态恢复逻辑
    - 验证路由跳转目标
 
+#### 评论系统异常
+1. **问题症状**：评论无法加载、发布或删除
+2. **可能原因**：
+   - 评论API接口异常
+   - 用户权限验证失败
+   - 评论数据格式错误
+   - 网络请求超时
+
+3. **解决步骤**：
+   - 检查 /comment/list 接口状态
+   - 验证用户登录状态
+   - 确认评论内容格式
+   - 检查网络连接和错误处理
+   - 验证评论权限检查逻辑
+
+#### 评论权限检查异常
+1. **问题症状**：无法删除评论或权限验证失败
+2. **可能原因**：
+   - 本地存储用户信息缺失
+   - 权限检查逻辑错误
+   - 管理员权限验证失败
+
+3. **解决步骤**：
+   - 检查localStorage中用户信息
+   - 验证canDeleteComment函数逻辑
+   - 确认用户身份和管理员权限
+   - 检查权限验证缓存
+
 **章节来源**
 - [request.ts](file://frontend/src/utils/request.ts#L34-L62)
 - [image.ts](file://frontend/src/utils/image.ts#L6-L15)
@@ -1594,7 +1992,7 @@ ArticleService --> SearchSuggestionResp : "返回"
 - **智能化推荐**：热门关键词功能提升内容发现效率
 - **布局优化**：ArticleCard组件的flex-grow占位符确保内容分布合理
 - **权限安全**：管理员编辑权限控制确保系统安全性
-- **权限验证完善**：前后端双重权限验证机制
+- **评论系统完整**：支持评论发布、回复、删除、点赞的完整功能
 
 ### 改进亮点
 
@@ -1604,7 +2002,9 @@ ArticleService --> SearchSuggestionResp : "返回"
 2. **增强的权限控制机制**：支持管理员和作者双重权限验证
 3. **智能编辑按钮显示**：根据用户权限动态控制编辑功能
 4. **安全的权限验证**：前后端双重权限检查确保系统安全
-5. **优化的用户体验**：管理员无需跳转即可直接编辑文章
+5. **评论预览功能集成**：在文章详情弹窗中显示评论列表和回复预览
+6. **完整的评论系统**：支持评论发布、回复、删除、点赞等所有功能
+7. **权限验证完善**：前后端双重权限检查机制
 
 ### 功能增强成果
 
@@ -1617,7 +2017,8 @@ ArticleService --> SearchSuggestionResp : "返回"
 5. **增强ArticleCard布局**：flex-grow占位符确保底部信息始终可见
 6. **优化动画系统**：桌面端和移动端差异化动画效果
 7. **管理员编辑权限控制**：支持管理员直接编辑任意文章的安全机制
-8. **性能优化**：防抖、节流、缓存等多重优化策略
-9. **权限验证完善**：前后端双重权限检查机制
+8. **评论系统集成**：完整的评论发布、回复、删除、点赞功能
+9. **性能优化**：防抖、节流、缓存等多重优化策略
+10. **权限验证完善**：前后端双重权限检查机制
 
-该组件为整个知识路项目奠定了坚实的技术基础，为后续功能扩展提供了良好的架构支撑。智能搜索补全、桌面端详情弹窗、图片轮播和触摸滑动支持等功能的集成，显著提升了平台的智能化水平和用户体验。管理员编辑权限控制的引入，进一步完善了系统的安全性和可用性，为知识路项目提供了更加健壮和安全的知识管理解决方案。
+该组件为整个知识路项目奠定了坚实的技术基础，为后续功能扩展提供了良好的架构支撑。智能搜索补全、桌面端详情弹窗、图片轮播和触摸滑动支持、评论系统集成等功能的集成，显著提升了平台的智能化水平和用户体验。管理员编辑权限控制和评论系统的完善，进一步增强了系统的安全性和完整性，为知识路项目提供了更加健壮和安全的知识管理解决方案。

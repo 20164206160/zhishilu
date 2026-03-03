@@ -5,6 +5,12 @@
 - [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue)
 - [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue)
 - [ProfileView.vue](file://frontend/src/views/ProfileView.vue)
+- [CommentController.java](file://src/main/java/com/zhishilu/controller/CommentController.java)
+- [CommentService.java](file://src/main/java/com/zhishilu/service/CommentService.java)
+- [Comment.java](file://src/main/java/com/zhishilu/entity/Comment.java)
+- [CommentRepository.java](file://src/main/java/com/zhishilu/repository/CommentRepository.java)
+- [CommentResp.java](file://src/main/java/com/zhishilu/resp/CommentResp.java)
+- [CommentCreateReq.java](file://src/main/java/com/zhishilu/req/CommentCreateReq.java)
 - [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java)
 - [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java)
 - [Article.java](file://src/main/java/com/zhishilu/entity/Article.java)
@@ -15,17 +21,16 @@
 - [index.ts](file://frontend/src/router/index.ts)
 - [application.yml](file://src/main/resources/application.yml)
 - [article-mapping.json](file://src/main/resources/article-mapping.json)
+- [comment-mapping.json](file://src/main/resources/comment-mapping.json)
 </cite>
 
 ## 更新摘要
 **变更内容**
-- 新增独立的 ArticleDetail 组件用于个人中心文章详情展示
-- 改进主文章详情视图的图片画廊功能和交互体验
-- 在个人中心中集成新的 ArticleDetail 组件
-- 增强图片预览模态框的导航和指示器功能
-- 新增鼠标滚轮图片导航、触摸手势支持、键盘导航
-- 集成搜索功能和社交媒体图标
-- 改进加载状态和响应式设计
+- 新增完整的评论系统集成，包括评论列表、评论输入、回复功能
+- 集成表情包支持和键盘快捷键
+- 实现评论点赞、删除、分页加载等功能
+- 完善评论数据结构和后端API接口
+- 增强用户交互体验和权限控制
 
 ## 目录
 1. [简介](#简介)
@@ -40,13 +45,13 @@
 
 ## 简介
 
-文章详情视图是知识路（zhishilu）项目中的核心功能模块，负责展示单篇文章的完整内容。该视图采用响应式设计，支持桌面端和移动端的无缝浏览体验，包含图片画廊、内容展示、作者信息、评论系统和交互功能等完整的阅读体验。
+文章详情视图是知识路（zhishilu）项目中的核心功能模块，负责展示单篇文章的完整内容。该视图采用响应式设计，支持桌面端和移动端的无缝浏览体验，包含图片画廊、内容展示、作者信息、**评论系统**和交互功能等完整的阅读体验。
 
-**更新** 新增了独立的 ArticleDetail 组件，专门用于个人中心的文章详情展示，提供更简洁的阅读体验。主文章详情视图现已集成鼠标滚轮导航、触摸手势支持、键盘导航等增强功能。
+**更新** 新增了完整的评论系统，提供用户互动功能，包括评论列表展示、评论输入、回复功能、表情包支持、点赞和删除等操作。评论系统采用分页加载机制，支持无限滚动加载更多评论，为用户提供流畅的互动体验。
 
 ## 项目结构
 
-知识路项目采用前后端分离架构，文章详情视图作为前端Vue.js应用的重要组成部分，与Spring Boot后端服务协同工作。
+知识路项目采用前后端分离架构，文章详情视图作为前端Vue.js应用的重要组成部分，与Spring Boot后端服务协同工作，评论系统作为独立的功能模块集成其中。
 
 ```mermaid
 graph TB
@@ -57,16 +62,22 @@ C[ProfileView.vue<br/>个人中心视图]
 D[router/index.ts<br/>路由配置]
 E[utils/request.ts<br/>HTTP请求封装]
 F[utils/image.ts<br/>图片URL处理]
+G[ShareModal.vue<br/>分享模态框]
 end
 subgraph "后端服务 (Spring Boot)"
-G[ArticleController.java<br/>REST控制器]
-H[ArticleService.java<br/>业务逻辑层]
-I[ArticleRepository.java<br/>数据访问层]
-J[Article.java<br/>实体模型]
+H[ArticleController.java<br/>REST控制器]
+I[CommentController.java<br/>评论控制器]
+J[ArticleService.java<br/>业务逻辑层]
+K[CommentService.java<br/>评论业务逻辑]
+L[ArticleRepository.java<br/>数据访问层]
+M[CommentRepository.java<br/>评论数据访问]
+N[Article.java<br/>文章实体模型]
+O[Comment.java<br/>评论实体模型]
 end
 subgraph "配置文件"
-K[application.yml<br/>应用配置]
-L[article-mapping.json<br/>Elasticsearch映射]
+P[application.yml<br/>应用配置]
+Q[article-mapping.json<br/>Elasticsearch映射]
+R[comment-mapping.json<br/>评论Elasticsearch映射]
 end
 A --> C
 B --> C
@@ -74,30 +85,38 @@ A --> E
 B --> E
 A --> F
 B --> F
+A --> G
 C --> D
-E --> G
-G --> H
-H --> I
-I --> J
-H --> K
+E --> H
+E --> I
+H --> J
+I --> K
 J --> L
+K --> M
+L --> N
+M --> O
+J --> P
+K --> P
+N --> Q
+O --> R
 ```
 
 **图表来源**
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L1-L759)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L1-L1078)
 - [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L1-L243)
 - [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L388-L405)
-- [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L1-L187)
+- [CommentController.java](file://src/main/java/com/zhishilu/controller/CommentController.java#L1-L88)
+- [CommentService.java](file://src/main/java/com/zhishilu/service/CommentService.java#L1-L165)
 
 **章节来源**
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L1-L759)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L1-L1078)
 - [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L1-L243)
 - [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L388-L405)
 - [index.ts](file://frontend/src/router/index.ts#L1-L120)
 
 ## 核心组件
 
-文章详情视图由多个精心设计的组件构成，每个组件都有明确的职责和功能：
+文章详情视图由多个精心设计的组件构成，每个组件都有明确的职责和功能，其中评论系统作为重要的交互组件被完整集成。
 
 ### 主要组件架构
 
@@ -105,24 +124,19 @@ J --> L
 classDiagram
 class ArticleDetailView {
 +article : Ref~Article~
-+currentImgIndex : Ref~number~
-+showImagePreview : Ref~boolean~
-+currentUser : ComputedRef~User~
-+isAuthor : ComputedRef~boolean~
++comments : Ref~Comment[]~
++commentInput : Ref~string~
++replyTarget : Ref~ReplyTarget~
++showEmojiPanel : Ref~boolean~
++expandedReplies : Reactive~Set~string~~
 +loadDetail() void
-+handleBack() void
-+handleEdit() void
-+handleDelete() void
-+openImagePreview(index) void
-+formatDate(date) string
-+formatFullDate(date) string
-+handleWheel(event) void
-+handleTouchStart(event) void
-+handleTouchMove(event) void
-+handleTouchEnd() void
-+handleKeydown(event) void
-+nextImage() void
-+prevImage() void
++loadComments(reset) void
++sendComment() void
++handleReply(comment, reply?) void
++handleDeleteComment(id) void
++handleLikeComment(comment) void
++expandReplies(commentId) void
++collapseReplies(commentId) void
 }
 class ArticleDetail {
 +article : Article
@@ -139,55 +153,74 @@ class ArticleDetail {
 +formatDate(date) string
 +handleWheel(event) void
 }
-class ProfileView {
-+subView : Ref~string~
-+selectedArticle : Ref~any~
-+viewArticle(article) void
-+editArticle(article) void
-+editDraft(draft) void
-+closeSubView() void
-}
-class ArticleController {
-+getById(id) Result~ArticleResp~
-+create(req) Result~ArticleResp~
-+update(id, req) Result~ArticleResp~
+class CommentController {
++create(req) Result~CommentResp~
++list(articleId, page, size) Result~PageResult~CommentResp~~
++replies(parentId, page, size) Result~PageResult~CommentResp~~
 +delete(id) Result~Void~
++like(id) Result~CommentResp~
++count(articleId) Result~Long~
 }
-class ArticleService {
-+getById(id) ArticleResp
-+create(req, user) ArticleResp
-+update(id, req, user) ArticleResp
-+delete(id, user) void
-+search(req) PageResult~ArticleResp~
+class CommentService {
++createComment(req, user) CommentResp
++getCommentsByArticleId(articleId, page, size) PageResult~CommentResp~
++getRepliesByParentId(parentId, page, size) PageResult~CommentResp~
++deleteComment(id, user) void
++likeComment(id, user) CommentResp
++countByArticleId(articleId) long
 }
-class ArticleRepository {
-+findById(id) Optional~Article~
-+findByCreatorId(id) Article[]
-+findByCreatorIdAndStatus(id, status) Article[]
-}
-class Article {
+class Comment {
 +id : String
-+title : String
++articleId : String
 +content : String
-+images : String[]
-+categories : String[]
 +createdBy : String
++creatorId : String
++creatorAvatar : String
++parentId : String
++replyToId : String
++replyToUser : String
 +createdTime : LocalDateTime
-+status : String
++likeCount : Long
 }
-ArticleDetailView --> ArticleController : "调用"
+class CommentResp {
++id : String
++articleId : String
++content : String
++createdBy : String
++creatorId : String
++creatorAvatar : String
++parentId : String
++replyToId : String
++replyToUser : String
++createdTime : LocalDateTime
++likeCount : Long
++replies : CommentResp[]
++totalReplyCount : Long
+}
+class CommentCreateReq {
++articleId : String
++content : String
++parentId : String
++replyToId : String
++replyToUser : String
+}
+ArticleDetailView --> CommentController : "调用"
 ArticleDetail --> ArticleController : "调用"
-ProfileView --> ArticleDetail : "集成"
-ArticleController --> ArticleService : "委托"
-ArticleService --> ArticleRepository : "使用"
-ArticleRepository --> Article : "持久化"
+CommentController --> CommentService : "委托"
+CommentService --> CommentRepository : "使用"
+CommentRepository --> Comment : "持久化"
+CommentService --> CommentResp : "转换"
+CommentService --> CommentCreateReq : "验证"
 ```
 
 **图表来源**
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L370-L712)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L709-L933)
 - [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L132-L243)
-- [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L494-L531)
-- [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L69-L74)
+- [CommentController.java](file://src/main/java/com/zhishilu/controller/CommentController.java#L28-L86)
+- [CommentService.java](file://src/main/java/com/zhishilu/service/CommentService.java#L37-L164)
+- [Comment.java](file://src/main/java/com/zhishilu/entity/Comment.java#L16-L80)
+- [CommentResp.java](file://src/main/java/com/zhishilu/resp/CommentResp.java#L12-L78)
+- [CommentCreateReq.java](file://src/main/java/com/zhishilu/req/CommentCreateReq.java#L12-L41)
 
 ### 数据流架构
 
@@ -195,45 +228,46 @@ ArticleRepository --> Article : "持久化"
 sequenceDiagram
 participant User as 用户
 participant View as ArticleDetailView
-participant Profile as ProfileView
-participant Detail as ArticleDetail
-participant API as ArticleController
-participant Service as ArticleService
-participant Repo as ArticleRepository
+participant API as CommentController
+participant Service as CommentService
+participant Repo as CommentRepository
 participant ES as Elasticsearch
 User->>View : 访问文章详情
-View->>API : GET /article/detail/{id}
-API->>Service : getById(id)
-Service->>Repo : findById(id)
-Repo->>ES : 查询文章数据
-ES-->>Repo : 返回文章实体
-Repo-->>Service : Article实体
-Service->>Service : 转换为ArticleResp
-Service-->>API : ArticleResp
-API-->>View : Result<ArticleResp>
-View->>View : 设置页面标题
-View-->>User : 渲染文章详情
-User->>Profile : 访问个人中心
-Profile->>Detail : 加载ArticleDetail组件
-Detail->>API : GET /article/detail/{id}
-API-->>Detail : ArticleResp
-Detail-->>User : 渲染简化版文章详情
+View->>API : GET /comment/list
+API->>Service : getCommentsByArticleId(articleId, page, size)
+Service->>Repo : findByArticleIdAndParentIdIsNull(articleId, pageable)
+Repo->>ES : 查询根评论
+ES-->>Repo : 返回评论列表
+Repo-->>Service : Page<Comment>
+Service->>Service : 转换为CommentResp
+Service->>Service : 查询回复预览
+Service-->>API : PageResult<CommentResp>
+API-->>View : Result<PageResult<CommentResp>>
+View->>View : 渲染评论列表
+User->>View : 输入评论内容
+View->>API : POST /comment/create
+API->>Service : createComment(req, currentUser)
+Service->>Repo : save(comment)
+Repo-->>Service : Comment
+Service-->>API : CommentResp
+API-->>View : Result<CommentResp>
+View->>View : 刷新评论列表
 ```
 
 **图表来源**
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L628-L639)
-- [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L495-L498)
-- [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L1-L243)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L767-L793)
+- [CommentController.java](file://src/main/java/com/zhishilu/controller/CommentController.java#L28-L33)
+- [CommentService.java](file://src/main/java/com/zhishilu/service/CommentService.java#L37-L63)
 
 **章节来源**
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L1-L759)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L1-L1078)
 - [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L1-L243)
-- [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L388-L405)
-- [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L1-L187)
+- [CommentController.java](file://src/main/java/com/zhishilu/controller/CommentController.java#L1-L88)
+- [CommentService.java](file://src/main/java/com/zhishilu/service/CommentService.java#L1-L165)
 
 ## 架构概览
 
-文章详情视图采用现代化的渐进式Web应用架构，结合了Vue.js的响应式特性和Spring Boot的微服务架构优势。
+文章详情视图采用现代化的渐进式Web应用架构，结合了Vue.js的响应式特性和Spring Boot的微服务架构优势，评论系统作为独立的服务模块被完整集成。
 
 ### 技术栈架构
 
@@ -246,34 +280,39 @@ C[Axios<br/>HTTP客户端]
 D[Lucide Vue<br/>图标库]
 E[Vite<br/>构建工具]
 F[Teleport<br/>模态框渲染]
+G[表情包面板<br/>键盘事件处理]
 end
 subgraph "后端技术栈"
-G[Spring Boot 2.7+]
-H[Spring Data Elasticsearch]
-I[Elasticsearch 7.x+]
-J[JWT认证]
-K[Shiro安全框架]
+H[Spring Boot 2.7+]
+I[Spring Data Elasticsearch]
+J[Elasticsearch 7.x+]
+K[JWT认证]
+L[Shiro安全框架]
+M[Validation验证]
 end
 subgraph "数据库层"
-L[Elasticsearch索引]
-M[Redis缓存]
-N[文件存储]
+N[Elasticsearch索引<br/>评论索引映射]
+O[Redis缓存]
+P[文件存储]
 end
 A --> C
-C --> G
-G --> H
+C --> H
 H --> I
-I --> L
-G --> K
-G --> J
-G --> M
-G --> N
+I --> J
+J --> N
+H --> K
+H --> L
+H --> M
+H --> O
+H --> P
 F --> A
+G --> A
 ```
 
 **图表来源**
 - [application.yml](file://src/main/resources/application.yml#L1-L53)
 - [index.ts](file://frontend/src/router/index.ts#L1-L120)
+- [comment-mapping.json](file://src/main/resources/comment-mapping.json#L1-L42)
 
 ### 状态管理模式
 
@@ -283,8 +322,12 @@ stateDiagram-v2
 Loading --> Loaded : 数据获取成功
 Loading --> Error : 数据获取失败
 Loaded --> Viewing : 用户浏览文章
+Loaded --> Commenting : 用户评论
 Loaded --> Editing : 用户编辑文章
 Loaded --> Deleting : 用户删除文章
+Viewing --> Commenting : 点击评论输入
+Commenting --> Viewing : 发送评论成功
+Commenting --> Viewing : 取消评论
 Viewing --> Editing : 编辑按钮点击
 Viewing --> Deleting : 删除按钮点击
 Editing --> Viewing : 保存成功
@@ -292,6 +335,7 @@ Editing --> Viewing : 取消编辑
 Deleting --> Viewing : 删除确认
 Error --> Loading : 重新加载
 Viewing --> [*] : 页面关闭
+Commenting --> [*] : 页面关闭
 Editing --> [*] : 页面关闭
 Deleting --> [*] : 页面关闭
 ```
@@ -300,7 +344,7 @@ Deleting --> [*] : 页面关闭
 
 ### 主文章详情视图组件
 
-主文章详情视图提供了完整的阅读体验，包含图片画廊、作者信息、评论系统等丰富功能，并新增了多种导航方式。
+主文章详情视图提供了完整的阅读体验，包含图片画廊、作者信息、**评论系统**等丰富功能，并新增了多种导航方式。
 
 #### 主组件功能特性
 
@@ -339,11 +383,24 @@ AA --> |向上| U
 J --> AB[全屏图片浏览]
 AB --> AC[导航箭头]
 AC --> AD[指示器系统]
+P --> AE[评论列表渲染]
+P --> AF[评论输入框]
+P --> AG[回复功能]
+P --> AH[表情包支持]
+P --> AI[点赞功能]
+P --> AJ[删除权限控制]
+AE --> AK[分页加载]
+AF --> AL[键盘快捷键]
+AG --> AM[回复目标管理]
+AH --> AN[表情面板定位]
+AI --> AO[权限验证]
+AJ --> AP[管理员判断]
 ```
 
 **图表来源**
 - [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L77-L122)
 - [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L476-L587)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L709-L933)
 
 #### 增强的图片画廊功能
 
@@ -360,6 +417,104 @@ AC --> AD[指示器系统]
 **章节来源**
 - [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L77-L122)
 - [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L476-L587)
+
+### 评论系统组件
+
+**新增** 评论系统组件提供了文章评论的完整功能，包括评论列表展示、评论输入、回复功能、表情包支持、点赞和删除等操作。
+
+#### 评论数据结构
+
+```mermaid
+erDiagram
+COMMENT {
+string id PK
+string articleId
+string content
+string createdBy
+string creatorId
+string creatorAvatar
+string parentId
+string replyToId
+string replyToUser
+datetime createdTime
+long likeCount
+}
+REPLY {
+string id PK
+string articleId
+string content
+string createdBy
+string creatorId
+string creatorAvatar
+string parentId FK
+string replyToId
+string replyToUser
+datetime createdTime
+long likeCount
+}
+COMMENT ||--o{ REPLY : contains
+```
+
+**图表来源**
+- [Comment.java](file://src/main/java/com/zhishilu/entity/Comment.java#L16-L80)
+- [CommentResp.java](file://src/main/java/com/zhishilu/resp/CommentResp.java#L12-L78)
+
+#### 评论系统功能特性
+
+```mermaid
+flowchart TD
+A[评论系统初始化] --> B[加载评论列表]
+B --> C[渲染评论列表]
+C --> D[评论输入框]
+C --> E[回复功能]
+C --> F[表情包支持]
+C --> G[点赞功能]
+C --> H[删除权限控制]
+D --> I[输入验证]
+D --> J[键盘快捷键]
+D --> K[表情包插入]
+E --> L[回复目标管理]
+E --> M[回复预览]
+F --> N[表情面板定位]
+F --> O[表情包选择]
+G --> P[权限验证]
+G --> Q[点赞计数更新]
+H --> R[管理员判断]
+H --> S[作者权限]
+I --> T[内容长度限制]
+I --> U[特殊字符过滤]
+J --> V[Enter发送]
+J --> W[Esc取消]
+L --> X[根评论ID]
+L --> Y[被回复用户]
+M --> Z[预览数量限制]
+N --> AA[屏幕边界检测]
+O --> AB[光标位置保持]
+P --> AC[用户登录验证]
+Q --> AD[实时更新显示]
+R --> AE[管理员权限]
+S --> AF[作者身份验证]
+```
+
+**图表来源**
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L709-L933)
+- [CommentController.java](file://src/main/java/com/zhishilu/controller/CommentController.java#L28-L86)
+- [CommentService.java](file://src/main/java/com/zhishilu/service/CommentService.java#L37-L164)
+
+#### 评论交互功能
+
+- **评论列表展示**：支持分页加载，每页10条评论，根评论附带最多3条回复预览
+- **评论输入**：支持表情包插入、键盘快捷键、内容长度限制（500字）
+- **回复功能**：支持二级回复，显示回复关系，支持展开查看全部回复
+- **表情包支持**：100个常用表情包，支持键盘快捷键和鼠标点击
+- **点赞功能**：支持对评论点赞，实时更新点赞数
+- **删除权限控制**：仅评论作者或管理员可删除
+- **分页加载**：支持查看更多评论，无限滚动加载
+
+**章节来源**
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L709-L933)
+- [CommentController.java](file://src/main/java/com/zhishilu/controller/CommentController.java#L1-L88)
+- [CommentService.java](file://src/main/java/com/zhishilu/service/CommentService.java#L1-L165)
 
 ### 独立文章详情组件
 
@@ -496,36 +651,6 @@ J --> |否| L[显示关注按钮]
 **章节来源**
 - [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L127-L158)
 
-### 评论系统组件
-
-评论系统组件提供了文章评论的展示和交互功能，虽然在当前实现中使用模拟数据，但具备完整的扩展能力。
-
-#### 评论数据结构
-
-```mermaid
-erDiagram
-COMMENT {
-string user PK
-string content
-string time
-integer likes
-boolean isAuthor
-array replies
-}
-REPLY {
-string user PK
-string to
-string content
-}
-COMMENT ||--o{ REPLY : contains
-```
-
-**图表来源**
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L590-L626)
-
-**章节来源**
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L590-L626)
-
 ### 交互功能组件
 
 交互功能组件包括点赞、收藏、分享和评论发送等用户交互功能。
@@ -581,7 +706,7 @@ G --> H[显示搜索结果]
 - [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L11-L46)
 - [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L424-L433)
 
-### 社交媒体图标集成
+### 社ial媒体图标集成
 
 **新增** 底部区域集成了社交媒体图标，提供项目相关的外部链接。
 
@@ -606,7 +731,7 @@ E --> H[关注项目动态]
 
 ## 依赖关系分析
 
-文章详情视图的依赖关系体现了清晰的分层架构设计，各层职责明确，耦合度低。
+文章详情视图的依赖关系体现了清晰的分层架构设计，各层职责明确，耦合度低，评论系统作为独立模块被完整集成。
 
 ### 前端依赖关系
 
@@ -629,6 +754,7 @@ G[lucide-vue-next]
 H[vue-router]
 I[axios]
 J[teleport]
+K[表情包数组]
 end
 A --> D
 B --> E
@@ -639,6 +765,7 @@ C --> H
 D --> I
 E --> J
 F --> H
+A --> K
 ```
 
 **图表来源**
@@ -653,42 +780,56 @@ F --> H
 graph TB
 subgraph "表现层"
 A[ArticleController]
+B[CommentController]
 end
 subgraph "业务层"
-B[ArticleService]
+C[ArticleService]
+D[CommentService]
 end
 subgraph "数据访问层"
-C[ArticleRepository]
+E[ArticleRepository]
+F[CommentRepository]
 end
 subgraph "实体层"
-D[Article]
+G[Article]
+H[Comment]
 end
 subgraph "基础设施"
-E[Elasticsearch]
-F[Redis]
-G[JWT]
+I[Elasticsearch]
+J[Redis]
+K[JWT]
+L[Validation]
 end
-A --> B
-B --> C
-C --> D
-B --> E
-B --> F
-A --> G
+A --> C
+B --> D
+C --> E
+D --> F
+E --> G
+F --> H
+C --> I
+D --> I
+C --> J
+B --> K
+D --> L
 ```
 
 **图表来源**
 - [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L1-L187)
+- [CommentController.java](file://src/main/java/com/zhishilu/controller/CommentController.java#L1-L88)
 - [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L1-L1019)
+- [CommentService.java](file://src/main/java/com/zhishilu/service/CommentService.java#L1-L165)
 - [ArticleRepository.java](file://src/main/java/com/zhishilu/repository/ArticleRepository.java#L1-L25)
-- [Article.java](file://src/main/java/com/zhishilu/entity/Article.java#L1-L87)
+- [CommentRepository.java](file://src/main/java/com/zhishilu/repository/CommentRepository.java#L1-L25)
 
 **章节来源**
 - [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L1-L187)
+- [CommentController.java](file://src/main/java/com/zhishilu/controller/CommentController.java#L1-L88)
 - [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L1-L1019)
+- [CommentService.java](file://src/main/java/com/zhishilu/service/CommentService.java#L1-L165)
 
 ## 性能考虑
 
-文章详情视图在设计时充分考虑了性能优化，采用了多种策略来提升用户体验。
+文章详情视图在设计时充分考虑了性能优化，采用了多种策略来提升用户体验，评论系统的集成也经过了性能优化。
 
 ### 前端性能优化
 
@@ -712,6 +853,16 @@ A --> G
 - **事件驱动通信**：通过事件发射器减少组件间耦合
 - **响应式布局**：适配不同屏幕尺寸的优化布局
 - **节流控制**：鼠标滚轮导航使用节流防止频繁切换
+- **评论分页加载**：避免一次性加载大量评论数据
+- **回复预览优化**：根评论仅显示3条回复预览
+- **表情包缓存**：表情包列表静态定义，避免重复创建
+
+#### 评论系统性能优化
+- **分页加载**：每页10条评论，支持无限滚动
+- **回复预览**：根评论仅加载3条回复预览
+- **展开加载**：点击展开时才加载完整回复列表
+- **节流控制**：评论输入防抖，避免频繁提交
+- **权限缓存**：用户权限信息本地缓存
 
 ### 后端性能优化
 
@@ -719,21 +870,25 @@ A --> G
 - Elasticsearch全文搜索支持高并发查询
 - 使用分页查询避免大量数据传输
 - 结果集包含高亮片段减少前端处理
+- 评论查询使用复合索引优化
 
 #### 缓存策略
 - Redis缓存热门文章数据
 - 图片URL缓存减少重复计算
 - JWT令牌缓存提升认证效率
+- 评论预览缓存减少重复查询
 
 #### 异步处理
 - 文章创建/更新异步同步搜索建议
 - 异步更新搜索频率统计
 - 异步增量更新类别统计
+- 评论点赞异步更新计数
 
 **章节来源**
 - [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L95-L98)
 - [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L327-L328)
 - [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L664-L787)
+- [CommentService.java](file://src/main/java/com/zhishilu/service/CommentService.java#L68-L94)
 
 ## 故障排除指南
 
@@ -775,6 +930,20 @@ A --> G
 2. 验证用户身份信息
 3. 审核权限检查逻辑
 
+#### 评论功能异常
+**问题描述**：评论系统无法正常使用
+**可能原因**：
+- 评论API接口异常
+- 用户未登录
+- 评论内容格式错误
+- 权限验证失败
+
+**解决方案**：
+1. 检查评论API接口状态
+2. 验证用户登录状态
+3. 检查评论内容长度和格式
+4. 确认用户权限验证逻辑
+
 #### 组件通信问题
 **问题描述**：ArticleDetail组件无法正确接收文章数据
 **可能原因**：
@@ -807,21 +976,25 @@ A --> G
 - 监控图片加载性能
 - 使用Vue DevTools调试组件通信
 - 检查事件监听器是否正确绑定
+- 监控评论列表的分页加载状态
 
 #### 后端调试
 - 查看Elasticsearch查询日志
 - 监控数据库连接池状态
 - 检查JWT令牌生成和验证过程
+- 监控评论API的请求响应
+- 检查权限验证逻辑
 
 **章节来源**
 - [request.ts](file://frontend/src/utils/request.ts#L34-L62)
 - [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L292-L309)
+- [CommentController.java](file://src/main/java/com/zhishilu/controller/CommentController.java#L28-L86)
 
 ## 结论
 
 文章详情视图作为知识路项目的核心功能模块，展现了现代Web应用开发的最佳实践。通过精心设计的组件架构、完善的交互体验和全面的性能优化，为用户提供了优质的阅读体验。
 
-**更新** 新增的 ArticleDetail 组件进一步增强了系统的灵活性和可维护性，为不同场景下的文章展示提供了合适的解决方案。主文章详情视图的增强功能包括鼠标滚轮导航、触摸手势支持、键盘导航等，大大提升了用户体验。
+**更新** 新增的评论系统进一步增强了平台的社交互动功能，为用户提供了完整的评论、回复、点赞和删除等交互体验。评论系统采用分页加载机制，支持无限滚动，确保了良好的性能表现。独立的ArticleDetail组件可在个人中心等场景中复用，提供了更加简洁和专注的阅读体验。
 
 ### 设计亮点
 
@@ -832,7 +1005,9 @@ A --> G
 5. **组件复用**：独立的ArticleDetail组件可在多个场景中使用
 6. **增强导航**：支持多种导航方式满足不同用户需求
 7. **搜索集成**：内置搜索功能提升内容发现体验
-8. **社交集成**：社交媒体图标增强项目展示效果
+8. **社交集成**：完整的评论系统增强用户互动体验
+9. **表情包支持**：提供丰富的表情包选择提升交互趣味性
+10. **权限控制**：完善的权限验证确保系统安全性
 
 ### 技术优势
 
@@ -843,5 +1018,8 @@ A --> G
 - **灵活架构**：支持多种组件组合和复用场景
 - **性能优化**：节流控制、内存管理和渲染优化
 - **用户体验**：多样的导航方式和流畅的交互反馈
+- **评论系统**：完整的评论、回复、点赞功能
+- **分页加载**：高效的评论列表加载机制
+- **权限验证**：严格的用户权限控制
 
-该文章详情视图为整个知识路平台奠定了坚实的技术基础，为后续的功能扩展和性能优化提供了良好的起点。新增的ArticleDetail组件和增强的导航功能特别适合个人中心等场景，提供了更加简洁和专注的阅读体验。
+该文章详情视图为整个知识路平台奠定了坚实的技术基础，为后续的功能扩展和性能优化提供了良好的起点。新增的评论系统和增强的导航功能特别适合个人中心等场景，提供了更加丰富和互动的阅读体验。
