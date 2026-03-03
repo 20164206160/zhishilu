@@ -29,6 +29,9 @@
     "lastLoginTime": {
       "type": "date",
       "format": "yyyy-MM-dd'T'HH:mm:ss.SSS"
+    },
+    "authorized": {
+      "type": "integer"
     }
   }
 }

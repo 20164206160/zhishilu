@@ -194,7 +194,12 @@ const handleLogin = async () => {
       alert(res.data.message || '登录失败');
     }
   } catch (err: any) {
-    alert(err.response?.data?.message || '登录失败,请检查用户名和密码');
+    const message = err.response?.data?.message || '登录失败,请检查用户名和密码';
+    alert(message);
+    // 如果是未授权错误，提示用户联系管理员
+    if (message.includes('未授权')) {
+      console.log('用户未授权，需要联系网站管理员');
+    }
   } finally {
     loading.value = false;
   }

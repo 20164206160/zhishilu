@@ -47,6 +47,10 @@ upload:
   allowed-types: jpg,jpeg,png,gif,webp,bmp
   max-size: 10485760  # 10MB
 
+# 管理员配置
+admin:
+  usernames: lixiang
+
 # 日志配置
 logging:
   config: classpath:log4j2-spring.xml

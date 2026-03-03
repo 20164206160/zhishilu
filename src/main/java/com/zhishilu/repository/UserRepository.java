@@ -4,6 +4,7 @@ import com.zhishilu.entity.User;
 import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -31,4 +32,9 @@ public interface UserRepository extends ElasticsearchRepository<User, String> {
      * 检查邮箱是否存在
      */
     boolean existsByEmail(String email);
+    
+    /**
+     * 根据授权状态查询用户列表
+     */
+    List<User> findByAuthorized(Integer authorized);
 }

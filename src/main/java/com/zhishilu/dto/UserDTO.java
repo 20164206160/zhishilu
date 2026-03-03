@@ -49,4 +49,14 @@ public class UserDTO {
      * 最后登录时间
      */
     private LocalDateTime lastLoginTime;
+    
+    /**
+     * 是否为管理员
+     */
+    private Boolean admin;
+    
+    /**
+     * 是否已授权：0-未授权，1-已授权
+     */
+    private Integer authorized;
 }

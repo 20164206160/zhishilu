@@ -462,9 +462,11 @@ const currentUser = computed(() => {
   return null;
 });
 
-// 判断当前用户是否是文章作者
+// 判断当前用户是否是文章作者（或管理员）
 const isAuthor = computed(() => {
-  return currentUser.value && article.value && currentUser.value.username === article.value.createdBy;
+  if (!currentUser.value || !article.value) return false;
+  // 管理员可以编辑所有文章，普通用户只能编辑自己的文章
+  return currentUser.value.username === article.value.createdBy || currentUser.value.admin === true;
 });
 
 const handleScroll = () => {
@@ -663,7 +665,7 @@ const formatFullDate = (dateStr: string) => {
 // 跳转到编辑页面
 const handleEdit = () => {
   // 传递from参数，保持来源信息
-  router.push(`/article/${route.params.id}/edit?from=${from.value || ''}`);
+  router.push(`/article/edit/${route.params.id}?from=${from.value || ''}`);
 };
 
 // 删除文章

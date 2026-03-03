@@ -316,6 +316,32 @@ const loadArticle = async () => {
     const res = await request.get(`/article/detail/${articleId.value}`);
     if (res.data.code === 200) {
       const article = res.data.data;
+      
+      // 检查当前用户是否有权限编辑此文章
+      const storedUser = localStorage.getItem('user');
+      if (!storedUser) {
+        alert('请先登录');
+        router.push('/login');
+        return;
+      }
+      
+      const currentUser = JSON.parse(storedUser);
+      // 只有文章作者或管理员可以编辑
+      const isAuthor = currentUser.id === article.creatorId;
+      const isAdmin = currentUser.admin === true;
+      
+      if (!isAuthor && !isAdmin) {
+        alert('您没有权限编辑此文章');
+        // 返回到文章详情页
+        const fromTab = route.query.from as string;
+        if (fromTab === 'profile' || fromTab === 'content') {
+          router.push(`/article/${articleId.value}?from=profile`);
+        } else {
+          router.push(`/article/${articleId.value}`);
+        }
+        return;
+      }
+      
       form.title = article.title || '';
       form.categories = article.categories || [];
       form.images = article.images || [];

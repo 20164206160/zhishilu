@@ -60,6 +60,14 @@
                 <FileText :size="18" /> <span>草稿箱</span>
                 <span v-if="drafts.length > 0" class="ml-auto text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">{{ drafts.length }}</span>
               </button>
+              <!-- 管理员专用：用户管理 -->
+              <button v-if="isAdmin" @click="switchTab('users')"
+                      :class="['w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200', 
+                               activeTab === 'users' 
+                                 ? 'bg-blue-50 text-blue-600' 
+                                 : 'text-gray-600 hover:bg-gray-100']">
+                <Users :size="18" /> <span>用户管理</span>
+              </button>
             </nav>
 
             <!-- Logout Section -->
@@ -287,6 +295,96 @@
             </div>
           </div>
 
+          <!-- User Management (Admin Only) -->
+          <div v-else-if="activeTab === 'users'" class="lg:h-full lg:overflow-y-auto">
+            <div class="bg-white rounded-[20px] lg:h-full flex flex-col shadow-sm hover:shadow-md transition-shadow duration-300">
+              <!-- Header -->
+              <div class="p-4 sm:p-6 border-b border-gray-50">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <h2 class="text-lg sm:text-xl font-bold text-gray-900">用户管理</h2>
+                    <p class="text-xs text-gray-400 mt-1">管理用户授权状态</p>
+                  </div>
+                  <div class="flex gap-2">
+                    <button @click="userFilter = 'all'"
+                            :class="['px-3 py-1.5 rounded-lg text-xs font-medium transition-all', 
+                                     userFilter === 'all' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200']">
+                      全部
+                    </button>
+                    <button @click="userFilter = 'authorized'"
+                            :class="['px-3 py-1.5 rounded-lg text-xs font-medium transition-all', 
+                                     userFilter === 'authorized' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200']">
+                      已授权
+                    </button>
+                    <button @click="userFilter = 'unauthorized'"
+                            :class="['px-3 py-1.5 rounded-lg text-xs font-medium transition-all', 
+                                     userFilter === 'unauthorized' ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200']">
+                      未授权
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- User List -->
+              <div class="flex-1 p-4 sm:p-6 lg:overflow-y-auto">
+                <div v-if="usersLoading" class="space-y-3">
+                  <div v-for="i in 5" :key="i" class="h-16 bg-gray-100 rounded-xl animate-pulse"></div>
+                </div>
+
+                <div v-else-if="filteredUsers.length > 0" class="space-y-3">
+                  <div v-for="u in filteredUsers" :key="u.id" 
+                       class="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center overflow-hidden">
+                        <img v-if="u.avatar" :src="getAvatarUrl(u.avatar)" class="w-full h-full object-cover" />
+                        <UserIcon v-else :size="20" class="text-white" />
+                      </div>
+                      <div>
+                        <div class="flex items-center gap-2">
+                          <span class="font-medium text-gray-900">{{ u.username }}</span>
+                          <span v-if="u.admin" class="px-1.5 py-0.5 bg-purple-100 text-purple-600 text-[10px] rounded font-medium">管理员</span>
+                          <span v-else-if="u.authorized === 1" class="px-1.5 py-0.5 bg-green-100 text-green-600 text-[10px] rounded font-medium">已授权</span>
+                          <span v-else class="px-1.5 py-0.5 bg-orange-100 text-orange-600 text-[10px] rounded font-medium">未授权</span>
+                        </div>
+                        <p class="text-xs text-gray-400">{{ u.email || '未设置邮箱' }} · 注册于 {{ formatDate(u.createdTime) }}</p>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <!-- 授权按钮（仅对未授权非管理员用户显示） -->
+                      <button v-if="!u.admin && u.authorized !== 1" 
+                              @click="confirmAuthorize(u)"
+                              class="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                              title="授权用户">
+                        <UserCheck :size="18" />
+                      </button>
+                      <!-- 取消授权按钮（仅对已授权非管理员用户显示） -->
+                      <button v-if="!u.admin && u.authorized === 1" 
+                              @click="confirmUnauthorize(u)"
+                              class="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                              title="取消授权">
+                        <UserX :size="18" />
+                      </button>
+                      <!-- 删除按钮（仅对非管理员用户显示） -->
+                      <button v-if="!u.admin" 
+                              @click="confirmDeleteUser(u)"
+                              class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              title="删除用户">
+                        <Trash2 :size="18" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-else class="h-full flex flex-col items-center justify-center text-center py-20">
+                  <div class="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mb-4">
+                    <Users :size="32" class="text-gray-200" />
+                  </div>
+                  <p class="text-gray-400 font-medium">暂无用户</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Sub Views: Article Detail / Edit / Draft Edit -->
           <div v-else-if="subView" class="lg:h-full lg:overflow-y-auto">
             <div class="bg-white rounded-[20px] lg:h-full flex flex-col shadow-sm hover:shadow-md transition-shadow duration-300">
@@ -322,11 +420,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { 
   ChevronLeft, User as UserIcon, BookOpen, LogOut, 
-  Camera, Edit2, Trash2, Image as ImageIcon, FileText, Plus, Eye
+  Camera, Edit2, Trash2, Image as ImageIcon, FileText, Plus, Eye, Users, UserCheck, UserX, Shield
 } from 'lucide-vue-next';
 import request from '../utils/request';
 import ConfirmationModal from '@/components/ConfirmationModal.vue';
@@ -351,6 +449,20 @@ const drafts = ref<any[]>([]);
 const draftsLoading = ref(false);
 const selectedArticle = ref<any>(null);
 const selectedDraft = ref<any>(null);
+const isAdmin = ref(false);
+
+// User management data
+const users = ref<any[]>([]);
+const usersLoading = ref(false);
+const userFilter = ref<'all' | 'authorized' | 'unauthorized'>('all');
+
+// Filtered users based on selected filter
+const filteredUsers = computed(() => {
+  if (userFilter.value === 'all') return users.value;
+  if (userFilter.value === 'authorized') return users.value.filter(u => u.authorized === 1);
+  if (userFilter.value === 'unauthorized') return users.value.filter(u => u.authorized !== 1);
+  return users.value;
+});
 
 const pwdForm = reactive({
   oldPassword: '',
@@ -373,6 +485,10 @@ const switchTab = (tab: string) => {
   isDraftsView.value = tab === 'drafts';
   selectedArticle.value = null;
   selectedDraft.value = null;
+  // 切换到用户管理标签时加载用户列表
+  if (tab === 'users' && isAdmin.value) {
+    loadUsers();
+  }
 };
 
 // Sub view management
@@ -425,6 +541,8 @@ const loadData = async () => {
         userData.avatar = getAvatarUrl(userData.avatar);
       }
       user.value = userData;
+      // 检查是否为管理员
+      isAdmin.value = userData.admin === true;
     }
 
     const res = await request.get('/article/list', { 
@@ -579,6 +697,78 @@ const handleAvatarChange = async (event: Event) => {
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '';
   return new Date(dateStr).toLocaleDateString();
+};
+
+// ==================== User Management Methods ====================
+
+const loadUsers = async () => {
+  if (!isAdmin.value) return;
+  usersLoading.value = true;
+  try {
+    const res = await request.get('/user/list', { params: { page: 0, size: 100 } });
+    if (res.data.code === 200) {
+      users.value = res.data.data.list || [];
+    }
+  } catch (err) {
+    console.error('Load users error:', err);
+    alert('加载用户列表失败');
+  } finally {
+    usersLoading.value = false;
+  }
+};
+
+const confirmAuthorize = (targetUser: any) => {
+  confirmConfig.title = '确认授权用户？';
+  confirmConfig.message = `授权后，用户 "${targetUser.username}" 将可以正常登录和使用系统。`;
+  confirmConfig.type = 'primary';
+  confirmConfig.show = true;
+  confirmConfig.action = async () => {
+    try {
+      const res = await request.post(`/user/${targetUser.id}/authorize`);
+      if (res.data.code === 200) {
+        targetUser.authorized = 1;
+        alert('授权成功');
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || '授权失败');
+    }
+  };
+};
+
+const confirmUnauthorize = (targetUser: any) => {
+  confirmConfig.title = '确认取消授权？';
+  confirmConfig.message = `取消授权后，用户 "${targetUser.username}" 将被强制登出且无法再次登录，直到重新授权。`;
+  confirmConfig.type = 'danger';
+  confirmConfig.show = true;
+  confirmConfig.action = async () => {
+    try {
+      const res = await request.post(`/user/${targetUser.id}/unauthorize`);
+      if (res.data.code === 200) {
+        targetUser.authorized = 0;
+        alert('取消授权成功，用户已被强制登出');
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || '取消授权失败');
+    }
+  };
+};
+
+const confirmDeleteUser = (targetUser: any) => {
+  confirmConfig.title = '确认删除用户？';
+  confirmConfig.message = `删除用户 "${targetUser.username}" 后，该用户的所有数据将被清除且无法恢复。用户将被强制登出。`;
+  confirmConfig.type = 'danger';
+  confirmConfig.show = true;
+  confirmConfig.action = async () => {
+    try {
+      const res = await request.delete(`/user/${targetUser.id}`);
+      if (res.data.code === 200) {
+        users.value = users.value.filter(u => u.id !== targetUser.id);
+        alert('删除用户成功');
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || '删除用户失败');
+    }
+  };
 };
 
 onMounted(() => {

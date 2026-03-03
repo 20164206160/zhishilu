@@ -593,22 +593,32 @@ const hasSuggestions = computed(() => {
          suggestions.value.contents?.length > 0;
 });
 
-// 判断当前文章是否是当前用户发布的
+// 判断当前文章是否是当前用户发布的（或当前用户是管理员）
 const isCurrentUserArticle = computed(() => {
   if (!modalArticle.value) return false;
   const storedUser = localStorage.getItem('user');
   if (!storedUser) return false;
   const currentUser = JSON.parse(storedUser);
-  return currentUser.id === modalArticle.value.creatorId;
+  // 管理员可以编辑所有文章，普通用户只能编辑自己的文章
+  return currentUser.id === modalArticle.value.creatorId || currentUser.admin === true;
 });
 
 // 跳转到编辑页面
 const goToEdit = () => {
   const articleId = modalArticle.value?.id;
   if (articleId) {
-    // 关闭弹窗后再跳转
-    closeModal();
-    router.push(`/article/edit/${articleId}`);
+    // 先关闭弹窗（不恢复URL，因为我们要跳转到编辑页）
+    showModal.value = false;
+    currentImgIndex.value = 0;
+    // 恢复URL到首页
+    if (window.history.state?.modal) {
+      window.history.back();
+    }
+    // 延迟跳转，等待弹窗关闭动画完成
+    setTimeout(() => {
+      modalArticle.value = null;
+      router.push(`/article/edit/${articleId}`);
+    }, 100);
   }
 };
 

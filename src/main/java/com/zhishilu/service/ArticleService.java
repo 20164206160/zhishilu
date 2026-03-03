@@ -20,6 +20,7 @@ import com.zhishilu.entity.TitleSuggestion;
 import com.zhishilu.entity.UsernameSuggestion;
 import com.zhishilu.exception.BusinessException;
 import com.zhishilu.repository.ArticleRepository;
+import com.zhishilu.util.AdminUtil;
 import com.zhishilu.util.EsCompletionSuggestUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -110,8 +111,8 @@ public class ArticleService {
             article = articleRepository.findById(req.getId())
                     .orElseThrow(() -> new BusinessException("草稿不存在"));
             
-            // 权限检查
-            if (!article.getCreatorId().equals(currentUser.getId())) {
+            // 权限检查：只有创建者或管理员可以修改
+            if (!article.getCreatorId().equals(currentUser.getId()) && !AdminUtil.isAdmin(currentUser)) {
                 throw new BusinessException(403, "没有权限修改此草稿");
             }
             
@@ -161,8 +162,8 @@ public class ArticleService {
         Article article = articleRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("草稿不存在"));
         
-        // 权限检查
-        if (!article.getCreatorId().equals(currentUser.getId())) {
+        // 权限检查：只有创建者或管理员可以查看
+        if (!article.getCreatorId().equals(currentUser.getId()) && !AdminUtil.isAdmin(currentUser)) {
             throw new BusinessException(403, "没有权限查看此草稿");
         }
         
@@ -180,8 +181,8 @@ public class ArticleService {
         Article article = articleRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("草稿不存在"));
         
-        // 权限检查
-        if (!article.getCreatorId().equals(currentUser.getId())) {
+        // 权限检查：只有创建者或管理员可以删除
+        if (!article.getCreatorId().equals(currentUser.getId()) && !AdminUtil.isAdmin(currentUser)) {
             throw new BusinessException(403, "没有权限删除此草稿");
         }
         
@@ -200,8 +201,8 @@ public class ArticleService {
         Article article = articleRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("草稿不存在"));
         
-        // 权限检查
-        if (!article.getCreatorId().equals(currentUser.getId())) {
+        // 权限检查：只有创建者或管理员可以发布
+        if (!article.getCreatorId().equals(currentUser.getId()) && !AdminUtil.isAdmin(currentUser)) {
             throw new BusinessException(403, "没有权限发布此草稿");
         }
         
@@ -239,8 +240,8 @@ public class ArticleService {
         Article article = articleRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("文章不存在"));
         
-        // 权限检查：只有创建者可以修改
-        if (!article.getCreatorId().equals(currentUser.getId())) {
+        // 权限检查：只有创建者或管理员可以修改
+        if (!article.getCreatorId().equals(currentUser.getId()) && !AdminUtil.isAdmin(currentUser)) {
             throw new BusinessException(403, "没有权限修改此文章");
         }
         
@@ -294,8 +295,8 @@ public class ArticleService {
         Article article = articleRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("文章不存在"));
         
-        // 权限检查：只有创建者可以删除
-        if (!article.getCreatorId().equals(currentUser.getId())) {
+        // 权限检查：只有创建者或管理员可以删除
+        if (!article.getCreatorId().equals(currentUser.getId()) && !AdminUtil.isAdmin(currentUser)) {
             throw new BusinessException(403, "没有权限删除此文章");
         }
         

@@ -23,6 +23,9 @@
 - 改进主文章详情视图的图片画廊功能和交互体验
 - 在个人中心中集成新的 ArticleDetail 组件
 - 增强图片预览模态框的导航和指示器功能
+- 新增鼠标滚轮图片导航、触摸手势支持、键盘导航
+- 集成搜索功能和社交媒体图标
+- 改进加载状态和响应式设计
 
 ## 目录
 1. [简介](#简介)
@@ -39,7 +42,7 @@
 
 文章详情视图是知识路（zhishilu）项目中的核心功能模块，负责展示单篇文章的完整内容。该视图采用响应式设计，支持桌面端和移动端的无缝浏览体验，包含图片画廊、内容展示、作者信息、评论系统和交互功能等完整的阅读体验。
 
-**更新** 新增了独立的 ArticleDetail 组件，专门用于个人中心的文章详情展示，提供更简洁的阅读体验。
+**更新** 新增了独立的 ArticleDetail 组件，专门用于个人中心的文章详情展示，提供更简洁的阅读体验。主文章详情视图现已集成鼠标滚轮导航、触摸手势支持、键盘导航等增强功能。
 
 ## 项目结构
 
@@ -81,15 +84,15 @@ J --> L
 ```
 
 **图表来源**
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L1-L565)
-- [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L1-L197)
-- [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L285-L301)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L1-L759)
+- [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L1-L243)
+- [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L388-L405)
 - [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L1-L187)
 
 **章节来源**
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L1-L565)
-- [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L1-L197)
-- [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L285-L301)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L1-L759)
+- [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L1-L243)
+- [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L388-L405)
 - [index.ts](file://frontend/src/router/index.ts#L1-L120)
 
 ## 核心组件
@@ -113,6 +116,13 @@ class ArticleDetailView {
 +openImagePreview(index) void
 +formatDate(date) string
 +formatFullDate(date) string
++handleWheel(event) void
++handleTouchStart(event) void
++handleTouchMove(event) void
++handleTouchEnd() void
++handleKeydown(event) void
++nextImage() void
++prevImage() void
 }
 class ArticleDetail {
 +article : Article
@@ -127,6 +137,7 @@ class ArticleDetail {
 +openPreview(index) void
 +closePreview() void
 +formatDate(date) string
++handleWheel(event) void
 }
 class ProfileView {
 +subView : Ref~string~
@@ -173,9 +184,9 @@ ArticleRepository --> Article : "持久化"
 ```
 
 **图表来源**
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L283-L518)
-- [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L128-L187)
-- [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L372-L395)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L370-L712)
+- [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L132-L243)
+- [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L494-L531)
 - [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L69-L74)
 
 ### 数据流架构
@@ -210,14 +221,14 @@ Detail-->>User : 渲染简化版文章详情
 ```
 
 **图表来源**
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L435-L446)
-- [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L287-L291)
-- [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L1-L197)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L628-L639)
+- [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L495-L498)
+- [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L1-L243)
 
 **章节来源**
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L1-L565)
-- [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L1-L197)
-- [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L285-L301)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L1-L759)
+- [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L1-L243)
+- [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L388-L405)
 - [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L1-L187)
 
 ## 架构概览
@@ -289,7 +300,7 @@ Deleting --> [*] : 页面关闭
 
 ### 主文章详情视图组件
 
-主文章详情视图提供了完整的阅读体验，包含图片画廊、作者信息、评论系统等丰富功能。
+主文章详情视图提供了完整的阅读体验，包含图片画廊、作者信息、评论系统等丰富功能，并新增了多种导航方式。
 
 #### 主组件功能特性
 
@@ -302,48 +313,57 @@ C --> E[左侧图片画廊]
 C --> F[右侧内容区域]
 E --> G[触摸滑动事件]
 E --> H[键盘导航事件]
-E --> I[图片预览模态框]
-F --> J[作者信息展示]
-F --> K[文章内容渲染]
-F --> L[分类标签显示]
-F --> M[位置信息展示]
-F --> N[发布时间显示]
-F --> O[评论系统]
-F --> P[交互功能]
-G --> Q[计算滑动距离]
-Q --> R{滑动距离足够?}
-R --> |向左| S[下一张图片]
-R --> |向右| T[上一张图片]
-R --> |不够| U[保持当前位置]
-H --> V{按键类型}
-V --> |ArrowLeft| S
-V --> |ArrowRight| T
-V --> |Escape| W[关闭预览]
-I --> X[全屏图片浏览]
-X --> Y[导航箭头]
-X --> Z[指示器系统]
+E --> I[鼠标滚轮导航]
+E --> J[图片预览模态框]
+F --> K[作者信息展示]
+F --> L[文章内容渲染]
+F --> M[分类标签显示]
+F --> N[位置信息展示]
+F --> O[发布时间显示]
+F --> P[评论系统]
+F --> Q[交互功能]
+G --> R[计算滑动距离]
+R --> S{滑动距离足够?}
+S --> |向左| T[下一张图片]
+S --> |向右| U[上一张图片]
+S --> |不够| V[保持当前位置]
+H --> W{按键类型}
+W --> |ArrowLeft| T
+W --> |ArrowRight| U
+W --> |Escape| X[关闭预览]
+I --> Y[滚轮事件处理]
+Y --> Z[节流控制]
+Z --> AA{滚动方向}
+AA --> |向下| T
+AA --> |向上| U
+J --> AB[全屏图片浏览]
+AB --> AC[导航箭头]
+AC --> AD[指示器系统]
 ```
 
 **图表来源**
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L15-L64)
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L338-L394)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L77-L122)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L476-L587)
 
-#### 图片画廊增强功能
+#### 增强的图片画廊功能
 
 **更新** 主文章详情视图的图片画廊功能得到了显著改进：
 
+- **鼠标滚轮导航**：支持垂直滚动切换图片，带有节流控制防止快速切换
+- **触摸手势支持**：完整的触摸滑动事件处理，支持左右滑动切换
+- **键盘导航**：支持左右箭头键快速切换图片
 - **响应式布局**：根据屏幕尺寸调整图片画廊宽度（55%-60%）
 - **增强的触摸手势**：支持更灵敏的滑动操作
 - **改进的键盘导航**：支持左右箭头键快速切换
 - **优化的预览体验**：全屏图片浏览支持手势和键盘导航
 
 **章节来源**
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L15-L64)
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L338-L394)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L77-L122)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L476-L587)
 
 ### 独立文章详情组件
 
-**新增** ArticleDetail 组件专门用于个人中心的文章详情展示，提供更简洁的阅读体验。
+**新增** ArticleDetail 组件专门用于个人中心的文章详情展示，提供更简洁的阅读体验，并集成了相同的导航功能。
 
 #### 组件设计特点
 
@@ -354,31 +374,34 @@ B --> C[渲染简化布局]
 C --> D[图片画廊区域]
 C --> E[文章信息区域]
 D --> F[基础图片导航]
-F --> G[点击预览功能]
-E --> H[标题展示]
-E --> I[元信息显示]
-E --> J[分类标签]
-E --> K[内容渲染]
-E --> L[来源链接]
-G --> M[模态框预览]
-M --> N[全屏浏览]
-N --> O[导航控制]
-O --> P[指示器显示]
+F --> G[鼠标滚轮导航]
+F --> H[点击预览功能]
+E --> I[标题展示]
+E --> J[元信息显示]
+E --> K[分类标签]
+E --> L[内容渲染]
+E --> M[来源链接]
+G --> N[节流控制]
+H --> O[模态框预览]
+O --> P[全屏浏览]
+P --> Q[导航控制]
+Q --> R[指示器显示]
 ```
 
 **图表来源**
-- [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L1-L126)
-- [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L27-L58)
+- [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L1-L94)
+- [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L28-L60)
 
 #### 组件交互功能
 
 - **事件驱动**：通过事件发射器与父组件通信
-- **简化导航**：提供基本的图片切换功能
+- **简化导航**：提供基本的图片切换功能，包括鼠标滚轮导航
 - **响应式设计**：适配不同屏幕尺寸
 - **模态框预览**：支持全屏图片浏览
+- **节流控制**：防止快速滚动导致的频繁切换
 
 **章节来源**
-- [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L1-L197)
+- [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L1-L243)
 
 ### 个人中心集成
 
@@ -404,12 +427,12 @@ I --> N[删除确认]
 ```
 
 **图表来源**
-- [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L285-L301)
-- [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L372-L395)
+- [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L388-L405)
+- [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L391-L395)
 
 **章节来源**
-- [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L285-L301)
-- [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L372-L395)
+- [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L388-L405)
+- [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L494-L531)
 
 ### 内容展示组件
 
@@ -438,11 +461,11 @@ L --> M
 ```
 
 **图表来源**
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L105-L131)
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L450-L472)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L163-L187)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L641-L663)
 
 **章节来源**
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L105-L131)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L163-L187)
 
 ### 作者信息组件
 
@@ -467,11 +490,11 @@ J --> |否| L[显示关注按钮]
 ```
 
 **图表来源**
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L69-L100)
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L318-L334)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L127-L158)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L466-L470)
 
 **章节来源**
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L69-L100)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L127-L158)
 
 ### 评论系统组件
 
@@ -498,10 +521,10 @@ COMMENT ||--o{ REPLY : contains
 ```
 
 **图表来源**
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L399-L435)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L590-L626)
 
 **章节来源**
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L134-L177)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L590-L626)
 
 ### 交互功能组件
 
@@ -528,10 +551,58 @@ ShareDialog --> Idle : 关闭对话框
 ```
 
 **图表来源**
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L180-L213)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L236-L269)
 
 **章节来源**
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L180-L213)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L236-L269)
+
+### 搜索功能集成
+
+**新增** 主文章详情视图集成了完整的搜索功能，提供多种搜索选项和占位符提示。
+
+#### 搜索功能架构
+
+```mermaid
+flowchart TD
+A[搜索框初始化] --> B[选择搜索字段]
+B --> C[输入搜索关键词]
+C --> D[点击搜索按钮]
+D --> E[跳转到首页]
+E --> F[携带搜索参数]
+F --> G[执行搜索查询]
+G --> H[显示搜索结果]
+```
+
+**图表来源**
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L11-L46)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L424-L433)
+
+**章节来源**
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L11-L46)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L424-L433)
+
+### 社交媒体图标集成
+
+**新增** 底部区域集成了社交媒体图标，提供项目相关的外部链接。
+
+#### 社交媒体集成
+
+```mermaid
+flowchart TD
+A[底部区域] --> B[社交媒体图标组]
+B --> C[Github图标]
+B --> D[邮件图标]
+B --> E[Twitter图标]
+C --> F[链接到项目仓库]
+D --> G[联系邮箱]
+E --> H[关注项目动态]
+```
+
+**图表来源**
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L296-L304)
+
+**章节来源**
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L296-L304)
 
 ## 依赖关系分析
 
@@ -571,9 +642,9 @@ F --> H
 ```
 
 **图表来源**
-- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L283-L292)
-- [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L128-L131)
-- [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L327-L329)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L379-L380)
+- [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L134-L135)
+- [ProfileView.vue](file://frontend/src/views/ProfileView.vue#L431-L433)
 - [index.ts](file://frontend/src/router/index.ts#L1-L120)
 
 ### 后端依赖关系
@@ -607,13 +678,13 @@ A --> G
 
 **图表来源**
 - [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L1-L187)
-- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L1-L1018)
+- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L1-L1019)
 - [ArticleRepository.java](file://src/main/java/com/zhishilu/repository/ArticleRepository.java#L1-L25)
 - [Article.java](file://src/main/java/com/zhishilu/entity/Article.java#L1-L87)
 
 **章节来源**
 - [ArticleController.java](file://src/main/java/com/zhishilu/controller/ArticleController.java#L1-L187)
-- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L1-L1018)
+- [ArticleService.java](file://src/main/java/com/zhishilu/service/ArticleService.java#L1-L1019)
 
 ## 性能考虑
 
@@ -640,6 +711,7 @@ A --> G
 - **独立组件复用**：ArticleDetail组件可在多个场景中复用
 - **事件驱动通信**：通过事件发射器减少组件间耦合
 - **响应式布局**：适配不同屏幕尺寸的优化布局
+- **节流控制**：鼠标滚轮导航使用节流防止频繁切换
 
 ### 后端性能优化
 
@@ -715,6 +787,18 @@ A --> G
 2. 验证事件发射器的参数传递
 3. 确保组件正确挂载和卸载
 
+#### 导航功能异常
+**问题描述**：鼠标滚轮、触摸手势或键盘导航失效
+**可能原因**：
+- 事件监听器未正确绑定
+- 节流控制逻辑错误
+- 边界条件检查问题
+
+**解决方案**：
+1. 检查事件处理器绑定
+2. 验证节流控制参数
+3. 确认边界条件判断
+
 ### 调试技巧
 
 #### 前端调试
@@ -722,6 +806,7 @@ A --> G
 - 检查Vue DevTools中的组件状态
 - 监控图片加载性能
 - 使用Vue DevTools调试组件通信
+- 检查事件监听器是否正确绑定
 
 #### 后端调试
 - 查看Elasticsearch查询日志
@@ -736,7 +821,7 @@ A --> G
 
 文章详情视图作为知识路项目的核心功能模块，展现了现代Web应用开发的最佳实践。通过精心设计的组件架构、完善的交互体验和全面的性能优化，为用户提供了优质的阅读体验。
 
-**更新** 新增的 ArticleDetail 组件进一步增强了系统的灵活性和可维护性，为不同场景下的文章展示提供了合适的解决方案。
+**更新** 新增的 ArticleDetail 组件进一步增强了系统的灵活性和可维护性，为不同场景下的文章展示提供了合适的解决方案。主文章详情视图的增强功能包括鼠标滚轮导航、触摸手势支持、键盘导航等，大大提升了用户体验。
 
 ### 设计亮点
 
@@ -745,6 +830,9 @@ A --> G
 3. **性能优化**：采用多种策略确保流畅的用户体验
 4. **可扩展性**：清晰的架构设计便于功能扩展和维护
 5. **组件复用**：独立的ArticleDetail组件可在多个场景中使用
+6. **增强导航**：支持多种导航方式满足不同用户需求
+7. **搜索集成**：内置搜索功能提升内容发现体验
+8. **社交集成**：社交媒体图标增强项目展示效果
 
 ### 技术优势
 
@@ -753,5 +841,7 @@ A --> G
 - **安全可靠**：完善的权限控制和数据验证机制
 - **易于维护**：模块化的代码结构和清晰的文档
 - **灵活架构**：支持多种组件组合和复用场景
+- **性能优化**：节流控制、内存管理和渲染优化
+- **用户体验**：多样的导航方式和流畅的交互反馈
 
-该文章详情视图为整个知识路平台奠定了坚实的技术基础，为后续的功能扩展和性能优化提供了良好的起点。新增的ArticleDetail组件特别适合个人中心等场景，提供了更加简洁和专注的阅读体验。
+该文章详情视图为整个知识路平台奠定了坚实的技术基础，为后续的功能扩展和性能优化提供了良好的起点。新增的ArticleDetail组件和增强的导航功能特别适合个人中心等场景，提供了更加简洁和专注的阅读体验。

@@ -7,16 +7,21 @@ import com.zhishilu.resp.LoginResp;
 import com.zhishilu.resp.UserResp;
 import com.zhishilu.entity.User;
 import com.zhishilu.exception.BusinessException;
+import com.zhishilu.config.AdminConfig;
 import com.zhishilu.repository.UserRepository;
 import com.zhishilu.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.crypto.hash.Sha256Hash;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * 用户服务
@@ -29,6 +34,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
     private final RedisTokenService redisTokenService;
+    private final AdminConfig adminConfig;
     
     private static final String SALT = "zhishilu";
     
@@ -53,6 +59,7 @@ public class UserService {
         user.setNickname(req.getNickname() != null ? req.getNickname() : req.getUsername());
         user.setEmail(req.getEmail());
         user.setStatus(1);
+        user.setAuthorized(0); // 新用户默认未授权
         user.setCreatedTime(LocalDateTime.now());
         
         user = userRepository.save(user);
@@ -74,6 +81,11 @@ public class UserService {
         // 检查用户状态
         if (user.getStatus() != 1) {
             throw new BusinessException("账号已被禁用");
+        }
+        
+        // 检查用户是否已授权
+        if (user.getAuthorized() == null || user.getAuthorized() != 1) {
+            throw new BusinessException("用户未授权，请联系网站人员");
         }
         
         // 更新最后登录时间
@@ -144,6 +156,8 @@ public class UserService {
     private UserResp convertToUserResp(User user) {
         UserResp resp = new UserResp();
         BeanUtils.copyProperties(user, resp);
+        // 设置管理员标识
+        resp.setAdmin(adminConfig.isAdmin(user.getUsername()));
         return resp;
     }
     
@@ -153,6 +167,64 @@ public class UserService {
     private UserDTO convertToUserDTO(User user) {
         UserDTO dto = new UserDTO();
         BeanUtils.copyProperties(user, dto);
+        // 设置管理员标识
+        dto.setAdmin(adminConfig.isAdmin(user.getUsername()));
         return dto;
+    }
+    
+    // ==================== 用户管理接口（管理员专用） ====================
+    
+    /**
+     * 获取所有用户列表（分页）
+     */
+    public Page<UserResp> getUserList(Pageable pageable) {
+        Page<User> userPage = userRepository.findAll(pageable);
+        return userPage.map(this::convertToUserResp);
+    }
+    
+    /**
+     * 根据授权状态查询用户列表
+     */
+    public List<UserResp> getUsersByAuthorized(Integer authorized) {
+        List<User> users = userRepository.findByAuthorized(authorized);
+        return users.stream()
+                .map(this::convertToUserResp)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * 授权用户
+     */
+    public void authorizeUser(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("用户不存在"));
+        user.setAuthorized(1);
+        userRepository.save(user);
+        log.info("用户 {} 已被授权", user.getUsername());
+    }
+    
+    /**
+     * 取消授权用户
+     */
+    public void unauthorizeUser(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("用户不存在"));
+        user.setAuthorized(0);
+        userRepository.save(user);
+        // 删除用户的Token，强制登出
+        redisTokenService.removeTokenByUserId(userId);
+        log.info("用户 {} 授权已被取消，Token已清除", user.getUsername());
+    }
+    
+    /**
+     * 删除用户
+     */
+    public void deleteUser(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("用户不存在"));
+        // 删除用户的Token，强制登出
+        redisTokenService.removeTokenByUserId(userId);
+        userRepository.delete(user);
+        log.info("用户 {} 已被删除", user.getUsername());
     }
 }

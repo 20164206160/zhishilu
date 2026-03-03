@@ -55,5 +55,23 @@ public class RedisTokenService {
     public boolean exists(String token) {
         return Boolean.TRUE.equals(redisTemplate.hasKey(token));
     }
+    
+    /**
+     * 根据用户ID删除Token（用于强制用户登出）
+     * 注意：此方法会遍历所有Token，性能较低，仅在必要时使用
+     */
+    public void removeTokenByUserId(String userId) {
+        // 使用keys命令查找所有Token（生产环境建议使用Scan）
+        var keys = redisTemplate.keys("*");
+        if (keys != null) {
+            for (String key : keys) {
+                String storedUserId = redisTemplate.opsForValue().get(key);
+                if (userId.equals(storedUserId)) {
+                    redisTemplate.delete(key);
+                    log.info("已删除用户 {} 的Token: {}", userId, key);
+                }
+            }
+        }
+    }
 }
 

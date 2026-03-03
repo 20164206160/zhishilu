@@ -8,12 +8,9 @@
 - [router/index.ts](file://frontend/src/router/index.ts)
 - [stores/counter.ts](file://frontend/src/stores/counter.ts)
 - [views/HomeView.vue](file://frontend/src/views/HomeView.vue)
-- [views/LoginView.vue](file://frontend/src/views/LoginView.vue)
-- [views/RegisterView.vue](file://frontend/src/views/RegisterView.vue)
-- [views/ProfileView.vue](file://frontend/src/views/ProfileView.vue)
-- [views/ArticleCreateView.vue](file://frontend/src/views/ArticleCreateView.vue)
-- [views/ArticleEditView.vue](file://frontend/src/views/ArticleEditView.vue)
-- [views/DraftEditView.vue](file://frontend/src/views/DraftEditView.vue)
+- [views/ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue)
+- [components/ArticleCard.vue](file://frontend/src/components/ArticleCard.vue)
+- [components/profile/ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue)
 - [utils/request.ts](file://frontend/src/utils/request.ts)
 - [utils/image.ts](file://frontend/src/utils/image.ts)
 - [components/ArticleCard.vue](file://frontend/src/components/ArticleCard.vue)
@@ -24,6 +21,14 @@
 - [tailwind.config.js](file://frontend/tailwind.config.js)
 - [postcss.config.js](file://frontend/postcss.config.js)
 </cite>
+
+## 更新摘要
+**所做更改**
+- 新增文章详情组件（ArticleDetailView）的详细分析
+- 更新主页组件（HomeView）的图片轮播功能说明
+- 增强文章卡片组件（ArticleCard）的交互模式描述
+- 更新组件间的依赖关系和交互流程
+- 新增图片轮播功能的技术实现细节
 
 ## 目录
 1. [简介](#简介)
@@ -40,7 +45,7 @@
 
 这是一个基于Vue 3构建的个人知识管理组件库，名为"知拾录"。该项目采用现代化的前端技术栈，包括Vue 3、TypeScript、Pinia状态管理、Vue Router路由管理和TailwindCSS样式框架。系统提供了完整的知识库管理功能，包括文章浏览、搜索、编辑和个人资料管理等核心功能。
 
-**更新** 新增了富文本编辑器、高级模态框等组件，增强了用户体验和功能完整性。**ArticleCard组件UI布局优化**：添加flex-grow元素提升视觉层次和内容排列的一致性。
+**更新** 新增了富文本编辑器、高级模态框等组件，增强了用户体验和功能完整性。**ArticleCard组件UI布局优化**：添加flex-grow元素提升视觉层次和内容排列的一致性。**文章详情组件增强**：新增ArticleDetailView组件，提供完整的文章展示和交互功能。**主页组件图片轮播优化**：HomeView组件的图片轮播功能得到显著增强，支持触摸滑动、鼠标滚轮等多种交互方式。
 
 ## 项目结构
 
@@ -70,7 +75,7 @@ N[package.json依赖管理] --> A
 **图表来源**
 - [main.ts](file://frontend/src/main.ts#L1-L11)
 - [App.vue](file://frontend/src/App.vue#L1-L16)
-- [router/index.ts](file://frontend/src/router/index.ts#L1-L85)
+- [router/index.ts](file://frontend/src/router/index.ts#L1-L120)
 
 **章节来源**
 - [package.json](file://frontend/package.json#L1-L64)
@@ -101,7 +106,7 @@ N[package.json依赖管理] --> A
 
 **章节来源**
 - [main.ts](file://frontend/src/main.ts#L1-L11)
-- [router/index.ts](file://frontend/src/router/index.ts#L1-L85)
+- [router/index.ts](file://frontend/src/router/index.ts#L1-L120)
 - [stores/counter.ts](file://frontend/src/stores/counter.ts#L1-L13)
 
 ## 架构概览
@@ -134,6 +139,229 @@ Note over U,FE : 用户认证流程
 - [vite.config.ts](file://frontend/vite.config.ts#L22-L27)
 
 ## 详细组件分析
+
+### 文章详情组件 (ArticleDetailView)
+
+**更新** 新增了完整的文章详情展示组件，提供丰富的交互功能和优化的用户体验。
+
+文章详情组件是展示单篇文章完整内容的组件，支持多图片文章的轮播浏览和丰富的交互功能：
+
+#### 核心功能特性
+
+1. **多图片轮播系统**：支持多张图片的无缝轮播展示，包含触摸滑动、鼠标滚轮、键盘导航等多种交互方式
+2. **响应式布局设计**：适配不同屏幕尺寸的图片展示和内容布局
+3. **图片预览功能**：支持点击图片进入全屏预览模式
+4. **作者信息展示**：显示文章作者信息、发布时间、地点等元数据
+5. **评论系统集成**：内置模拟评论系统的展示和交互
+6. **交互式内容区域**：支持点赞、收藏、评论等社交功能
+
+#### 图片轮播功能实现
+
+```mermaid
+flowchart TD
+A[图片轮播系统] --> B{用户交互方式}
+B --> |触摸滑动| C[handleTouchStart/Move/End]
+B --> |鼠标滚轮| D[handleWheel事件]
+B --> |键盘导航| E[handleKeydown事件]
+B --> |点击指示器| F[currentImgIndex更新]
+C --> G[边界限制检查]
+D --> G
+E --> G
+G --> H{图片索引更新}
+H --> I[CSS Transform动画]
+I --> J[图片切换效果]
+```
+
+**图表来源**
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L476-L587)
+
+#### 图片轮播交互流程
+
+```mermaid
+sequenceDiagram
+participant U as 用户
+participant AD as ArticleDetailView
+participant IMG as 图片轮播
+U->>AD : 触摸滑动图片
+AD->>AD : 计算滑动距离
+AD->>IMG : 更新currentImgIndex
+IMG->>IMG : CSS Transform动画
+IMG-->>U : 图片切换效果
+U->>AD : 鼠标滚轮
+AD->>AD : 检测滚轮方向
+AD->>IMG : 边界检查
+IMG->>IMG : 平滑切换
+U->>AD : 点击导航按钮
+AD->>IMG : 直接跳转到指定图片
+IMG->>IMG : 瞬间定位
+```
+
+**图表来源**
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L510-L561)
+
+**章节来源**
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L1-L759)
+
+### 主页组件 (HomeView)
+
+**更新** HomeView组件的图片轮播功能得到显著增强，支持更流畅的动画效果和更丰富的交互方式。
+
+主页是整个应用的核心组件，实现了完整的知识库浏览和搜索功能：
+
+#### 核心功能特性
+
+1. **智能搜索系统**：支持多字段搜索（标题、内容、类别、用户名、地点）
+2. **实时搜索建议**：集成搜索补全功能
+3. **响应式网格布局**：自适应不同屏幕尺寸的卡片展示
+4. **分页加载**：支持大数据量的分页浏览
+5. **图片预览**：支持多图片文章的大图浏览
+6. **弹窗详情**：桌面端支持弹窗形式的文章详情展示
+
+#### 图片轮播功能增强
+
+```mermaid
+flowchart TD
+A[HomeView图片轮播] --> B{桌面端弹窗}
+B --> |有图片| C[左侧图片区域]
+B --> |无图片| D[右侧内容区域]
+C --> E[触摸滑动支持]
+C --> F[鼠标滚轮切换]
+C --> G[导航箭头显示]
+C --> H[指示器圆点]
+E --> I[平滑动画效果]
+F --> I
+G --> I
+H --> I
+I --> J[边界限制控制]
+J --> K[节流防抖处理]
+```
+
+**图表来源**
+- [HomeView.vue](file://frontend/src/views/HomeView.vue#L284-L330)
+
+#### 组件交互流程
+
+```mermaid
+sequenceDiagram
+participant U as 用户
+participant HV as HomeView
+participant AC as ArticleCard
+participant API as 后端API
+U->>HV : 输入搜索词
+HV->>HV : 防抖处理 (300ms)
+HV->>API : 获取搜索建议
+API-->>HV : 返回建议列表
+HV->>HV : 显示建议下拉框
+U->>HV : 点击搜索按钮
+HV->>API : 获取文章列表
+API-->>HV : 返回文章数据
+HV->>AC : 渲染文章卡片
+AC->>HV : 打开详情弹窗
+HV->>API : 获取文章详情
+API-->>HV : 返回详情数据
+HV->>HV : 显示详情弹窗
+```
+
+**图表来源**
+- [HomeView.vue](file://frontend/src/views/HomeView.vue#L821-L839)
+- [ArticleCard.vue](file://frontend/src/components/ArticleCard.vue#L105-L112)
+
+**章节来源**
+- [HomeView.vue](file://frontend/src/views/HomeView.vue#L1-L1172)
+
+### 文章卡片组件 (ArticleCard)
+
+**更新** ArticleCard组件经过UI布局优化，添加flex-grow元素提升视觉层次和内容排列的一致性。
+
+文章卡片是展示单个知识条目的组件，具有丰富的交互功能：
+
+#### 主要特性
+
+1. **双模式展示**：支持图片模式和文字模式
+2. **智能内容预览**：根据是否有图片自动切换展示方式
+3. **高亮显示**：支持搜索关键词的高亮显示
+4. **响应式设计**：适配不同屏幕尺寸
+5. **交互优化**：桌面端弹窗、移动端跳转的不同体验
+6. **视觉层次优化**：通过flex-grow元素提升内容排列一致性
+
+#### 布局优化细节
+
+组件的底部信息区域采用了flex布局优化：
+
+```mermaid
+flowchart TD
+A[ArticleCard底部信息区] --> B[flex flex-col flex-grow]
+B --> C[标题区域]
+B --> D[正文摘要区域]
+B --> E[flex-grow占位元素]
+B --> F[发布人信息区域]
+B --> G[时间和地点区域]
+B --> H[链接区域]
+E --> I[视觉层次提升]
+I --> J[内容排列一致性]
+```
+
+**图表来源**
+- [ArticleCard.vue](file://frontend/src/components/ArticleCard.vue#L42-L57)
+
+#### 内容展示逻辑
+
+```mermaid
+flowchart TD
+A[ArticleCard渲染] --> B{是否有图片}
+B --> |是| C[图片模式展示]
+B --> |否| D[文字模式展示]
+C --> E[显示第一张图片]
+C --> F[悬停效果：缩放图片]
+D --> G[显示内容预览]
+G --> H{是否有高亮内容}
+H --> |是| I[显示高亮内容]
+H --> |否| J[提取关键词周围内容]
+J --> K[添加省略号]
+K --> L[高亮关键词]
+```
+
+**图表来源**
+- [ArticleCard.vue](file://frontend/src/components/ArticleCard.vue#L138-L207)
+
+**章节来源**
+- [ArticleCard.vue](file://frontend/src/components/ArticleCard.vue#L1-L238)
+
+### 个人资料文章详情组件 (Profile ArticleDetail)
+
+**更新** 新增了个人资料页面专用的文章详情组件，提供简洁的图片轮播功能。
+
+个人资料页面的文章详情组件专注于内容展示，提供简洁的交互体验：
+
+#### 核心功能
+
+1. **图片轮播展示**：支持多张图片的轮播浏览
+2. **简洁布局**：专注于内容展示，去除复杂的交互元素
+3. **预览模式**：支持点击图片进入全屏预览
+4. **响应式设计**：适配移动端和桌面端显示
+
+#### 图片轮播实现
+
+```mermaid
+flowchart TD
+A[Profile ArticleDetail轮播] --> B{鼠标滚轮事件}
+B --> C[节流控制]
+C --> D{滚轮方向判断}
+D --> |向下| E[下一张图片]
+D --> |向上| F[上一张图片]
+E --> G[边界检查]
+F --> G
+G --> H{索引范围验证}
+H --> |有效| I[更新currentImgIndex]
+H --> |无效| J[忽略操作]
+I --> K[平滑过渡动画]
+```
+
+**图表来源**
+- [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L184-L218)
+
+**章节来源**
+- [ArticleDetail.vue](file://frontend/src/components/profile/ArticleDetail.vue#L1-L243)
 
 ### 富文本编辑器组件 (RichEditor)
 
@@ -259,129 +487,6 @@ H --> I
 
 **章节来源**
 - [ConfirmationModal.vue](file://frontend/src/components/ConfirmationModal.vue#L1-L324)
-
-### 主页组件 (HomeView)
-
-主页是整个应用的核心组件，实现了完整的知识库浏览和搜索功能：
-
-#### 核心功能特性
-
-1. **智能搜索系统**：支持多字段搜索（标题、内容、类别、用户名、地点）
-2. **实时搜索建议**：集成搜索补全功能
-3. **响应式网格布局**：自适应不同屏幕尺寸的卡片展示
-4. **分页加载**：支持大数据量的分页浏览
-5. **图片预览**：支持多图片文章的大图浏览
-
-#### 搜索功能实现
-
-```mermaid
-flowchart TD
-A[用户输入搜索词] --> B{选择搜索字段}
-B --> |全部| C[keyword参数]
-B --> |标题| D[title参数]
-B --> |内容| E[content参数]
-B --> |类别| F[categories参数]
-B --> |用户名| G[username参数]
-B --> |地点| H[location参数]
-C --> I[发送搜索请求]
-D --> I
-E --> I
-F --> I
-G --> I
-H --> I
-I --> J[显示搜索结果]
-```
-
-**图表来源**
-- [HomeView.vue](file://frontend/src/views/HomeView.vue#L561-L611)
-
-#### 组件交互流程
-
-```mermaid
-sequenceDiagram
-participant U as 用户
-participant HV as HomeView
-participant AC as ArticleCard
-participant API as 后端API
-U->>HV : 输入搜索词
-HV->>HV : 防抖处理 (300ms)
-HV->>API : 获取搜索建议
-API-->>HV : 返回建议列表
-HV->>HV : 显示建议下拉框
-U->>HV : 点击搜索按钮
-HV->>API : 获取文章列表
-API-->>HV : 返回文章数据
-HV->>AC : 渲染文章卡片
-AC->>HV : 打开详情弹窗
-HV->>API : 获取文章详情
-API-->>HV : 返回详情数据
-HV->>HV : 显示详情弹窗
-```
-
-**图表来源**
-- [HomeView.vue](file://frontend/src/views/HomeView.vue#L614-L721)
-- [ArticleCard.vue](file://frontend/src/components/ArticleCard.vue#L102-L109)
-
-**章节来源**
-- [HomeView.vue](file://frontend/src/views/HomeView.vue#L1-L893)
-
-### 文章卡片组件 (ArticleCard)
-
-**更新** ArticleCard组件经过UI布局优化，添加flex-grow元素提升视觉层次和内容排列的一致性。
-
-文章卡片是展示单个知识条目的组件，具有丰富的交互功能：
-
-#### 主要特性
-
-1. **双模式展示**：支持图片模式和文字模式
-2. **智能内容预览**：根据是否有图片自动切换展示方式
-3. **高亮显示**：支持搜索关键词的高亮显示
-4. **响应式设计**：适配不同屏幕尺寸
-5. **交互优化**：桌面端弹窗、移动端跳转的不同体验
-6. **视觉层次优化**：通过flex-grow元素提升内容排列一致性
-
-#### 布局优化细节
-
-组件的底部信息区域采用了flex布局优化：
-
-```mermaid
-flowchart TD
-A[ArticleCard底部信息区] --> B[flex flex-col flex-grow]
-B --> C[标题区域]
-B --> D[正文摘要区域]
-B --> E[flex-grow占位元素]
-B --> F[发布人信息区域]
-B --> G[时间和地点区域]
-B --> H[链接区域]
-E --> I[视觉层次提升]
-I --> J[内容排列一致性]
-```
-
-**图表来源**
-- [ArticleCard.vue](file://frontend/src/components/ArticleCard.vue#L42-L57)
-
-#### 内容展示逻辑
-
-```mermaid
-flowchart TD
-A[ArticleCard渲染] --> B{是否有图片}
-B --> |是| C[图片模式展示]
-B --> |否| D[文字模式展示]
-C --> E[显示第一张图片]
-C --> F[悬停效果：缩放图片]
-D --> G[显示内容预览]
-G --> H{是否有高亮内容}
-H --> |是| I[显示高亮内容]
-H --> |否| J[提取关键词周围内容]
-J --> K[添加省略号]
-K --> L[高亮关键词]
-```
-
-**图表来源**
-- [ArticleCard.vue](file://frontend/src/components/ArticleCard.vue#L135-L204)
-
-**章节来源**
-- [ArticleCard.vue](file://frontend/src/components/ArticleCard.vue#L1-L238)
 
 ### 登录组件 (LoginView)
 
@@ -572,6 +677,7 @@ graph TD
 App[App.vue] --> Router[router/index.ts]
 Router --> Views[views目录]
 Views --> HomeView[HomeView.vue]
+Views --> ArticleDetailView[ArticleDetailView.vue]
 Views --> LoginView[LoginView.vue]
 Views --> RegisterView[RegisterView.vue]
 Views --> ProfileView[ProfileView.vue]
@@ -583,6 +689,8 @@ Components --> ArticleCard[ArticleCard.vue]
 Components --> ConfirmationModal[ConfirmationModal.vue]
 Components --> AdvancedModal[AdvancedModal.vue]
 Components --> RichEditor[RichEditor.vue]
+ArticleDetailView --> Components
+Components --> ProfileArticleDetail[profile/ArticleDetail.vue]
 ArticleCreateView --> RichEditor
 ArticleEditView --> RichEditor
 DraftEditView --> RichEditor
@@ -617,6 +725,8 @@ App --> Main[main.ts]
 6. **富文本编辑器优化**：使用shallowRef避免深度监听
 7. **模态框性能**：使用will-change和GPU加速优化动画
 8. **布局优化**：ArticleCard组件的flex-grow布局提升渲染效率
+9. **图片轮播优化**：使用Transform3D硬件加速和节流控制
+10. **内存管理**：组件卸载时清理事件监听器和定时器
 
 ### 内存管理
 
@@ -624,6 +734,7 @@ App --> Main[main.ts]
 2. **事件监听器**：及时清理不再使用的事件监听器
 3. **定时器清理**：确保定时器在组件卸载时被清理
 4. **编辑器销毁**：在组件卸载时销毁富文本编辑器实例
+5. **图片资源释放**：及时释放图片预览占用的内存
 
 ## 故障排除指南
 
@@ -665,18 +776,32 @@ App --> Main[main.ts]
 2. **内容溢出**：确认flex-grow元素的正确使用
 3. **视觉层次不一致**：验证底部信息区域的布局结构
 
+#### 图片轮播功能问题
+
+1. **轮播动画卡顿**：检查Transform3D硬件加速支持
+2. **触摸滑动不灵敏**：确认触摸事件坐标计算准确性
+3. **边界检查错误**：验证图片索引的边界条件判断
+4. **节流控制失效**：检查滚轮事件的节流逻辑
+
+#### 文章详情组件问题
+
+1. **弹窗显示异常**：检查URL状态管理和历史记录处理
+2. **图片预览功能失效**：确认Teleport组件的正确使用
+3. **评论系统问题**：验证模拟数据的正确性和交互逻辑
+
 **章节来源**
 - [request.ts](file://frontend/src/utils/request.ts#L34-L62)
 - [vite.config.ts](file://frontend/vite.config.ts#L22-L27)
 - [RichEditor.vue](file://frontend/src/components/RichEditor.vue#L135-L141)
 - [AdvancedModal.vue](file://frontend/src/components/AdvancedModal.vue#L280-L291)
 - [ArticleCard.vue](file://frontend/src/components/ArticleCard.vue#L42-L57)
+- [ArticleDetailView.vue](file://frontend/src/views/ArticleDetailView.vue#L510-L561)
 
 ## 结论
 
 这个Vue组件库项目展现了现代前端开发的最佳实践，采用了完整的开发工具链和技术栈。项目结构清晰，组件职责明确，具有良好的可维护性和扩展性。
 
-**更新** 新增的富文本编辑器、高级模态框等组件显著提升了用户体验和功能完整性。**ArticleCard组件的UI布局优化**通过添加flex-grow元素，有效提升了视觉层次和内容排列的一致性，体现了项目在组件化开发方面的成熟度和对细节的关注。
+**更新** 新增的富文本编辑器、高级模态框等组件显著提升了用户体验和功能完整性。**ArticleCard组件的UI布局优化**通过添加flex-grow元素，有效提升了视觉层次和内容排列的一致性。**文章详情组件的增强**提供了完整的文章展示和交互功能，支持多图片轮播、图片预览等丰富特性。**主页组件图片轮播功能的优化**实现了流畅的动画效果和多样化的交互方式，包括触摸滑动、鼠标滚轮、键盘导航等。
 
 ### 主要优势
 
@@ -687,6 +812,9 @@ App --> Main[main.ts]
 5. **组件生态完善**：丰富的UI组件和工具函数
 6. **性能优化到位**：多方面的性能优化策略
 7. **布局优化精细**：关注细节的UI布局改进
+8. **交互体验丰富**：多样化的用户交互方式
+9. **图片处理专业**：专业的图片轮播和预览功能
+10. **组件复用性强**：良好的组件设计和复用机制
 
 ### 改进建议
 
@@ -696,3 +824,7 @@ App --> Main[main.ts]
 4. **国际化支持**：考虑添加多语言支持
 5. **组件文档**：为新增组件添加详细的使用文档
 6. **主题定制**：提供更灵活的主题定制能力
+7. **SEO优化**：考虑添加搜索引擎优化功能
+8. **离线支持**：实现PWA离线缓存功能
+9. **无障碍访问**：增强无障碍访问支持
+10. **移动端优化**：进一步优化移动端用户体验

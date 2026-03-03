@@ -65,4 +65,11 @@ public class User {
      */
     @Field(type = FieldType.Date, format = DateFormat.date_hour_minute_second_millis)
     private LocalDateTime lastLoginTime;
+    
+    /**
+     * 是否已授权：0-未授权，1-已授权
+     * 新注册用户默认为未授权，需要管理员授权后才能登录
+     */
+    @Field(type = FieldType.Integer)
+    private Integer authorized;
 }

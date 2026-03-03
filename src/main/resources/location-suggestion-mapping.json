@@ -1,5 +1,8 @@
 {
   "properties": {
+    "id": {
+      "type": "keyword"
+    },
     "text": {
       "type": "keyword"
     },
