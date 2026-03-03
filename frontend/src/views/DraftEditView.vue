@@ -238,6 +238,15 @@ const autoSaveTimer = ref<number | null>(null);
 const lastSavedContent = ref('');
 const showPreview = ref(false);
 
+// 判断富文本内容是否有有效文字（去除HTML标签后检查）
+const hasRichTextContent = (html: string): boolean => {
+  if (!html) return false;
+  // 去除HTML标签
+  const text = html.replace(/<[^>]+>/g, '');
+  // 去除空白字符后检查
+  return text.trim().length > 0;
+};
+
 // 生成表单内容的唯一标识（用于判断是否有变化）
 const getFormContentHash = () => {
   return JSON.stringify({
@@ -283,7 +292,7 @@ const saveDraftSync = async () => {
     return; // 内容未变化，跳过保存
   }
   
-  const hasContent = form.title || form.content || form.images.length > 0 || form.categories.length > 0 || form.location;
+  const hasContent = form.title || hasRichTextContent(form.content) || form.images.length > 0 || form.categories.length > 0 || form.location;
   if (!hasContent) {
     return; // 没有有效内容，跳过保存
   }
@@ -396,7 +405,7 @@ const autoSaveDraft = async () => {
   }
   
   // 检查是否有有效内容（至少有一个字段不为空）
-  const hasContent = form.title || form.content || form.images.length > 0 || form.categories.length > 0 || form.location;
+  const hasContent = form.title || hasRichTextContent(form.content) || form.images.length > 0 || form.categories.length > 0 || form.location;
   if (!hasContent) {
     return; // 没有有效内容，跳过保存
   }
@@ -454,7 +463,7 @@ const handlePublish = async () => {
     return;
   }
   
-  if (form.images.length === 0 && !form.content) {
+  if (form.images.length === 0 && !hasRichTextContent(form.content)) {
     alert('图片和正文必须填写其中一个');
     return;
   }
