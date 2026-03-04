@@ -25,7 +25,7 @@
     <!-- Content -->
     <div class="flex-grow overflow-y-auto">
       <!-- Image Gallery -->
-      <div v-if="article.images?.length" class="relative bg-black" @wheel="handleWheel">
+      <div v-if="article.images?.length" class="relative bg-black" ref="galleryRef">
         <div class="flex h-48 sm:h-64 md:h-80 w-full transition-transform duration-[450ms] ease-out" 
              :style="{ transform: `translateX(-${currentImgIndex * 100}%)` }">
           <img v-for="(img, i) in article.images" :key="i" 
@@ -130,7 +130,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch, onMounted, onUnmounted } from 'vue';
 import { ChevronLeft, ChevronRight, Edit2, Trash2, MapPin, Link as LinkIcon, X as XIcon } from 'lucide-vue-next';
 import { getImageUrl } from '@/utils/image';
 
@@ -154,6 +154,8 @@ const emit = defineEmits<{
   edit: [article: Article];
   delete: [article: Article];
 }>();
+
+const galleryRef = ref<HTMLElement | null>(null);
 
 const currentImgIndex = ref(0);
 const showPreview = ref(false);
@@ -183,13 +185,13 @@ const prevImage = () => {
 
 // 鼠标滚轮切换图片（有边界限制，不循环，带节流）
 const handleWheel = (e: WheelEvent) => {
+  // 始终阻止默认滚动，防止父容器跟着滚动
+  e.preventDefault();
+
   if (!props.article.images || props.article.images.length <= 1) return;
   
   // 节流控制：如果正在切换中，忽略此次滚轮事件
   if (isWheelSwitching.value) return;
-  
-  // 阻止默认滚动行为
-  e.preventDefault();
   
   let shouldSwitch = false;
   
@@ -216,6 +218,26 @@ const handleWheel = (e: WheelEvent) => {
     }, WHEEL_SWITCH_DURATION);
   }
 };
+
+// 监听 galleryRef 变化，用非 passive 方式绑定滚轮事件，使 e.preventDefault() 生效
+watch(galleryRef, (el, prevEl) => {
+  if (prevEl) {
+    prevEl.removeEventListener('wheel', handleWheel);
+  }
+  if (el) {
+    el.addEventListener('wheel', handleWheel, { passive: false });
+  }
+});
+
+onMounted(() => {
+  if (galleryRef.value) {
+    galleryRef.value.addEventListener('wheel', handleWheel, { passive: false });
+  }
+});
+
+onUnmounted(() => {
+  galleryRef.value?.removeEventListener('wheel', handleWheel);
+});
 
 const openPreview = (index: number) => {
   previewImgIndex.value = index;

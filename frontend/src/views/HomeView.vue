@@ -284,11 +284,11 @@
               <!-- 左侧图片区（仅当有图片时显示） -->
               <section
                 v-if="modalArticle.images?.length"
+                ref="galleryRef"
                 class="w-full md:flex-1 h-[50vh] md:h-auto relative bg-black flex items-center justify-center overflow-hidden group"
                 @touchstart="handleTouchStart"
                 @touchmove="handleTouchMove"
                 @touchend="handleTouchEnd"
-                @wheel="handleWheel"
               >
                 <!-- Image Counter -->
                 <div v-if="modalArticle.images.length > 1" class="absolute top-4 left-1/2 -translate-x-1/2 z-10 px-3 py-1 bg-black/40 rounded-full text-white text-xs font-medium backdrop-blur-sm">
@@ -1039,13 +1039,13 @@ const handleTouchEnd = () => {
 
 // 鼠标滚轮切换图片（有边界限制，不循环，带节流）
 const handleWheel = (e: WheelEvent) => {
+  // 始终阻止默认滚动，防止页面跟着滚动
+  e.preventDefault();
+
   if (!modalArticle.value || modalArticle.value.images.length <= 1) return;
 
   // 节流控制：如果正在切换中，忽略此次滚轮事件
   if (isWheelSwitching.value) return;
-
-  // 阻止默认滚动行为
-  e.preventDefault();
 
   let shouldSwitch = false;
 
@@ -1328,6 +1328,18 @@ const loadCurrentUser = () => {
   }
 };
 
+const galleryRef = ref<HTMLElement | null>(null);
+
+// 监听 galleryRef 变化（弹窗中 v-if 异步渲染），用非 passive 方式绑定滚轮事件
+watch(galleryRef, (el, prevEl) => {
+  if (prevEl) {
+    prevEl.removeEventListener('wheel', handleWheel);
+  }
+  if (el) {
+    el.addEventListener('wheel', handleWheel, { passive: false });
+  }
+});
+
 onMounted(() => {
   // 设置页面标题
   document.title = '知拾录';
@@ -1340,6 +1352,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('popstate', handlePopState);
+  galleryRef.value?.removeEventListener('wheel', handleWheel);
 });
 
 // 从 keep-alive 缓存中激活时检查是否需要刷新

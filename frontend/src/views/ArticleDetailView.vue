@@ -76,11 +76,11 @@
           <!-- Left: Image Gallery (仅当有图片时显示) -->
           <section
             v-if="article.images?.length"
+            ref="galleryRef"
             class="gallery-section w-full md:w-[55%] lg:w-[58%] xl:w-[60%] h-[50vh] md:h-[600px] lg:h-[700px] relative bg-black overflow-hidden group"
             @touchstart="handleTouchStart"
             @touchmove="handleTouchMove"
             @touchend="handleTouchEnd"
-            @wheel="handleWheel"
           >
             <!-- Image Counter -->
             <div v-if="article.images.length > 1" class="absolute top-4 left-1/2 -translate-x-1/2 z-10 px-3 py-1 bg-black/40 rounded-full text-white text-xs font-medium backdrop-blur-sm">
@@ -479,7 +479,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, reactive } from 'vue';
+import { ref, watch, onMounted, onUnmounted, computed, reactive } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { 
   ChevronLeft, ChevronRight, ChevronDown, Share2, Tag, MapPin, 
@@ -629,13 +629,13 @@ const handleTouchEnd = () => {
 
 // 鼠标滚轮切换图片（有边界限制，不循环，带节流）
 const handleWheel = (e: WheelEvent) => {
+  // 始终阻止默认滚动，防止页面跟着滚动
+  e.preventDefault();
+
   if (!article.value || article.value.images.length <= 1) return;
   
   // 节流控制：如果正在切换中，忽略此次滚轮事件
   if (isWheelSwitching.value) return;
-  
-  // 阻止默认滚动行为
-  e.preventDefault();
   
   let shouldSwitch = false;
   
@@ -1007,6 +1007,18 @@ const closeImagePreview = () => {
   showImagePreview.value = false;
 };
 
+const galleryRef = ref<HTMLElement | null>(null);
+
+// 监听 galleryRef 变化（因为 v-if 异步渲染），用非 passive 方式绑定滚轮事件
+watch(galleryRef, (el, prevEl) => {
+  if (prevEl) {
+    prevEl.removeEventListener('wheel', handleWheel);
+  }
+  if (el) {
+    el.addEventListener('wheel', handleWheel, { passive: false });
+  }
+});
+
 onMounted(() => {
   window.addEventListener('scroll', handleScroll);
   window.addEventListener('keydown', handleKeydown);
@@ -1017,6 +1029,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll);
   window.removeEventListener('keydown', handleKeydown);
+  galleryRef.value?.removeEventListener('wheel', handleWheel);
 });
 </script>
 
