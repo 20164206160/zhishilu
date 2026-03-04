@@ -1,7 +1,7 @@
 <template>
-  <div class="min-h-screen bg-[#f8fafc] flex flex-col font-sans w-full overflow-x-hidden">
+  <div class="min-h-screen flex flex-col font-sans w-full overflow-x-hidden">
     <!-- Header -->
-    <header class="bg-white border-b border-gray-100 sticky top-0 z-40 w-full">
+    <header class="sticky top-0 z-40 w-full">
       <div class="w-full px-2 sm:px-4 lg:px-6 h-14 sm:h-16 flex items-center justify-between">
         <router-link to="/" class="flex items-center gap-1 sm:gap-2 text-blue-600 hover:opacity-80 transition-opacity">
           <ChevronLeft :size="18" class="sm:w-5 sm:h-5" />

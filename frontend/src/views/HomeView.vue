@@ -1,7 +1,7 @@
 <template>
-  <div class="min-h-screen bg-[#f4f4f4] flex flex-col font-sans w-full overflow-x-hidden">
+  <div class="min-h-screen flex flex-col font-sans w-full overflow-x-transparent">
     <!-- 上部分：导航与搜索 (Header) -->
-    <header class="bg-white shadow-sm sticky top-0 z-50 w-full">
+    <header class="shadow-sm sticky top-0 z-50 w-full">
       <!-- 顶栏：品牌与主操作 -->
       <div class="max-w-7xl mx-auto px-2 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
         <h1 class="text-xl sm:text-2xl font-black italic tracking-tighter text-blue-600 flex-shrink-0">
@@ -55,7 +55,7 @@
                 <span class="hidden sm:inline">搜索</span>
                 <SearchIcon class="sm:hidden" :size="14" />
               </button>
-              
+
               <!-- 搜索补全下拉框 -->
               <div
                 v-if="showSuggestions && hasSuggestions"
@@ -73,7 +73,7 @@
                     <span class="text-sm text-gray-700 group-hover:text-blue-600">{{ item.text }}</span>
                   </div>
                 </div>
-                
+
                 <!-- 地点补全 -->
                 <div v-if="suggestions.locations?.length" class="border-b border-gray-50 last:border-b-0">
                   <div class="px-3 py-1.5 bg-gray-50 text-[10px] text-gray-400 font-medium">地点</div>
@@ -86,7 +86,7 @@
                     <span class="text-sm text-gray-700 group-hover:text-blue-600">{{ item.text }}</span>
                   </div>
                 </div>
-                
+
                 <!-- 类别补全 -->
                 <div v-if="suggestions.categories?.length" class="border-b border-gray-50 last:border-b-0">
                   <div class="px-3 py-1.5 bg-gray-50 text-[10px] text-gray-400 font-medium">类别</div>
@@ -99,7 +99,7 @@
                     <span class="text-sm text-gray-700 group-hover:text-blue-600">{{ item.text }}</span>
                   </div>
                 </div>
-                
+
                 <!-- 标题补全 -->
                 <div v-if="suggestions.titles?.length" class="border-b border-gray-50 last:border-b-0">
                   <div class="px-3 py-1.5 bg-gray-50 text-[10px] text-gray-400 font-medium">标题</div>
@@ -112,7 +112,7 @@
                     <span class="text-sm text-gray-700 group-hover:text-blue-600 truncate max-w-[200px]">{{ item.text }}</span>
                   </div>
                 </div>
-                
+
                 <!-- 内容补全 -->
                 <div v-if="suggestions.contents?.length">
                   <div class="px-3 py-1.5 bg-gray-50 text-[10px] text-gray-400 font-medium">内容</div>
@@ -207,7 +207,7 @@
       <div v-else-if="articles.length > 0" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
         <ArticleCard v-for="item in articles" :key="item.id" :article="item" :search-keyword="currentSearchKeyword" @open-modal="openArticleModal" />
       </div>
-      
+
       <div v-else class="h-[50vh] flex flex-col items-center justify-center text-gray-400 bg-white rounded-3xl shadow-inner border border-gray-50">
         <div class="p-8 bg-gray-50 rounded-full mb-4">
           <EmptyIcon :size="80" stroke-width="1" class="text-gray-200" />
@@ -242,7 +242,7 @@
     </main>
 
     <!-- 下部分：开发者信息 (Footer) -->
-    <footer class="bg-white border-t border-gray-100 py-6 sm:py-10 mt-auto w-full">
+    <footer class="border-t border-gray-100 py-6 sm:py-10 mt-auto w-full">
       <div class="max-w-7xl mx-auto px-2 sm:px-4">
         <div class="flex flex-col md:flex-row justify-between items-center gap-4 sm:gap-8">
           <!-- 站点信息 -->
@@ -278,12 +278,12 @@
             <button @click="closeModal" class="md:hidden absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-black/30 text-white flex items-center justify-center">
               <XIcon :size="20" />
             </button>
-            
+
             <!-- 详情页内容 -->
             <div v-if="modalArticle" class="flex w-full h-full flex-col md:flex-row">
               <!-- 左侧图片区（仅当有图片时显示） -->
-              <section 
-                v-if="modalArticle.images?.length" 
+              <section
+                v-if="modalArticle.images?.length"
                 class="w-full md:flex-1 h-[50vh] md:h-auto relative bg-black flex items-center justify-center overflow-hidden group"
                 @touchstart="handleTouchStart"
                 @touchmove="handleTouchMove"
@@ -298,29 +298,29 @@
                 <div class="flex h-full w-full transition-transform duration-[450ms] ease-out" :style="{ transform: `translateX(-${currentImgIndex * 100}%)` }">
                   <img v-for="(img, i) in modalArticle.images" :key="i" :src="getImageUrl(img)" @click="openImagePreview(i)" class="w-full h-full object-contain flex-shrink-0 cursor-zoom-in" />
                 </div>
-                
+
                 <!-- Dot Indicators -->
                 <div v-if="modalArticle.images.length > 1" class="absolute bottom-4 inset-x-0 flex justify-center gap-2 z-10">
-                  <button 
-                    v-for="(_, i) in modalArticle.images" 
-                    :key="i" 
+                  <button
+                    v-for="(_, i) in modalArticle.images"
+                    :key="i"
                     @click="currentImgIndex = i"
-                    class="h-2 rounded-full transition-all duration-300" 
+                    class="h-2 rounded-full transition-all duration-300"
                     :class="[currentImgIndex === i ? 'w-5 bg-white' : 'w-2 bg-white/40 hover:bg-white/60']"
                   ></button>
                 </div>
 
                 <!-- Navigation Arrows -->
                 <template v-if="modalArticle.images.length > 1">
-                  <button 
-                    @click="currentImgIndex > 0 && currentImgIndex--" 
+                  <button
+                    @click="currentImgIndex > 0 && currentImgIndex--"
                     :class="['absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all backdrop-blur-sm', currentImgIndex === 0 ? 'opacity-0 cursor-not-allowed' : 'opacity-0 group-hover:opacity-100']"
                     :disabled="currentImgIndex === 0"
                   >
                     <ChevronLeft :size="24" />
                   </button>
-                  <button 
-                    @click="currentImgIndex < modalArticle.images.length - 1 && currentImgIndex++" 
+                  <button
+                    @click="currentImgIndex < modalArticle.images.length - 1 && currentImgIndex++"
                     :class="['absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all backdrop-blur-sm', currentImgIndex === modalArticle.images.length - 1 ? 'opacity-0 cursor-not-allowed' : 'opacity-0 group-hover:opacity-100']"
                     :disabled="currentImgIndex === modalArticle.images.length - 1"
                   >
@@ -366,8 +366,8 @@
 
                     <!-- Tags -->
                     <div v-if="modalArticle.categories?.length" class="flex flex-wrap gap-2 mt-5">
-                      <span 
-                        v-for="(cat, index) in modalArticle.categories" 
+                      <span
+                        v-for="(cat, index) in modalArticle.categories"
                         :key="index"
                         class="text-[#576b95] text-[14px] hover:underline cursor-pointer"
                       >
@@ -491,14 +491,14 @@
                         <span class="text-[13px] font-medium">3933</span>
                       </button>
                     </div>
-                    <button 
+                    <button
                       @click="showShareModal = true"
                       class="text-[#333] hover:text-[#666] transition-colors"
                     >
                       <Share2 :size="22" />
                     </button>
                   </div>
-                  
+
                   <div class="relative">
                     <!-- 回复标评 -->
                     <div v-if="replyTarget" class="mb-1.5 flex items-center gap-2 text-[12px] text-[#576b95] bg-blue-50 rounded-lg px-3 py-1.5">
@@ -573,22 +573,22 @@
           <button @click="closeImagePreview" class="absolute top-4 right-4 z-50 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
             <XIcon :size="24" />
           </button>
-          
+
           <div class="relative w-screen h-screen overflow-hidden">
             <div class="flex h-full transition-transform duration-500 ease-out" :style="{ transform: `translateX(-${previewImgIndex * 100}vw)` }">
-              <div 
-                v-for="(img, i) in (modalArticle?.images || [])" 
-                :key="i" 
+              <div
+                v-for="(img, i) in (modalArticle?.images || [])"
+                :key="i"
                 class="w-screen h-full flex-shrink-0 flex items-center justify-center p-4"
                 @click.stop
               >
-                <img 
-                  :src="getImageUrl(img)" 
-                  class="max-w-full max-h-full object-contain" 
+                <img
+                  :src="getImageUrl(img)"
+                  class="max-w-full max-h-full object-contain"
                 />
               </div>
             </div>
-            
+
             <!-- 导航按钮 -->
             <template v-if="(modalArticle?.images?.length || 0) > 1">
               <button @click.stop="previewImgIndex = (previewImgIndex - 1 + (modalArticle?.images?.length || 0)) % (modalArticle?.images?.length || 1)" class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
@@ -627,11 +627,11 @@ defineOptions({
 
 import { ref, onMounted, watch, onActivated, computed, onUnmounted, onDeactivated, reactive } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { 
-  Search as SearchIcon, 
-  Plus as PlusIcon, 
-  Inbox as EmptyIcon, 
-  ChevronLeft, 
+import {
+  Search as SearchIcon,
+  Plus as PlusIcon,
+  Inbox as EmptyIcon,
+  ChevronLeft,
   ChevronRight,
   ChevronDown,
   Github as GithubIcon,
@@ -811,7 +811,7 @@ const fetchArticles = async () => {
       page: page.value,
       size: size.value
     };
-    
+
     // 根据搜索字段设置查询参数
     if (searchQuery.value) {
       if (searchField.value === 'all') {
@@ -828,7 +828,7 @@ const fetchArticles = async () => {
         params.location = searchQuery.value;
       }
     }
-    
+
     // 只有非"全部"时才传递categories参数（与搜索字段不冲突时）
     if (selectedCategory.value && selectedCategory.value !== '全部' && searchField.value !== 'category') {
       params.categories = [selectedCategory.value];
@@ -837,7 +837,7 @@ const fetchArticles = async () => {
     console.log('请求参数:', params);
     const res = await request.get('/article/list', { params });
     console.log('响应数据:', res.data);
-    
+
     if (res.data.code === 200) {
       // 将搜索关键词附加到每篇文章，用于前端片段提取
       articles.value = res.data.data.list.map((item: any) => ({
@@ -874,12 +874,12 @@ const handleInput = () => {
   if (suggestionDebounceTimer) {
     clearTimeout(suggestionDebounceTimer);
   }
-  
+
   if (!searchQuery.value || searchQuery.value.length < 1) {
     showSuggestions.value = false;
     return;
   }
-  
+
   suggestionDebounceTimer = setTimeout(() => {
     fetchSuggestions();
   }, 300);
@@ -888,7 +888,7 @@ const handleInput = () => {
 // 获取搜索补全建议
 const fetchSuggestions = async () => {
   if (!searchQuery.value) return;
-  
+
   try {
     const res = await request.get('/article/suggestions', {
       params: {
@@ -896,7 +896,7 @@ const fetchSuggestions = async () => {
         field: searchField.value
       }
     });
-    
+
     if (res.data.code === 200) {
       suggestions.value = res.data.data;
       showSuggestions.value = hasSuggestions.value;
@@ -1018,9 +1018,9 @@ const handleTouchMove = (e: TouchEvent) => {
 
 const handleTouchEnd = () => {
   if (!modalArticle.value || modalArticle.value.images.length <= 1) return;
-  
+
   const swipeDistance = touchEndX.value - touchStartX.value;
-  
+
   if (swipeDistance < -minSwipeDistance) {
     // 向右滑动 - 下一张（有边界限制）
     if (currentImgIndex.value < modalArticle.value.images.length - 1) {
@@ -1032,7 +1032,7 @@ const handleTouchEnd = () => {
       currentImgIndex.value--;
     }
   }
-  
+
   touchStartX.value = 0;
   touchEndX.value = 0;
 };
@@ -1040,15 +1040,15 @@ const handleTouchEnd = () => {
 // 鼠标滚轮切换图片（有边界限制，不循环，带节流）
 const handleWheel = (e: WheelEvent) => {
   if (!modalArticle.value || modalArticle.value.images.length <= 1) return;
-  
+
   // 节流控制：如果正在切换中，忽略此次滚轮事件
   if (isWheelSwitching.value) return;
-  
+
   // 阻止默认滚动行为
   e.preventDefault();
-  
+
   let shouldSwitch = false;
-  
+
   // 根据滚动方向切换图片（有边界限制）
   if (e.deltaY > 0) {
     // 向下滚动 - 下一张（最后一张时停止）
@@ -1063,7 +1063,7 @@ const handleWheel = (e: WheelEvent) => {
       shouldSwitch = true;
     }
   }
-  
+
   // 如果发生了切换，设置节流标志
   if (shouldSwitch) {
     isWheelSwitching.value = true;
@@ -1082,7 +1082,7 @@ const formatModalDate = (dateStr: string) => {
   const minutes = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
-  
+
   if (minutes < 1) return '刚刚';
   if (minutes < 60) return `${minutes}分钟前`;
   if (hours < 24) return `${hours}小时前`;
@@ -1093,8 +1093,8 @@ const formatModalDate = (dateStr: string) => {
 const formatFullModalDate = (dateStr: string) => {
   if (!dateStr) return '';
   const date = new Date(dateStr);
-  return date.toLocaleDateString('zh-CN', { 
-    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
   });
 };
 
@@ -1295,7 +1295,7 @@ watch([selectedCategory, page], () => {
 const checkAndRefresh = (forceRefresh = false) => {
   const needRefresh = sessionStorage.getItem('homeNeedRefresh');
   console.log('HomeView checkAndRefresh, needRefresh:', needRefresh, 'forceRefresh:', forceRefresh);
-  
+
   // 只有在有刷新标记或强制刷新时才调用接口
   if (needRefresh || forceRefresh) {
     if (needRefresh) {
@@ -1416,7 +1416,7 @@ select:focus ~ div input {
   .modal-enter-active > div {
     transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  
+
   .modal-leave-active > div {
     transition: transform 0.25s cubic-bezier(0.4, 0, 1, 1), opacity 0.25s cubic-bezier(0.4, 0, 1, 1);
   }
@@ -1425,7 +1425,7 @@ select:focus ~ div input {
     transform: scale(0.85) translateY(20px);
     opacity: 0;
   }
-  
+
   .modal-leave-to > div {
     transform: scale(0.95);
     opacity: 0;
@@ -1437,7 +1437,7 @@ select:focus ~ div input {
   .modal-enter-active > div {
     transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
   }
-  
+
   .modal-leave-active > div {
     transition: transform 0.25s cubic-bezier(0.4, 0, 1, 1);
   }
@@ -1445,7 +1445,7 @@ select:focus ~ div input {
   .modal-enter-from > div {
     transform: translateY(100%);
   }
-  
+
   .modal-leave-to > div {
     transform: translateY(100%);
   }

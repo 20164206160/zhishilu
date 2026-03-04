@@ -1,7 +1,7 @@
 <template>
-  <div class="min-h-screen bg-[#f4f4f4] flex flex-col font-sans w-full overflow-x-hidden">
+  <div class="min-h-screen flex flex-col font-sans w-full overflow-x-hidden">
     <!-- 顶部导航栏 - 与首页一致 -->
-    <header class="bg-white shadow-sm sticky top-0 z-50 w-full">
+    <header class="sticky top-0 z-50 w-full">
       <div class="max-w-7xl mx-auto px-2 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
         <!-- Logo -->
         <router-link to="/" class="text-xl sm:text-2xl font-black italic tracking-tighter text-blue-600 flex-shrink-0 hover:opacity-80 transition-opacity">
@@ -394,7 +394,7 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-white border-t border-gray-100 py-6 sm:py-10 mt-auto w-full">
+    <footer class="py-6 sm:py-10 mt-auto w-full">
       <div class="max-w-7xl mx-auto px-2 sm:px-4">
         <div class="flex flex-col md:flex-row justify-between items-center gap-4 sm:gap-8">
           <div class="text-center md:text-left space-y-1 sm:space-y-2">
