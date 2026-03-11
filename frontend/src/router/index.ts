@@ -7,14 +7,11 @@ import ArticleCreateView from '../views/ArticleCreateView.vue'
 import ArticleDetailView from '../views/ArticleDetailView.vue'
 import ArticleEditView from '../views/ArticleEditView.vue'
 
-// 路由元信息类型定义
-interface RouteMeta {
-  requiresAuth: boolean
-  transition?: string
-}
-
 declare module 'vue-router' {
-  interface RouteMeta extends RouteMeta {}
+  interface RouteMeta {
+    requiresAuth?: boolean
+    transition?: string
+  }
 }
 
 const router = createRouter({

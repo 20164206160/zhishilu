@@ -237,7 +237,7 @@ const handleBackdropClick = () => {
 const handleBackdropTouchStart = (e: TouchEvent) => {
   if (!props.closeOnBackdrop) return;
   
-  touchStartY.value = e.touches[0].clientY;
+  touchStartY.value = e.touches[0]?.clientY ?? 0;
   currentDragY.value = 0;
   isDragging.value = true;
 };
@@ -245,7 +245,7 @@ const handleBackdropTouchStart = (e: TouchEvent) => {
 const handleBackdropTouchMove = (e: TouchEvent) => {
   if (!isDragging.value) return;
   
-  const currentY = e.touches[0].clientY;
+  const currentY = e.touches[0]?.clientY ?? 0;
   currentDragY.value = currentY - touchStartY.value;
   
   // 限制向下拖动

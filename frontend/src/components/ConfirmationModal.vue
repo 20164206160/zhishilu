@@ -148,7 +148,7 @@ const handleBackdropClick = () => {
 
 // 触摸交互
 const handleTouchStart = (e: TouchEvent) => {
-  touchStartY.value = e.touches[0].clientY;
+  touchStartY.value = e.touches[0]?.clientY ?? 0;
   currentDragY.value = 0;
   isDragging.value = true;
 };
@@ -156,7 +156,7 @@ const handleTouchStart = (e: TouchEvent) => {
 const handleTouchMove = (e: TouchEvent) => {
   if (!isDragging.value) return;
   
-  const currentY = e.touches[0].clientY;
+  const currentY = e.touches[0]?.clientY ?? 0;
   currentDragY.value = currentY - touchStartY.value;
   
   // 限制向下拖动

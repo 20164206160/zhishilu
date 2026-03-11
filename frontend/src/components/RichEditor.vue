@@ -20,7 +20,7 @@
 <script setup lang="ts">
 import { ref, shallowRef, onBeforeUnmount, watch } from 'vue';
 import { Editor, Toolbar } from '@wangeditor/editor-for-vue';
-import { IDomEditor, IEditorConfig } from '@wangeditor/editor';
+import type { IDomEditor, IEditorConfig } from '@wangeditor/editor';
 import request from '../utils/request';
 import '@wangeditor/editor/dist/css/style.css';
 

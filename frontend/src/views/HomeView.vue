@@ -296,7 +296,7 @@
                 </div>
 
                 <div class="flex h-full w-full transition-transform duration-[450ms] ease-out" :style="{ transform: `translateX(-${currentImgIndex * 100}%)` }">
-                  <img v-for="(img, i) in modalArticle.images" :key="i" :src="getImageUrl(img)" @click="openImagePreview(i)" class="w-full h-full object-contain flex-shrink-0 cursor-zoom-in" />
+                  <img v-for="(img, i) in modalArticle.images" :key="i" :src="getImageUrl(img)" @click="openImagePreview(Number(i))" class="w-full h-full object-contain flex-shrink-0 cursor-zoom-in" />
                 </div>
 
                 <!-- Dot Indicators -->
@@ -304,9 +304,9 @@
                   <button
                     v-for="(_, i) in modalArticle.images"
                     :key="i"
-                    @click="currentImgIndex = i"
+                    @click="currentImgIndex = Number(i)"
                     class="h-2 rounded-full transition-all duration-300"
-                    :class="[currentImgIndex === i ? 'w-5 bg-white' : 'w-2 bg-white/40 hover:bg-white/60']"
+                    :class="[currentImgIndex === Number(i) ? 'w-5 bg-white' : 'w-2 bg-white/40 hover:bg-white/60']"
                   ></button>
                 </div>
 
@@ -700,7 +700,14 @@ const shareUrl = computed(() => {
 });
 
 // 搜索补全相关
-const suggestions = ref({
+interface SuggestionItem { text: string }
+const suggestions = ref<{
+  usernames: SuggestionItem[]
+  locations: SuggestionItem[]
+  categories: SuggestionItem[]
+  titles: SuggestionItem[]
+  contents: SuggestionItem[]
+}>({
   usernames: [],
   locations: [],
   categories: [],
@@ -1009,11 +1016,11 @@ const closeImagePreview = () => {
 
 // 触摸滑动相关
 const handleTouchStart = (e: TouchEvent) => {
-  touchStartX.value = e.touches[0].clientX;
+  touchStartX.value = e.touches[0]?.clientX ?? 0;
 };
 
 const handleTouchMove = (e: TouchEvent) => {
-  touchEndX.value = e.touches[0].clientX;
+  touchEndX.value = e.touches[0]?.clientX ?? 0;
 };
 
 const handleTouchEnd = () => {

@@ -88,7 +88,7 @@
             </div>
 
             <div class="flex h-full w-full transition-transform duration-[450ms] ease-out" :style="{ transform: `translateX(-${currentImgIndex * 100}%)` }">
-              <img v-for="(img, i) in article.images" :key="i" :src="getImageUrl(img)" @click="openImagePreview(i)" class="w-full h-full object-contain flex-shrink-0 cursor-zoom-in" />
+              <img v-for="(img, i) in article.images" :key="i" :src="getImageUrl(img)" @click="openImagePreview(Number(i))" class="w-full h-full object-contain flex-shrink-0 cursor-zoom-in" />
             </div>
             
             <!-- Dot Indicators -->
@@ -96,7 +96,7 @@
               <button 
                 v-for="(_, i) in article.images" 
                 :key="i" 
-                @click="currentImgIndex = i"
+                @click="currentImgIndex = Number(i)"
                 class="h-2 rounded-full transition-all duration-300" 
                 :class="[currentImgIndex === i ? 'w-5 bg-white' : 'w-2 bg-white/40 hover:bg-white/60']"
               ></button>
@@ -466,7 +466,7 @@
               <button 
                 v-for="(_, i) in (article?.images || [])" 
                 :key="i" 
-                @click.stop="previewImgIndex = i"
+                @click.stop="previewImgIndex = Number(i)"
                 class="h-2 rounded-full transition-all" 
                 :class="[previewImgIndex === i ? 'w-6 bg-white' : 'w-2 bg-white/40']"
               ></button>
@@ -599,11 +599,11 @@ const touchEndX = ref(0);
 const minSwipeDistance = 50;
 
 const handleTouchStart = (e: TouchEvent) => {
-  touchStartX.value = e.touches[0].clientX;
+  touchStartX.value = e.touches[0]?.clientX ?? 0;
 };
 
 const handleTouchMove = (e: TouchEvent) => {
-  touchEndX.value = e.touches[0].clientX;
+  touchEndX.value = e.touches[0]?.clientX ?? 0;
 };
 
 const handleTouchEnd = () => {
