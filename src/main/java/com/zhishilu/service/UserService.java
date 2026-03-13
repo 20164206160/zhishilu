@@ -3,6 +3,7 @@ package com.zhishilu.service;
 import com.zhishilu.dto.UserDTO;
 import com.zhishilu.req.LoginReq;
 import com.zhishilu.req.RegisterReq;
+import com.zhishilu.req.UpdatePasswordReq;
 import com.zhishilu.resp.LoginResp;
 import com.zhishilu.resp.UserResp;
 import com.zhishilu.entity.User;
@@ -132,6 +133,22 @@ public class UserService {
         return convertToUserDTO(user);
     }
     
+    /**
+     * 用户修改密码（需验证旧密码）
+     */
+    public void updatePassword(String userId, UpdatePasswordReq req) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("用户不存在"));
+        if (!user.getPassword().equals(encryptPassword(req.getOldPassword()))) {
+            throw new BusinessException("当前密码错误");
+        }
+        user.setPassword(encryptPassword(req.getNewPassword()));
+        userRepository.save(user);
+        // 清除 Token，强制重新登录
+        redisTokenService.removeTokenByUserId(userId);
+        log.info("用户 {} 修改密码成功", user.getUsername());
+    }
+
     /**
      * 更新用户头像
      */

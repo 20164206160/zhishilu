@@ -3,6 +3,7 @@ package com.zhishilu.controller;
 import com.zhishilu.common.PageResult;
 import com.zhishilu.common.Result;
 import com.zhishilu.dto.UserDTO;
+import com.zhishilu.req.UpdatePasswordReq;
 import com.zhishilu.resp.UserResp;
 import com.zhishilu.config.AdminConfig;
 import com.zhishilu.service.FileService;
@@ -112,6 +113,19 @@ public class UserController {
         return Result.success(adminConfig.getAdminUsernameSet());
     }
     
+    /**
+     * 修改当前用户密码
+     */
+    @PutMapping("/password")
+    public Result<Void> updatePassword(@RequestBody UpdatePasswordReq req) {
+        UserDTO currentUser = UserContext.getCurrentUser();
+        if (currentUser == null) {
+            return Result.unauthorized();
+        }
+        userService.updatePassword(currentUser.getId(), req);
+        return Result.success("密码修改成功，请重新登录", null);
+    }
+
     // ==================== 用户管理接口（管理员专用） ====================
     
     /**

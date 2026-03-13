@@ -642,8 +642,16 @@ const loadDrafts = async () => {
 
 // Password update
 const confirmUpdatePwd = () => {
-  if (!pwdForm.newPassword || pwdForm.newPassword !== pwdForm.confirmPassword) {
-    alert('密码不一致或为空');
+  if (!pwdForm.oldPassword) {
+    alert('请输入当前密码');
+    return;
+  }
+  if (!pwdForm.newPassword || pwdForm.newPassword.length < 6) {
+    alert('新密码不能少于6位');
+    return;
+  }
+  if (pwdForm.newPassword !== pwdForm.confirmPassword) {
+    alert('两次输入的新密码不一致');
     return;
   }
   confirmConfig.title = '确认更新密码？';
@@ -651,9 +659,18 @@ const confirmUpdatePwd = () => {
   confirmConfig.type = 'primary';
   confirmConfig.show = true;
   confirmConfig.action = async () => {
-    console.log('Update password', pwdForm);
-    alert('更新成功，请重新登录');
-    handleLogout();
+    try {
+      const res = await request.put('/user/password', {
+        oldPassword: pwdForm.oldPassword,
+        newPassword: pwdForm.newPassword
+      });
+      if (res.data.code === 200) {
+        alert('密码修改成功，请重新登录');
+        handleLogout();
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || '密码修改失败');
+    }
   };
 };
 
