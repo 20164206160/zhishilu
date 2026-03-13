@@ -130,3 +130,50 @@ src/main/java/com/zhishilu/
     ├── JwtUtil.java            # JWT工具
     └── UserContext.java        # 用户上下文
 ```
+
+### 5. 部署
+cd frontend 目录下
+
+执行 页面打包命令
+```bash
+npm run build
+```
+将打包好的 dist/ 传输到服务器上
+```bash
+scp -r dist root@ip:/usr/local/src
+```
+使用nginx关联指向 dist/ 目录下的文件，配置如下
+```nginx
+server {
+    listen 80;
+    server_name _;
+
+    root /opt/vue-app/dist;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+重启nginx
+```bash
+# 检查配置文件语法
+sbin/nginx -t
+# 重新加载配置
+sbin/nginx -s reload
+```
+
+使用maven打包后端 jar 文件
+```bash
+mvn clean package
+```
+将 jar 文件传输到服务器上
+```bash
+scp zhishilu.jar root@ip:/usr/local/src
+```
+将运行脚本 app.sh 文件传输到服务器上
+```bash
+scp app.sh root@ip:/usr/local/src
+```
+
