@@ -106,7 +106,7 @@
           <div class="grid grid-cols-3 sm:grid-cols-4 gap-4">
             <div v-for="(img, index) in form.images" :key="index" class="aspect-square rounded-2xl bg-gray-100 relative group overflow-hidden">
               <img :src="getImageUrl(img)" class="w-full h-full object-cover" />
-              <button @click="removeImage(index)" class="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+              <button @click="removeImage(index)" class="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity">
                 <X :size="12" />
               </button>
             </div>
@@ -296,7 +296,7 @@ const handleFileUpload = async (e: Event) => {
       }
     } catch (err) {
       console.error('Upload error:', err);
-      alert('图片上传失败');
+      alert('图片上传失败，请重试');
     }
   }
 

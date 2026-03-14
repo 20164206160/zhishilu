@@ -37,10 +37,10 @@
       <div v-else-if="!showPreview" class="bg-white rounded-2xl sm:rounded-[32px] p-4 sm:p-8 shadow-sm border border-gray-100 space-y-6 sm:space-y-8">
         <!-- Title -->
         <section class="space-y-2">
-          <input 
+          <input
             v-model="form.title"
-            type="text" 
-            placeholder="输入标题..." 
+            type="text"
+            placeholder="输入标题..."
             class="w-full text-3xl font-black placeholder:text-gray-200 border-none focus:ring-0 p-0 text-gray-900"
           />
           <div class="h-px bg-gray-50 w-full"></div>
@@ -56,8 +56,8 @@
           </div>
           <!-- Recommended Categories -->
           <div class="flex flex-wrap gap-2">
-            <button 
-              v-for="cat in topCategories" 
+            <button
+              v-for="cat in topCategories"
               :key="cat"
               @click="toggleCategory(cat)"
               :class="['px-4 py-1.5 rounded-full text-xs font-medium transition-all border', form.categories.includes(cat) ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-gray-100 text-gray-500 hover:bg-gray-50']"
@@ -72,7 +72,7 @@
                 placeholder="手动输入分类"
                 class="w-full px-4 bg-gray-50 border-none rounded-full text-xs focus:ring-2 focus:ring-blue-500 transition-all h-11"
               />
-              <button 
+              <button
                 @click="addCustomCategory"
                 class="px-3 py-1.5 bg-blue-500 text-white rounded-full text-xs font-medium hover:bg-blue-600 transition-colors"
               >
@@ -83,8 +83,8 @@
           <!-- 已选类别展示 -->
           <div v-if="form.categories.length > 0" class="flex flex-wrap gap-2 mt-2">
             <span class="text-xs text-gray-400">已选：</span>
-            <span 
-              v-for="(cat, index) in form.categories" 
+            <span
+              v-for="(cat, index) in form.categories"
               :key="index"
               class="px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full text-xs font-medium flex items-center gap-1"
             >
@@ -107,11 +107,11 @@
           <div class="grid grid-cols-3 sm:grid-cols-4 gap-4">
             <div v-for="(img, index) in form.images" :key="index" class="aspect-square rounded-2xl bg-gray-100 relative group overflow-hidden">
               <img :src="getImageUrl(img)" class="w-full h-full object-cover" />
-              <button @click="removeImage(index)" class="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+              <button @click="removeImage(index)" class="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity">
                 <X :size="12" />
               </button>
             </div>
-            <button 
+            <button
               @click="triggerUpload"
               class="aspect-square rounded-2xl border-2 border-dashed border-gray-100 hover:border-blue-200 hover:bg-blue-50 transition-all flex flex-col items-center justify-center text-gray-300 hover:text-blue-400 gap-1"
             >
@@ -136,10 +136,10 @@
               <MapPin :size="14" /> 地点
             </label>
             <div class="relative">
-              <input 
+              <input
                 v-model="form.location"
-                type="text" 
-                placeholder="输入地点..." 
+                type="text"
+                placeholder="输入地点..."
                 class="w-full pl-10 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 transition-all text-sm"
               />
               <MapPin class="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500" :size="16" />
@@ -152,10 +152,10 @@
               <LinkIcon :size="14" /> 来源网址
             </label>
             <div class="relative">
-              <input 
+              <input
                 v-model="form.url"
-                type="text" 
-                placeholder="https://..." 
+                type="text"
+                placeholder="https://..."
                 class="w-full pl-10 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 transition-all text-sm"
               />
               <LinkIcon class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" :size="16" />
@@ -168,7 +168,7 @@
       <div v-else class="bg-white rounded-2xl sm:rounded-[32px] p-4 sm:p-8 shadow-sm border border-gray-100">
         <!-- 预览标题 -->
         <h1 class="text-xl sm:text-3xl font-black text-gray-900 mb-4 sm:mb-6">{{ form.title || '无标题' }}</h1>
-        
+
         <!-- 预览元信息 -->
         <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-4 sm:mb-6 text-xs sm:text-sm text-gray-500">
           <span v-if="form.categories.length > 0" class="flex items-center gap-1">
@@ -208,7 +208,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted } from 'vue';
-import { 
+import {
   ChevronLeft, Tag, Image as ImageIcon, X, Plus, Type, MapPin, Link as LinkIcon, Eye, EyeOff
 } from 'lucide-vue-next';
 import { useRoute, useRouter } from 'vue-router';
@@ -291,12 +291,12 @@ const saveDraftSync = async () => {
   if (currentContent === lastSavedContent.value) {
     return; // 内容未变化，跳过保存
   }
-  
+
   const hasContent = form.title || hasRichTextContent(form.content) || form.images.length > 0 || form.categories.length > 0 || form.location;
   if (!hasContent) {
     return; // 没有有效内容，跳过保存
   }
-  
+
   try {
     const draftData = {
       id: draftId.value,
@@ -307,7 +307,7 @@ const saveDraftSync = async () => {
       url: form.url,
       location: form.location
     };
-    
+
     const res = await request.post('/article/draft', draftData);
     if (res.data.code === 200) {
       lastSavedContent.value = currentContent;
@@ -336,29 +336,29 @@ const triggerUpload = () => {
 const handleFileUpload = async (e: Event) => {
   const files = (e.target as HTMLInputElement).files;
   if (!files) return;
-  
+
   // 立即上传每个文件到服务器
   for (const file of Array.from(files)) {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const res = await request.post('/file/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
-      
+
       if (res.data.code === 200 && res.data.data.path) {
         // 保存服务器返回的相对路径
         form.images.push(res.data.data.path);
       }
     } catch (err) {
       console.error('Upload error:', err);
-      alert('图片上传失败');
+      alert('图片上传失败，请重试');
     }
   }
-  
+
   // 清空文件输入框，允许重复选择同一文件
   if (fileInput.value) {
     fileInput.value.value = '';
@@ -403,13 +403,13 @@ const autoSaveDraft = async () => {
   if (currentContent === lastSavedContent.value) {
     return; // 内容未变化，跳过保存
   }
-  
+
   // 检查是否有有效内容（至少有一个字段不为空）
   const hasContent = form.title || hasRichTextContent(form.content) || form.images.length > 0 || form.categories.length > 0 || form.location;
   if (!hasContent) {
     return; // 没有有效内容，跳过保存
   }
-  
+
   try {
     autoSaveStatus.value = '保存中...';
     const draftData = {
@@ -421,7 +421,7 @@ const autoSaveDraft = async () => {
       url: form.url,
       location: form.location
     };
-    
+
     const res = await request.post('/article/draft', draftData);
     if (res.data.code === 200) {
       lastSavedContent.value = currentContent;
@@ -462,7 +462,7 @@ const handlePublish = async () => {
     alert('请填写标题、选择分类和地点');
     return;
   }
-  
+
   if (form.images.length === 0 && !hasRichTextContent(form.content)) {
     alert('图片和正文必须填写其中一个');
     return;

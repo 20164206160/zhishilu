@@ -103,7 +103,7 @@
           <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-4">
             <div v-for="(img, index) in form.images" :key="index" class="aspect-square rounded-xl sm:rounded-2xl bg-gray-100 relative group overflow-hidden">
               <img :src="getImageUrl(img)" class="w-full h-full object-cover" />
-              <button @click="removeImage(index)" class="absolute top-1 right-1 bg-black/50 text-white p-0.5 sm:p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+              <button @click="removeImage(index)" class="absolute top-1 right-1 bg-black/50 text-white p-0.5 sm:p-1 rounded-full opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity">
                 <X :size="10" class="sm:w-3 sm:h-3" />
               </button>
             </div>
@@ -164,7 +164,7 @@
       <div v-else class="bg-white rounded-2xl sm:rounded-[32px] p-4 sm:p-8 shadow-sm border border-gray-100">
         <!-- 预览标题 -->
         <h1 class="text-xl sm:text-3xl font-black text-gray-900 mb-4 sm:mb-6">{{ form.title || '无标题' }}</h1>
-        
+
         <!-- 预览元信息 -->
         <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-4 sm:mb-6 text-xs sm:text-sm text-gray-500">
           <span v-if="form.categories.length > 0" class="flex items-center gap-1">
@@ -204,7 +204,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted } from 'vue';
-import { 
+import {
   ChevronLeft, Tag, Image as ImageIcon, X, Plus, Type, MapPin, Link as LinkIcon, Eye, EyeOff
 } from 'lucide-vue-next';
 import { useRouter } from 'vue-router';
@@ -286,7 +286,7 @@ const saveDraftSync = async () => {
   if (currentContent === lastSavedContent.value) {
     return; // 内容未变化，跳过保存
   }
-  
+
   const hasContent = form.title || hasRichTextContent(form.content) || form.images.length > 0 || form.categories.length > 0;
   if (!hasContent) {
     return; // 没有有效内容，跳过保存
@@ -326,29 +326,29 @@ const triggerUpload = () => {
 const handleFileUpload = async (e: Event) => {
   const files = (e.target as HTMLInputElement).files;
   if (!files) return;
-  
+
   // 立即上传每个文件到服务器
   for (const file of Array.from(files)) {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const res = await request.post('/file/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
-      
+
       if (res.data.code === 200 && res.data.data.path) {
         // 保存服务器返回的相对路径
         form.images.push(res.data.data.path);
       }
     } catch (err) {
       console.error('Upload error:', err);
-      alert('图片上传失败');
+      alert('图片上传失败，请重试');
     }
   }
-  
+
   // 清空文件输入框，允许重复选择同一文件
   if (fileInput.value) {
     fileInput.value.value = '';
@@ -418,7 +418,7 @@ const autoSaveDraft = async () => {
   if (currentContent === lastSavedContent.value) {
     return; // 内容未变化，跳过保存
   }
-  
+
   // 检查是否有有效内容（至少有一个字段不为空）
   const hasContent = form.title || hasRichTextContent(form.content) || form.images.length > 0 || form.categories.length > 0;
   if (!hasContent) {
@@ -436,7 +436,7 @@ const autoSaveDraft = async () => {
       url: form.url,
       location: form.location
     };
-    
+
     const res = await request.post('/article/draft', draftData);
     if (res.data.code === 200) {
       draftId.value = res.data.data.id;
@@ -478,7 +478,7 @@ const handleSubmit = async () => {
     alert('请填写标题、选择分类和地点');
     return;
   }
-  
+
   if (form.images.length === 0 && !hasRichTextContent(form.content)) {
     alert('图片和正文必须填写其中一个');
     return;
