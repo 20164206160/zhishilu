@@ -1,6 +1,7 @@
 package com.zhishilu.service;
 
 import com.zhishilu.exception.BusinessException;
+import com.zhishilu.util.HeicConvertUtil;
 import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
@@ -73,21 +74,24 @@ public class FileService {
     }
     
     /**
-     * 上传文件
+     * 上传文件，HEIC/HEIF 自动转换为 JPG
      */
     public String upload(MultipartFile file) throws IOException {
-        // 检查文件是否为空
         if (file.isEmpty()) {
             throw new BusinessException("文件不能为空");
         }
-        
-        // 检查文件大小
         if (file.getSize() > maxSize) {
             throw new BusinessException("文件大小不能超过10MB");
         }
-        
-        // 检查文件类型
-        String extension = FilenameUtils.getExtension(file.getOriginalFilename()).toLowerCase();
+
+        String originalFilename = file.getOriginalFilename();
+
+        // HEIC/HEIF 单独处理：落盘后转 JPG
+        if (HeicConvertUtil.isHeicLike(file, originalFilename)) {
+            return uploadAndConvertHeic(file);
+        }
+
+        String extension = FilenameUtils.getExtension(originalFilename).toLowerCase();
         if (!allowedTypeList.contains(extension)) {
             throw new BusinessException("不支持的文件类型: " + extension);
         }
@@ -96,19 +100,50 @@ public class FileService {
         String dateDir = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         String fileName = UUID.randomUUID().toString().replace("-", "") + "." + extension;
         String relativePath = dateDir + "/" + fileName;
-        
-        // 创建目录 - 使用绝对路径
+
         Path dirPath = Paths.get(absoluteUploadPath, dateDir);
         if (!Files.exists(dirPath)) {
             Files.createDirectories(dirPath);
             log.info("创建日期目录: {}", dirPath.toAbsolutePath());
         }
-        
-        // 保存文件 - 使用绝对路径
+
         Path filePath = Paths.get(absoluteUploadPath, relativePath);
         file.transferTo(filePath.toFile());
         
         log.info("文件上传成功: {}", relativePath);
+        return relativePath;
+    }
+
+    /**
+     * 将 HEIC/HEIF 文件落盘后转换为 JPG，临时文件无论成败都会被清理
+     */
+    private String uploadAndConvertHeic(MultipartFile file) throws IOException {
+        String dateDir = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        Path dirPath = Paths.get(absoluteUploadPath, dateDir);
+        if (!Files.exists(dirPath)) {
+            Files.createDirectories(dirPath);
+            log.info("创建日期目录: {}", dirPath.toAbsolutePath());
+        }
+
+        // 先将原始 HEIC 文件保存到临时路径
+        String tempName = UUID.randomUUID().toString().replace("-", "") + ".heic";
+        Path tempPath = Paths.get(absoluteUploadPath, dateDir, tempName);
+        file.transferTo(tempPath.toFile());
+
+        String jpgName = UUID.randomUUID().toString().replace("-", "") + ".jpg";
+        String relativePath = dateDir + "/" + jpgName;
+        Path jpgPath = Paths.get(absoluteUploadPath, relativePath);
+
+        try {
+            HeicConvertUtil.convertToJpg(tempPath, jpgPath);
+            log.info("HEIC 转换成功: {}", relativePath);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BusinessException("HEIC 转换被中断");
+        } finally {
+            Files.deleteIfExists(tempPath);
+        }
+
         return relativePath;
     }
     
